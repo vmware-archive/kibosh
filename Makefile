@@ -17,4 +17,8 @@ vet:
 
 test: unit-test vet
 
+run:
+	FOO=BAR \
+	go run main.go
+
 all: fmt test do-build

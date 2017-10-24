@@ -1,5 +1,6 @@
 package main
 
 func main() {
-	print("Broker!")
+	//todo: evaluate this to implement broker api: https://github.com/pivotal-cf/brokerapi
+	println("Broker!")
 }

@@ -6,6 +6,8 @@ resources:
   source:
     branch: master
     uri: https://github.com/cf-platform-eng/pks-generic-broker
+    username: cf-pe-bot
+    password: {{github_token}}
 
 jobs:
 - name: unit-tests
@@ -16,16 +18,23 @@ jobs:
   - task: run-tests
     config:
       inputs:
-      - source-repo
+      - name: source-repo
       platform: linux
       image_resource:
         type: docker-image
         source:
           repository: golang
           tag: "1.9"
-    run:
-      go get github.com/onsi/ginkgo/ginkgo
-      go get github.com/onsi/gomega
+      run:
+        path: bash
+        args:
+        - -exc
+        - |
+          go get github.com/onsi/ginkgo/ginkgo
+          go get github.com/onsi/gomega
 
-      pushd source-repo
-      make test
+          export SRC=/go/src/github.com/cf-platform-eng/pks-generic-broker
+          mkdir -p $SRC
+          cp -r source-repo/* $SRC
+          cd $SRC
+          make test
