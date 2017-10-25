@@ -26,51 +26,10 @@ make run
 
 ## Notes
 
+Inline-style: 
+![](SeqDiagram.png)
 
-```
-+-----------+ +-------+                                         +-----+                                        +-----------------+                                  +-----+ +-----+
-| operator  | | user  |                                         | cf  |                                        | generic_broker  |                                  | k8s | | app |
-+-----------+ +-------+                                         +-----+                                        +-----------------+                                  +-----+ +-----+
-      |           |                                                |                                                    |                                              |       |
-      | deploy tile w/ generic_broker+elastic search configured    |                                                    |                                              |       |
-      |----------------------------------------------------------->|                                                    |                                              |       |
-      |           |                                                |                                                    |                                              |       |
-      |           |                                                |                                                    | create odb kubo cluster                      |       |
-      |           |                                                |                                                    |--------------------------------------------->|       |
-      |           |                                                |                                                    |                                              |       |
-      |           |                                                |                 add self to marketplaces (errand?) |                                              |       |
-      |           |                                                |<---------------------------------------------------|                                              |       |
-      |           |                                                |                                                    |                                              |       |
-      |           | create elastic search service                  |                                                    |                                              |       |
-      |           |----------------------------------------------->|                                                    |                                              |       |
-      |           |                                                |                                                    |                                              |       |
-      |           |                                                | create-service API call                            |                                              |       |
-      |           |                                                |--------------------------------------------------->|                                              |       |
-      |           |                                                |                                                    |                                              |       |
-      |           |                                                |                                                    | kubectl create new namespace                 |       |
-      |           |                                                |                                                    |--------------------------------------------->|       |
-      |           |                                                |                                                    |                                              |       |
-      |           |                                                |                                                    | kubectl to create deployment in namespace    |       |
-      |           |                                                |                                                    |--------------------------------------------->|       |
-      |           |                                                |                                                    |                                              |       |
-      |           |                                                |                                                    |                         secrets and services |       |
-      |           |                                                |                                                    |<---------------------------------------------|       |
-      |           |                                                |                                                    |                                              |       |
-      |           | bind-service                                   |                                                    |                                              |       |
-      |           |----------------------------------------------->|                                                    |                                              |       |
-      |           |                                                |                                                    |                                              |       |
-      |           |                                                | give me creds                                      |                                              |       |
-      |           |                                                |--------------------------------------------------->|                                              |       |
-      |           |                                                |                                                    |                                              |       |
-      |           |                                                |          secrets and services in credentials block |                                              |       |
-      |           |                                                |<---------------------------------------------------|                                              |       |
-      |           |                                                |                                                    |                                              |       |
-      |           |                                                | secrets and services in credentials block          |                                              |       |
-      |           |                                                |---------------------------------------------------------------------------------------------------------->|
-      |           |                                                |                                                    |                                              |       |
-```
-
-Diagram source http://textart.io/sequence + 
+Diagram source https://www.websequencediagrams.com/ + 
 ```text
 object operator user cf generic_broker k8s app
 operator->cf: deploy tile w/ generic_broker+elastic search configured
@@ -80,9 +39,10 @@ user->cf: create elastic search service
 cf->generic_broker: create-service API call
 generic_broker-> k8s: kubectl create new namespace
 generic_broker-> k8s: kubectl to create deployment in namespace
-k8s->generic_broker: secrets and services
 user->cf: bind-service
-cf->generic_broker: give me creds
-generic_broker->cf: secrets and services in credentials block
-cf->app: secrets and services in credentials block
+cf->generic_broker: bind-service
+generic_broker-> k8s: kubectl get secrets / kubectl get services
+k8s->generic_broker: secrets and services
+generic_broker->cf: secrets and services in cf format
+cf->app: secrets and services as env vars
 ```
