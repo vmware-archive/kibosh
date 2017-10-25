@@ -18,7 +18,8 @@ vet:
 test: unit-test vet
 
 run:
-	FOO=BAR \
+	ADMIN_USERNAME=user \
+	ADMIN_PASSWORD=pass \
 	go run main.go
 
 all: fmt test do-build
