@@ -32,7 +32,10 @@ func main() {
 		Password: c.AdminPassword,
 	}
 
-	serviceBroker := &broker.PksServiceBroker{}
+	serviceBroker := &broker.PksServiceBroker{
+		HelmChartDir: c.HelmChartDir,
+		ServiceID:    c.ServiceID,
+	}
 
 	brokerAPI := brokerapi.New(serviceBroker, brokerLogger, brokerCredentials)
 

@@ -1,0 +1,7 @@
+---
+applications:
+  - name: pks-generic-broker
+    command: pks-generic-broker
+    env:
+      GOPACKAGENAME: github.com/cf-platform-eng/pks-generic-broker
+      ADMIN_PASSWORD: pass

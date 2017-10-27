@@ -18,7 +18,8 @@ vet:
 test: unit-test vet
 
 run:
-	ADMIN_USERNAME=user \
+	SERVICE_ID=123 \
+	ADMIN_USERNAME=admin \
 	ADMIN_PASSWORD=pass \
 	go run main.go
 
