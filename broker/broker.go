@@ -2,8 +2,10 @@ package broker
 
 import (
 	"context"
+	"io"
 	"io/ioutil"
 	"log"
+	"os"
 	"path"
 
 	"github.com/pivotal-cf/brokerapi"
@@ -16,18 +18,20 @@ type PksServiceBroker struct {
 	ServiceID    string
 }
 
-type helmChart struct {
+// HelmChart contains heml chart data useful for Broker Catalog
+type HelmChart struct {
 	Name        string `yaml:"name"`
 	Description string `yaml:"description"`
 }
 
-func getConf(pathToYml string) *helmChart {
+// GetConf parses the chart yaml file.
+func GetConf(yamlReader io.Reader) *HelmChart {
 
-	yamlFile, err := ioutil.ReadFile(pathToYml)
+	yamlFile, err := ioutil.ReadAll(yamlReader)
 	if err != nil {
 		log.Printf("yamlFile.Get err   #%v ", err)
 	}
-	c := &helmChart{}
+	c := &HelmChart{}
 	err = yaml.Unmarshal(yamlFile, c)
 	if err != nil {
 		log.Fatalf("Unmarshal: %v", err)
@@ -40,7 +44,12 @@ func getConf(pathToYml string) *helmChart {
 func (pksServiceBroker *PksServiceBroker) Services(ctx context.Context) []brokerapi.Service {
 
 	// Get the helm chart Chart.yaml data
-	helmChart := getConf(path.Join(pksServiceBroker.HelmChartDir, "Chart.yaml"))
+	file, err := os.Open(path.Join(pksServiceBroker.HelmChartDir, "Chart.yaml"))
+	if err != nil {
+		log.Fatal("Unable to read Chart.yaml", err)
+	}
+	defer file.Close()
+	helmChart := GetConf(file)
 
 	// Create a default plan.
 	plan := []brokerapi.ServicePlan{{
