@@ -21,9 +21,6 @@ version: 0.0.1
 `)
 
 	Context("Broker", func() {
-		BeforeEach(func() {
-			os.Clearenv()
-		})
 
 		It("Provides a catalog", func() {
 
