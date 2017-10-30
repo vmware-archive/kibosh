@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 
@@ -12,8 +11,6 @@ import (
 
 	"github.com/pivotal-cf/brokerapi"
 )
-
-var logger *log.Logger
 
 func main() {
 
