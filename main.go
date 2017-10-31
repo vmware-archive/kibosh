@@ -6,15 +6,15 @@ import (
 	"os"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/cf-platform-eng/pks-generic-broker/broker"
-	"github.com/cf-platform-eng/pks-generic-broker/config"
+	"github.com/cf-platform-eng/kibosh/broker"
+	"github.com/cf-platform-eng/kibosh/config"
 
 	"github.com/pivotal-cf/brokerapi"
 )
 
 func main() {
 
-	brokerLogger := lager.NewLogger("pks-generic-broker")
+	brokerLogger := lager.NewLogger("kibosh")
 	brokerLogger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
 	brokerLogger.RegisterSink(lager.NewWriterSink(os.Stderr, lager.ERROR))
 	brokerLogger.Info("Starting PKS Generic Broker")

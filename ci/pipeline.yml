@@ -5,7 +5,7 @@ resources:
   type: git
   source:
     branch: master
-    uri: https://github.com/cf-platform-eng/pks-generic-broker
+    uri: https://github.com/cf-platform-eng/kibosh
     username: cf-pe-bot
     password: {{github_token}}
 
@@ -33,7 +33,7 @@ jobs:
           go get github.com/onsi/ginkgo/ginkgo
           go get github.com/onsi/gomega
 
-          export SRC=/go/src/github.com/cf-platform-eng/pks-generic-broker
+          export SRC=/go/src/github.com/cf-platform-eng/kibosh
           mkdir -p $SRC
           cp -r source-repo/* $SRC
           cd $SRC

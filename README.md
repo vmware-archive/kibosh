@@ -1,4 +1,4 @@
-# pks-generic-broker
+# Kibosh
 
 A generic broker bridging the gap between Kubernetes and CF brokered services.
 
@@ -31,7 +31,7 @@ make run
 ```
 
 ### ci
-* https://concourse.cfplatformeng.com/teams/main/pipelines/pks-generic-broker
+* https://concourse.cfplatformeng.com/teams/main/pipelines/kibosh
 
 ## Notes
 

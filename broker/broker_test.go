@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/cf-platform-eng/pks-generic-broker/broker"
+	"github.com/cf-platform-eng/kibosh/broker"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"

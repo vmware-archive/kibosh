@@ -4,7 +4,7 @@ GO_PACKAGES = $$(go list ./... | grep -v vendor)
 GO_FILES = $$(find . -name "*.go" | grep -v vendor | uniq)
 
 do-build:
-	go build -o pks-generic-broker ./main.go
+	go build -o kibosh ./main.go
 
 unit-test:
 	@go test ${GO_PACKAGES}

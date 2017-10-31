@@ -6,7 +6,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	. "github.com/cf-platform-eng/pks-generic-broker/config"
+	. "github.com/cf-platform-eng/kibosh/config"
 )
 
 var _ = Describe("Config", func() {
