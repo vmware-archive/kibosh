@@ -4,16 +4,19 @@ import (
 	"context"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 
+	"code.cloudfoundry.org/lager"
+
 	"github.com/pivotal-cf/brokerapi"
-	yaml "gopkg.in/yaml.v2"
+	"github.com/pkg/errors"
+	"gopkg.in/yaml.v2"
 )
 
 // PksServiceBroker contains values passed in from configuration necessary for broker's work.
 type PksServiceBroker struct {
+	Logger       lager.Logger
 	HelmChartDir string
 	ServiceID    string
 }
@@ -25,19 +28,20 @@ type HelmChart struct {
 }
 
 // GetConf parses the chart yaml file.
-func GetConf(yamlReader io.Reader) *HelmChart {
+func GetConf(yamlReader io.Reader) (*HelmChart, error) {
 
 	yamlFile, err := ioutil.ReadAll(yamlReader)
 	if err != nil {
-		log.Printf("yamlFile.Get err   #%v ", err)
+		return nil, errors.Wrap(err, "Unable to read Chart.yaml")
 	}
+
 	c := &HelmChart{}
 	err = yaml.Unmarshal(yamlFile, c)
 	if err != nil {
-		log.Fatalf("Unmarshal: %v", err)
+		return nil, errors.Wrap(err, "Unable to unmarshal Chart.yaml")
 	}
 
-	return c
+	return c, nil
 }
 
 // Services reads Chart.yaml and uses the name and description in the service catalog.
@@ -46,10 +50,13 @@ func (pksServiceBroker *PksServiceBroker) Services(ctx context.Context) []broker
 	// Get the helm chart Chart.yaml data
 	file, err := os.Open(path.Join(pksServiceBroker.HelmChartDir, "Chart.yaml"))
 	if err != nil {
-		log.Fatal("Unable to read Chart.yaml", err)
+		pksServiceBroker.Logger.Fatal("Unable to read Chart.yaml", err)
 	}
 	defer file.Close()
-	helmChart := GetConf(file)
+	helmChart, err := GetConf(file)
+	if err != nil {
+		pksServiceBroker.Logger.Fatal("Unable to parse Chart.yaml", err)
+	}
 
 	// Create a default plan.
 	plan := []brokerapi.ServicePlan{{

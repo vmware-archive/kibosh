@@ -11,6 +11,15 @@ go get github.com/onsi/gomega
 go get github.com/maxbrunsfeld/counterfeiter
 ```
 
+#### Dependency vendoring
+```bash
+govendor add +external
+```
+
+To change dependencies, see [govendor](https://github.com/kardianos/govendor) docs for specific commands.
+
+(Tried `dep`, but it added 10s of megabytes of golang.org/x/... to vendor)
+
 #### Test
 ```bash
 make test

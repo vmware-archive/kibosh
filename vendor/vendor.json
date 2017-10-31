@@ -213,6 +213,12 @@
 			"revisionTime": "2017-10-11T13:40:21Z"
 		},
 		{
+			"checksumSHA1": "rJab1YdNhQooDiBWNnt7TLWPyBU=",
+			"path": "github.com/pkg/errors",
+			"revision": "f15c970de5b76fac0b59abb32d62c17cc7bed265",
+			"revisionTime": "2017-10-18T19:55:50Z"
+		},
+		{
 			"checksumSHA1": "/PGQlVbw8jILX3tLQaYAg6bTAFI=",
 			"path": "golang.org/x/net/html",
 			"revision": "4b14673ba32bee7f5ac0f990a48f033919fd418b",

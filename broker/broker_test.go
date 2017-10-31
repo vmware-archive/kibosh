@@ -60,5 +60,18 @@ version: 0.0.1
 
 		})
 
+		It("Throws an appropriate error", func() {
+
+			serviceBroker := &broker.PksServiceBroker{
+				HelmChartDir: "unknown",
+				ServiceID:    "service-id",
+			}
+
+			Expect(func() {
+				serviceBroker.Services(nil)
+			}).To(Panic())
+
+		})
+
 	})
 })
