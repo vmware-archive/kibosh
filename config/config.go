@@ -5,8 +5,8 @@ import (
 )
 
 type config struct {
-	AdminUsername string `envconfig:"admin_username" default:"admin"`
-	AdminPassword string `envconfig:"admin_password" required:"true"`
+	AdminUsername string `envconfig:"SECURITY_USER_NAME" required:"true"`
+	AdminPassword string `envconfig:"SECURITY_USER_PASSWORD" required:"true"`
 	Port          int    `envconfig:"port" default:"8080"`
 	HelmChartDir  string `envconfig:"HELM_CHART_DIR" default:"helm"`
 	ServiceID     string `envconfig:"SERVICE_ID" required:"true"`

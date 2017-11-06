@@ -17,8 +17,8 @@ var _ = Describe("Config", func() {
 		})
 
 		It("parses config from environment", func() {
-			os.Setenv("ADMIN_USERNAME", "bob")
-			os.Setenv("ADMIN_PASSWORD", "abc123")
+			os.Setenv("SECURITY_USER_NAME", "bob")
+			os.Setenv("SECURITY_USER_PASSWORD", "abc123")
 			os.Setenv("PORT", "9001")
 			os.Setenv("HELM_CHART_DIR", "/home/somewhere")
 			os.Setenv("SERVICE_ID", "123")

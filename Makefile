@@ -19,8 +19,8 @@ test: unit-test vet
 
 run:
 	SERVICE_ID=123 \
-	ADMIN_USERNAME=admin \
-	ADMIN_PASSWORD=pass \
+	SECURITY_USER_NAME=admin \
+	SECURITY_USER_PASSWORD=pass \
 	go run main.go
 
 all: fmt test do-build
