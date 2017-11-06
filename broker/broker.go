@@ -2,13 +2,14 @@ package broker
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path"
 
 	"code.cloudfoundry.org/lager"
-
+	"github.com/cf-platform-eng/kibosh/k8s"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
@@ -19,12 +20,21 @@ type PksServiceBroker struct {
 	Logger       lager.Logger
 	HelmChartDir string
 	ServiceID    string
+	cluster      k8s.Cluster
 }
 
 // HelmChart contains heml chart data useful for Broker Catalog
 type HelmChart struct {
 	Name        string `yaml:"name"`
 	Description string `yaml:"description"`
+}
+
+func NewPksServiceBroker(helmChartDir string, serviceID string, cluster k8s.Cluster) *PksServiceBroker {
+	return &PksServiceBroker{
+		HelmChartDir: helmChartDir,
+		ServiceID:    serviceID,
+		cluster:      cluster,
+	}
 }
 
 // GetConf parses the chart yaml file.
@@ -80,8 +90,12 @@ func (pksServiceBroker *PksServiceBroker) Services(ctx context.Context) []broker
 // does the Helm install into that namespace, and
 // converts the cf create-instance json block into Helm key-value pairs.
 func (pksServiceBroker *PksServiceBroker) Provision(ctx context.Context, instanceID string, details brokerapi.ProvisionDetails, asyncAllowed bool) (brokerapi.ProvisionedServiceSpec, error) {
-
-	// TODO
+	//todo: list pods temp implementation just to validate that things are wired up
+	fmt.Printf("----------------------------------------\n")
+	pods, err := pksServiceBroker.cluster.ListPods()
+	fmt.Printf("pds %+v\n", pods)
+	fmt.Printf("err %+v\n", err)
+	fmt.Printf("----------------------------------------\n")
 
 	return brokerapi.ProvisionedServiceSpec{}, nil
 }

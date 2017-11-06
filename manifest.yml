@@ -5,3 +5,6 @@ applications:
     env:
       GOPACKAGENAME: github.com/cf-platform-eng/kibosh
       ADMIN_PASSWORD: pass
+      SERVICE_ID: kibosh
+    services:
+      - my-kubernetes

@@ -13,6 +13,7 @@ var _ = Describe("Config", func() {
 	Context("config parsing", func() {
 		BeforeEach(func() {
 			os.Clearenv()
+			os.Setenv("VCAP_SERVICES", valid_vcap_services)
 		})
 
 		It("parses config from environment", func() {
@@ -29,6 +30,10 @@ var _ = Describe("Config", func() {
 			Expect(c.HelmChartDir).To(Equal("/home/somewhere"))
 			Expect(c.ServiceID).To(Equal("123"))
 			Expect(c.Port).To(Equal(9001))
+
+			Expect(c.KuboODBVCAP).NotTo(BeNil())
+			Expect(c.KuboODBVCAP.Name).To(Equal("my-kubernetes"))
+			Expect(c.KuboODBVCAP.Credentials.KubeConfig.ApiVersion).To(Equal("v1"))
 		})
 
 		It("check for required password", func() {
