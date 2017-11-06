@@ -18,6 +18,7 @@ vet:
 test: unit-test vet
 
 run:
+	VCAP_SERVICES='{"kubo-odb":[{"credentials":{"kubeconfig":{"apiVersion":"v1","clusters":[{"cluster":{"certificate-authority-data":"bXktZmFrZWNlcnQ="}}],"users":[{"user":{"token":"bXktZmFrZWNlcnQ="}}]}}}]}' \
 	SERVICE_ID=123 \
 	SECURITY_USER_NAME=admin \
 	SECURITY_USER_PASSWORD=pass \
