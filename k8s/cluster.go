@@ -2,20 +2,21 @@ package k8s
 
 import (
 	"github.com/cf-platform-eng/kibosh/config"
-	"k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	api_v1 "k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/rest"
 )
 
 type Cluster interface {
 	//todo: ListPods is just to validate that API working, delete as appropriate
-	ListPods() (*v1.PodList, error)
+	ListPods() (*api_v1.PodList, error)
+	GetClient() kubernetes.Interface
 }
 
 type cluster struct {
 	kuboConfig *config.KuboODBVCAP
-	clientSet  *kubernetes.Clientset
+	client     kubernetes.Interface
 }
 
 func NewCluster(kuboConfig *config.KuboODBVCAP) (Cluster, error) {
@@ -24,7 +25,7 @@ func NewCluster(kuboConfig *config.KuboODBVCAP) (Cluster, error) {
 	}
 
 	var err error
-	newK8s.clientSet, err = buildClientConfig(kuboConfig)
+	newK8s.client, err = buildClientConfig(kuboConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +33,7 @@ func NewCluster(kuboConfig *config.KuboODBVCAP) (Cluster, error) {
 	return &newK8s, nil
 }
 
-func buildClientConfig(kuboConfig *config.KuboODBVCAP) (*kubernetes.Clientset, error) {
+func buildClientConfig(kuboConfig *config.KuboODBVCAP) (kubernetes.Interface, error) {
 	user := kuboConfig.Credentials.KubeConfig.Users[0]
 	cluster := kuboConfig.Credentials.KubeConfig.Clusters[0]
 
@@ -51,13 +52,18 @@ func buildClientConfig(kuboConfig *config.KuboODBVCAP) (*kubernetes.Clientset, e
 		BearerToken:     token,
 		TLSClientConfig: tlsClientConfig,
 	}
+
 	clientSet, err := kubernetes.NewForConfig(k8sConfig)
 	return clientSet, err
 }
 
-func (cluster cluster) ListPods() (*v1.PodList, error) {
+func (cluster cluster) GetClient() kubernetes.Interface {
+	return cluster.client
+}
+
+func (cluster cluster) ListPods() (*api_v1.PodList, error) {
 	//todo: ListPods is just to validate that API working, delete as appropriate
-	pods, err := cluster.clientSet.CoreV1().Pods("").List(metav1.ListOptions{})
+	pods, err := cluster.client.CoreV1().Pods("").List(meta_v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

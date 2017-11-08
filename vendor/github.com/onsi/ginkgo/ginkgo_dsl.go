@@ -68,14 +68,6 @@ type GinkgoTestingT interface {
 	Fail()
 }
 
-//GinkgoRandomSeed returns the seed used to randomize spec execution order.  It is
-//useful for seeding your own pseudorandom number generators (PRNGs) to ensure
-//consistent executions from run to run, where your tests contain variability (for
-//example, when selecting random test data).
-func GinkgoRandomSeed() int64 {
-	return config.GinkgoConfig.RandomSeed
-}
-
 //GinkgoParallelNode returns the parallel node number for the current ginkgo process
 //The node number is 1-indexed
 func GinkgoParallelNode() int {
@@ -202,7 +194,7 @@ func RunSpecs(t GinkgoTestingT, description string) bool {
 //To run your tests with Ginkgo's default reporter and your custom reporter(s), replace
 //RunSpecs() with this method.
 func RunSpecsWithDefaultAndCustomReporters(t GinkgoTestingT, description string, specReporters []Reporter) bool {
-	specReporters = append(specReporters, buildDefaultReporter())
+	specReporters = append([]Reporter{buildDefaultReporter()}, specReporters...)
 	return RunSpecsWithCustomReporters(t, description, specReporters)
 }
 
@@ -216,7 +208,7 @@ func RunSpecsWithCustomReporters(t GinkgoTestingT, description string, specRepor
 		reporters[i] = reporter
 	}
 	passed, hasFocusedTests := globalSuite.Run(t, description, reporters, writer, config.GinkgoConfig)
-	if passed && hasFocusedTests && strings.TrimSpace(os.Getenv("GINKGO_EDITOR_INTEGRATION")) == "" {
+	if passed && hasFocusedTests {
 		fmt.Println("PASS | FOCUSED")
 		os.Exit(types.GINKGO_FOCUS_EXIT_CODE)
 	}
@@ -226,7 +218,7 @@ func RunSpecsWithCustomReporters(t GinkgoTestingT, description string, specRepor
 func buildDefaultReporter() Reporter {
 	remoteReportingServer := config.GinkgoConfig.StreamHost
 	if remoteReportingServer == "" {
-		stenographer := stenographer.New(!config.DefaultReporterConfig.NoColor, config.GinkgoConfig.FlakeAttempts > 1)
+		stenographer := stenographer.New(!config.DefaultReporterConfig.NoColor)
 		return reporters.NewDefaultReporter(config.DefaultReporterConfig, stenographer)
 	} else {
 		return remote.NewForwardingReporter(remoteReportingServer, &http.Client{}, remote.NewOutputInterceptor())

@@ -8,7 +8,7 @@ type config struct {
 	AdminUsername string `envconfig:"SECURITY_USER_NAME" required:"true"`
 	AdminPassword string `envconfig:"SECURITY_USER_PASSWORD" required:"true"`
 	Port          int    `envconfig:"port" default:"8080"`
-	HelmChartDir  string `envconfig:"HELM_CHART_DIR" default:"helm"`
+	HelmChartDir  string `envconfig:"HELM_CHART_DIR" default:"charts"`
 	ServiceID     string `envconfig:"SERVICE_ID" required:"true"`
 
 	KuboODBVCAP *KuboODBVCAP

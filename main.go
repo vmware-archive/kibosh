@@ -8,6 +8,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/cf-platform-eng/kibosh/broker"
 	"github.com/cf-platform-eng/kibosh/config"
+	"github.com/cf-platform-eng/kibosh/helm"
 	"github.com/cf-platform-eng/kibosh/k8s"
 	"github.com/pivotal-cf/brokerapi"
 )
@@ -34,6 +35,9 @@ func main() {
 		Username: conf.AdminUsername,
 		Password: conf.AdminPassword,
 	}
+
+	installer := helm.NewInstaller(cluster.GetClient(), brokerLogger)
+	installer.Install()
 
 	brokerAPI := brokerapi.New(serviceBroker, brokerLogger, brokerCredentials)
 

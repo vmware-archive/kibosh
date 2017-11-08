@@ -64,8 +64,9 @@ If expected is omited, then the message looks like:
 func Message(actual interface{}, message string, expected ...interface{}) string {
 	if len(expected) == 0 {
 		return fmt.Sprintf("Expected\n%s\n%s", Object(actual, 1), message)
+	} else {
+		return fmt.Sprintf("Expected\n%s\n%s\n%s", Object(actual, 1), message, Object(expected[0], 1))
 	}
-	return fmt.Sprintf("Expected\n%s\n%s\n%s", Object(actual, 1), message, Object(expected[0], 1))
 }
 
 /*
@@ -123,16 +124,9 @@ func findFirstMismatch(a, b string) int {
 	bSlice := strings.Split(b, "")
 
 	for index, str := range aSlice {
-		if index > len(b) - 1 {
-			return index
-		}
 		if str != bSlice[index] {
 			return index
 		}
-	}
-
-	if len(b) > len(a) {
-		return len(a) + 1
 	}
 
 	return 0
@@ -254,7 +248,7 @@ func formatValue(value reflect.Value, indentation uint) string {
 	case reflect.Map:
 		return formatMap(value, indentation)
 	case reflect.Struct:
-		if value.Type() == timeType && value.CanInterface() {
+		if value.Type() == timeType {
 			t, _ := value.Interface().(time.Time)
 			return t.Format(time.RFC3339Nano)
 		}
@@ -264,8 +258,9 @@ func formatValue(value reflect.Value, indentation uint) string {
 	default:
 		if value.CanInterface() {
 			return fmt.Sprintf("%#v", value.Interface())
+		} else {
+			return fmt.Sprintf("%#v", value)
 		}
-		return fmt.Sprintf("%#v", value)
 	}
 }
 
@@ -309,8 +304,9 @@ func formatSlice(v reflect.Value, indentation uint) string {
 	if longest > longFormThreshold {
 		indenter := strings.Repeat(Indent, int(indentation))
 		return fmt.Sprintf("[\n%s%s,\n%s]", indenter+Indent, strings.Join(result, ",\n"+indenter+Indent), indenter)
+	} else {
+		return fmt.Sprintf("[%s]", strings.Join(result, ", "))
 	}
-	return fmt.Sprintf("[%s]", strings.Join(result, ", "))
 }
 
 func formatMap(v reflect.Value, indentation uint) string {
@@ -329,8 +325,9 @@ func formatMap(v reflect.Value, indentation uint) string {
 	if longest > longFormThreshold {
 		indenter := strings.Repeat(Indent, int(indentation))
 		return fmt.Sprintf("{\n%s%s,\n%s}", indenter+Indent, strings.Join(result, ",\n"+indenter+Indent), indenter)
+	} else {
+		return fmt.Sprintf("{%s}", strings.Join(result, ", "))
 	}
-	return fmt.Sprintf("{%s}", strings.Join(result, ", "))
 }
 
 func formatStruct(v reflect.Value, indentation uint) string {
@@ -351,8 +348,9 @@ func formatStruct(v reflect.Value, indentation uint) string {
 	if longest > longFormThreshold {
 		indenter := strings.Repeat(Indent, int(indentation))
 		return fmt.Sprintf("{\n%s%s,\n%s}", indenter+Indent, strings.Join(result, ",\n"+indenter+Indent), indenter)
+	} else {
+		return fmt.Sprintf("{%s}", strings.Join(result, ", "))
 	}
-	return fmt.Sprintf("{%s}", strings.Join(result, ", "))
 }
 
 func isNilValue(a reflect.Value) bool {
