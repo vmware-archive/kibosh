@@ -36,8 +36,11 @@ func main() {
 		Password: conf.AdminPassword,
 	}
 
-	installer := helm.NewInstaller(cluster.GetClient(), brokerLogger)
-	installer.Install()
+	helmInstaller := helm.NewInstaller(cluster, brokerLogger)
+	err = helmInstaller.Install()
+	if err != nil {
+		brokerLogger.Fatal("Error setting installing helm", err)
+	}
 
 	brokerAPI := brokerapi.New(serviceBroker, brokerLogger, brokerCredentials)
 

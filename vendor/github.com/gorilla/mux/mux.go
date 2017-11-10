@@ -48,8 +48,6 @@ type Router struct {
 	namedRoutes map[string]*Route
 	// See Router.StrictSlash(). This defines the flag for new routes.
 	strictSlash bool
-	// See Router.SkipClean(). This defines the flag for new routes.
-	skipClean bool
 	// If true, do not clear the request context after handling the request
 	KeepContext bool
 }
@@ -61,12 +59,6 @@ func (r *Router) Match(req *http.Request, match *RouteMatch) bool {
 			return true
 		}
 	}
-
-	// Closest match for a router (includes sub-routers)
-	if r.NotFoundHandler != nil {
-		match.Handler = r.NotFoundHandler
-		return true
-	}
 	return false
 }
 
@@ -75,21 +67,19 @@ func (r *Router) Match(req *http.Request, match *RouteMatch) bool {
 // When there is a match, the route variables can be retrieved calling
 // mux.Vars(request).
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	if !r.skipClean {
-		// Clean path to canonical form and redirect.
-		if p := cleanPath(req.URL.Path); p != req.URL.Path {
+	// Clean path to canonical form and redirect.
+	if p := cleanPath(req.URL.Path); p != req.URL.Path {
 
-			// Added 3 lines (Philip Schlump) - It was dropping the query string and #whatever from query.
-			// This matches with fix in go 1.2 r.c. 4 for same problem.  Go Issue:
-			// http://code.google.com/p/go/issues/detail?id=5252
-			url := *req.URL
-			url.Path = p
-			p = url.String()
+		// Added 3 lines (Philip Schlump) - It was dropping the query string and #whatever from query.
+		// This matches with fix in go 1.2 r.c. 4 for same problem.  Go Issue:
+		// http://code.google.com/p/go/issues/detail?id=5252
+		url := *req.URL
+		url.Path = p
+		p = url.String()
 
-			w.Header().Set("Location", p)
-			w.WriteHeader(http.StatusMovedPermanently)
-			return
-		}
+		w.Header().Set("Location", p)
+		w.WriteHeader(http.StatusMovedPermanently)
+		return
 	}
 	var match RouteMatch
 	var handler http.Handler
@@ -99,7 +89,10 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		setCurrentRoute(req, match.Route)
 	}
 	if handler == nil {
-		handler = http.NotFoundHandler()
+		handler = r.NotFoundHandler
+		if handler == nil {
+			handler = http.NotFoundHandler()
+		}
 	}
 	if !r.KeepContext {
 		defer context.Clear(req)
@@ -134,19 +127,6 @@ func (r *Router) GetRoute(name string) *Route {
 // route inherit the original StrictSlash setting.
 func (r *Router) StrictSlash(value bool) *Router {
 	r.strictSlash = value
-	return r
-}
-
-// SkipClean defines the path cleaning behaviour for new routes. The initial
-// value is false. Users should be careful about which routes are not cleaned
-//
-// When true, if the route path is "/path//to", it will remain with the double
-// slash. This is helpful if you have a route like: /fetch/http://xkcd.com/534/
-//
-// When false, the path will be cleaned, so /fetch/http://xkcd.com/534/ will
-// become /fetch/http/xkcd.com/534
-func (r *Router) SkipClean(value bool) *Router {
-	r.skipClean = value
 	return r
 }
 
@@ -187,7 +167,7 @@ func (r *Router) buildVars(m map[string]string) map[string]string {
 
 // NewRoute registers an empty route.
 func (r *Router) NewRoute() *Route {
-	route := &Route{parent: r, strictSlash: r.strictSlash, skipClean: r.skipClean}
+	route := &Route{parent: r, strictSlash: r.strictSlash}
 	r.routes = append(r.routes, route)
 	return route
 }
@@ -253,7 +233,7 @@ func (r *Router) Schemes(schemes ...string) *Route {
 	return r.NewRoute().Schemes(schemes...)
 }
 
-// BuildVarsFunc registers a new route with a custom function for modifying
+// BuildVars registers a new route with a custom function for modifying
 // route variables before building a URL.
 func (r *Router) BuildVarsFunc(f BuildVarsFunc) *Route {
 	return r.NewRoute().BuildVarsFunc(f)
@@ -344,15 +324,11 @@ func CurrentRoute(r *http.Request) *Route {
 }
 
 func setVars(r *http.Request, val interface{}) {
-	if val != nil {
-		context.Set(r, varsKey, val)
-	}
+	context.Set(r, varsKey, val)
 }
 
 func setCurrentRoute(r *http.Request, val interface{}) {
-	if val != nil {
-		context.Set(r, routeKey, val)
-	}
+	context.Set(r, routeKey, val)
 }
 
 // ----------------------------------------------------------------------------
@@ -374,7 +350,6 @@ func cleanPath(p string) string {
 	if p[len(p)-1] == '/' && np != "/" {
 		np += "/"
 	}
-
 	return np
 }
 

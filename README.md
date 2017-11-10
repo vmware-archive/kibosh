@@ -22,7 +22,7 @@ To vendor a new helm version:
 * Cleanup existing k8s libraries from gopath
 * Make sure your *don't* have other k8s repos (especially `client-go`) checked out or you'll likely run into conflicts
     - remove all `$GOPATH/src/k8s.io`
-* Checkout helm and jump through the hoops to get it to compile
+* Checkout helm (`go get k8s.io/helm`) and jump through the hoops to get it to compile
     - `make bootstrap` (this does a glide install strip vendor and deletes/moves several libraries)
 * Swear a few times & then cross fingers
 * Import deps
