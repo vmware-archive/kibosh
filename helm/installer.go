@@ -2,23 +2,22 @@ package helm
 
 import (
 	"code.cloudfoundry.org/lager"
-	"fmt"
 	"github.com/cf-platform-eng/kibosh/k8s"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	helmstaller "k8s.io/helm/cmd/helm/installer"
-	"k8s.io/helm/pkg/helm"
 	"time"
+	"k8s.io/helm/pkg/helm"
 )
 
 type installer struct {
 	cluster k8s.Cluster
+	client helm.Interface
 	logger  lager.Logger
 }
 
 type Installer interface {
 	Install() error
-	HelmHealthy() bool
 }
 
 //todo: the image needs to somehow be increment-able + local, deferring to packaging stories
@@ -27,15 +26,15 @@ const (
 	image     = "gcr.io/kubernetes-helm/tiller:v2.6.1"
 )
 
-func NewInstaller(cluster k8s.Cluster, logger lager.Logger) Installer {
+func NewInstaller(cluster k8s.Cluster, client helm.Interface, logger lager.Logger) Installer {
 	return &installer{
 		cluster: cluster,
+		client: client,
 		logger:  logger,
 	}
 }
 
 func (i installer) Install() error {
-	//stableRepositoryURL: = "https://kubernetes-charts.storage.googleapis.com"
 	options := helmstaller.Options{
 		Namespace: nameSpace,
 		ImageSpec: image,
@@ -55,7 +54,7 @@ func (i installer) Install() error {
 
 	i.logger.Info("Waiting for tiller to become healthy")
 	for {
-		if i.HelmHealthy() {
+		if i.helmHealthy() {
 			break
 		}
 		time.Sleep(2 * time.Second)
@@ -63,25 +62,8 @@ func (i installer) Install() error {
 	return nil
 }
 
-func (i installer) HelmHealthy() bool {
-	tunnel, err := i.setupConnection()
-	if err != nil {
-		i.logger.Error("Error establishing tunnel", err)
-		return false
-	}
-	defer tunnel.Close()
+func (i installer) helmHealthy() bool {
+	_, err := i.client.ListReleases()
 
-	host := fmt.Sprintf("127.0.0.1:%d", tunnel.Local)
-	i.logger.Debug("Tunnel", lager.Data{"host": host})
-
-	helmClient := helm.NewClient(helm.Host(host))
-	_, err = helmClient.ListReleases()
 	return err == nil
-}
-
-func (i installer) setupConnection() (*Tunnel, error) {
-
-	config, client := i.cluster.GetClientConfig(), i.cluster.GetClient()
-
-	return New(nameSpace, client, config)
 }

@@ -1,3 +1,6 @@
+// Copied from helm source to fix bug in helm.Tunnel.Close(), which
+// causes panic on closing a closed channel
+
 /*
 Copyright 2016 The Kubernetes Authors All rights reserved.
 
