@@ -2,37 +2,49 @@ package k8s
 
 import (
 	"github.com/cf-platform-eng/kibosh/config"
-	"k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	api_v1 "k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/rest"
 )
 
+//go:generate counterfeiter ./ Cluster
 type Cluster interface {
 	//todo: ListPods is just to validate that API working, delete as appropriate
-	ListPods() (*v1.PodList, error)
+	ListPods() (*api_v1.PodList, error)
+	GetClient() kubernetes.Interface
+	GetClientConfig() *rest.Config
 }
 
 type cluster struct {
 	kuboConfig *config.KuboODBVCAP
-	clientSet  *kubernetes.Clientset
+	client     kubernetes.Interface
+	k8sConfig  *rest.Config
 }
 
 func NewCluster(kuboConfig *config.KuboODBVCAP) (Cluster, error) {
-	newK8s := cluster{
-		kuboConfig: kuboConfig,
-	}
-
-	var err error
-	newK8s.clientSet, err = buildClientConfig(kuboConfig)
+	k8sConfig, err := buildClientConfig(kuboConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	return &newK8s, nil
+	client, err := kubernetes.NewForConfig(k8sConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return &cluster{
+		kuboConfig: kuboConfig,
+		k8sConfig:  k8sConfig,
+		client:     client,
+	}, nil
 }
 
-func buildClientConfig(kuboConfig *config.KuboODBVCAP) (*kubernetes.Clientset, error) {
+func (cluster *cluster) GetClientConfig() *rest.Config {
+	return cluster.k8sConfig
+}
+
+func buildClientConfig(kuboConfig *config.KuboODBVCAP) (*rest.Config, error) {
 	user := kuboConfig.Credentials.KubeConfig.Users[0]
 	cluster := kuboConfig.Credentials.KubeConfig.Clusters[0]
 
@@ -46,18 +58,21 @@ func buildClientConfig(kuboConfig *config.KuboODBVCAP) (*kubernetes.Clientset, e
 	tlsClientConfig := rest.TLSClientConfig{
 		CAData: caData,
 	}
-	k8sConfig := &rest.Config{
+
+	return &rest.Config{
 		Host:            server,
 		BearerToken:     token,
 		TLSClientConfig: tlsClientConfig,
-	}
-	clientSet, err := kubernetes.NewForConfig(k8sConfig)
-	return clientSet, err
+	}, nil
 }
 
-func (cluster cluster) ListPods() (*v1.PodList, error) {
+func (cluster *cluster) GetClient() kubernetes.Interface {
+	return cluster.client
+}
+
+func (cluster *cluster) ListPods() (*api_v1.PodList, error) {
 	//todo: ListPods is just to validate that API working, delete as appropriate
-	pods, err := cluster.clientSet.CoreV1().Pods("").List(metav1.ListOptions{})
+	pods, err := cluster.client.CoreV1().Pods("").List(meta_v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

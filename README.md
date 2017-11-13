@@ -4,6 +4,8 @@ A generic broker bridging the gap between Kubernetes and CF brokered services.
 
 ## Dev
 #### Setup
+Grab a newish version of Go (we used 1.9) 
+
 Install Go depenencies
 ```bash
 go get github.com/onsi/ginkgo/ginkgo
@@ -12,9 +14,19 @@ go get github.com/maxbrunsfeld/counterfeiter
 ```
 
 #### Dependency vendoring
-```bash
-govendor add +external
-```
+Dependency management is kind of a horror show here. For background, see
+* https://github.com/kubernetes/client-go/blob/master/INSTALL.md
+* https://github.com/kubernetes/client-go/issues/83
+
+To vendor a new helm version:
+* Cleanup existing k8s libraries from gopath
+* Make sure your *don't* have other k8s repos (especially `client-go`) checked out or you'll likely run into conflicts
+    - remove all `$GOPATH/src/k8s.io`
+* Checkout helm (`go get k8s.io/helm`) and jump through the hoops to get it to compile
+    - `make bootstrap` (this does a glide install strip vendor and deletes/moves several libraries)
+* Swear a few times & then cross fingers
+* Import deps
+    - `govendor add +external`
 
 To change dependencies, see [govendor](https://github.com/kardianos/govendor) docs for specific commands.
 

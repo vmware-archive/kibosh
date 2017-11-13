@@ -1,6 +1,10 @@
 pks-generic-broker
-kibosh
-.vscode/
 main
 debug
-helm
+kibosh
+
+.vscode
+.idea
+
+charts
+local_dev.sh

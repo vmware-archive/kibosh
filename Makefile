@@ -17,6 +17,12 @@ vet:
 
 test: unit-test vet
 
+generate:
+	#counterfeiter -o test/fake_kubernetes_client.go k8s.io/client-go/kubernetes.Interface
+	# ^ requires having k8s.io/client-go checked out, see https://git.io/vFo28
+	#sed -i '' 's/FakeInterface/FakeK8sInterface/g' test/fake_kubernetes_client.go
+	go generate ./...
+
 run:
 	VCAP_SERVICES='{"kubo-odb":[{"credentials":{"kubeconfig":{"apiVersion":"v1","clusters":[{"cluster":{"certificate-authority-data":"bXktZmFrZWNlcnQ="}}],"users":[{"user":{"token":"bXktZmFrZWNlcnQ="}}]}}}]}' \
 	SERVICE_ID=123 \
