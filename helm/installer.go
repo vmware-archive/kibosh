@@ -7,17 +7,18 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	helmstaller "k8s.io/helm/cmd/helm/installer"
 	"time"
-	"k8s.io/helm/pkg/helm"
 )
 
 type installer struct {
+	maxWait time.Duration
 	cluster k8s.Cluster
-	client helm.Interface
+	client  MyHelmClient
 	logger  lager.Logger
 }
 
 type Installer interface {
 	Install() error
+	SetMaxWait(duration time.Duration)
 }
 
 //todo: the image needs to somehow be increment-able + local, deferring to packaging stories
@@ -26,43 +27,54 @@ const (
 	image     = "gcr.io/kubernetes-helm/tiller:v2.6.1"
 )
 
-func NewInstaller(cluster k8s.Cluster, client helm.Interface, logger lager.Logger) Installer {
+func NewInstaller(cluster k8s.Cluster, client MyHelmClient, logger lager.Logger) Installer {
 	return &installer{
+		maxWait: 60 * time.Second,
 		cluster: cluster,
-		client: client,
+		client:  client,
 		logger:  logger,
 	}
 }
 
-func (i installer) Install() error {
+func (i *installer) Install() error {
 	options := helmstaller.Options{
 		Namespace: nameSpace,
 		ImageSpec: image,
 	}
 	i.logger.Debug("Installing helm")
-	err := helmstaller.Install(i.cluster.GetClient(), &options)
+	err := i.client.Install(&options)
 	if err != nil {
 		if !apierrors.IsAlreadyExists(err) {
 			i.logger.Debug("Already exists, updating")
 			return errors.Wrap(err, "Error installing new helm")
 		}
-		err := helmstaller.Upgrade(i.cluster.GetClient(), &options)
+		err := i.client.Upgrade(&options)
 		if err != nil {
 			return errors.Wrap(err, "Error upgrading helm")
 		}
 	}
 
 	i.logger.Info("Waiting for tiller to become healthy")
+	waited := time.Duration(0)
 	for {
 		if i.helmHealthy() {
 			break
 		}
-		time.Sleep(2 * time.Second)
+		if waited >= i.maxWait {
+			return errors.New("Didn't become healthy within max time")
+		}
+		willWait := i.maxWait / 10
+		waited = waited + willWait
+		time.Sleep(willWait)
 	}
 	return nil
 }
 
-func (i installer) helmHealthy() bool {
+func (i *installer) SetMaxWait(wait time.Duration) {
+	i.maxWait = wait
+}
+
+func (i *installer) helmHealthy() bool {
 	_, err := i.client.ListReleases()
 
 	return err == nil

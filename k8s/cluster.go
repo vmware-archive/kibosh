@@ -8,6 +8,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+//go:generate counterfeiter ./ Cluster
 type Cluster interface {
 	//todo: ListPods is just to validate that API working, delete as appropriate
 	ListPods() (*api_v1.PodList, error)
@@ -39,7 +40,7 @@ func NewCluster(kuboConfig *config.KuboODBVCAP) (Cluster, error) {
 	}, nil
 }
 
-func (cluster cluster) GetClientConfig() *rest.Config {
+func (cluster *cluster) GetClientConfig() *rest.Config {
 	return cluster.k8sConfig
 }
 
@@ -65,11 +66,11 @@ func buildClientConfig(kuboConfig *config.KuboODBVCAP) (*rest.Config, error) {
 	}, nil
 }
 
-func (cluster cluster) GetClient() kubernetes.Interface {
+func (cluster *cluster) GetClient() kubernetes.Interface {
 	return cluster.client
 }
 
-func (cluster cluster) ListPods() (*api_v1.PodList, error) {
+func (cluster *cluster) ListPods() (*api_v1.PodList, error) {
 	//todo: ListPods is just to validate that API working, delete as appropriate
 	pods, err := cluster.client.CoreV1().Pods("").List(meta_v1.ListOptions{})
 	if err != nil {

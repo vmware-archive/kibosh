@@ -5,6 +5,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/cf-platform-eng/kibosh/k8s"
+	helmstaller "k8s.io/helm/cmd/helm/installer"
 	"k8s.io/helm/pkg/helm"
 	"k8s.io/helm/pkg/proto/hapi/chart"
 	rls "k8s.io/helm/pkg/proto/hapi/services"
@@ -15,7 +16,15 @@ type myHelmClient struct {
 	logger  lager.Logger
 }
 
-func NewMyHelmClient(cluster k8s.Cluster, logger lager.Logger) helm.Interface {
+//- go:generate counterfeiter ./ MyHelmClient
+//^ counterfeiter is generating bad stubs interface. If needing to regenerate, fix above line & then re-fix stubs
+type MyHelmClient interface {
+	helm.Interface
+	Install(*helmstaller.Options) error
+	Upgrade(*helmstaller.Options) error
+}
+
+func NewMyHelmClient(cluster k8s.Cluster, logger lager.Logger) MyHelmClient {
 	return &myHelmClient{
 		cluster: cluster,
 		logger:  logger,
@@ -33,6 +42,14 @@ func (c myHelmClient) open() (*Tunnel, helm.Interface, error) {
 	c.logger.Debug("Tunnel", lager.Data{"host": host})
 
 	return tunnel, helm.NewClient(helm.Host(host)), nil
+}
+
+func (c *myHelmClient) Install(opts *helmstaller.Options) error {
+	return helmstaller.Install(c.cluster.GetClient(), opts)
+}
+
+func (c *myHelmClient) Upgrade(opts *helmstaller.Options) error {
+	return helmstaller.Upgrade(c.cluster.GetClient(), opts)
 }
 
 func (c myHelmClient) ListReleases(opts ...helm.ReleaseListOption) (*rls.ListReleasesResponse, error) {
