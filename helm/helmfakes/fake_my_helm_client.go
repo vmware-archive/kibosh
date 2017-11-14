@@ -204,6 +204,21 @@ type FakeMyHelmClient struct {
 	upgradeReturnsOnCall map[int]struct {
 		result1 error
 	}
+	InstallReleaseFromDirStub        func(string, string, ...helmpkg.InstallOption) (*rls.InstallReleaseResponse, error)
+	installReleaseFromDirMutex       sync.RWMutex
+	installReleaseFromDirArgsForCall []struct {
+		arg1 string
+		arg2 string
+		arg3 []helmpkg.InstallOption
+	}
+	installReleaseFromDirReturns struct {
+		result1 *rls.InstallReleaseResponse
+		result2 error
+	}
+	installReleaseFromDirReturnsOnCall map[int]struct {
+		result1 *rls.InstallReleaseResponse
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -313,7 +328,7 @@ func (fake *FakeMyHelmClient) InstallReleaseReturnsOnCall(i int, result1 *rls.In
 }
 
 func (fake *FakeMyHelmClient) InstallReleaseFromChart(chart *chart.Chart, namespace string, opts ...helmpkg.InstallOption) (*rls.InstallReleaseResponse, error) {
-	return nil, nil
+	panic("counterfeiter generation fail")
 }
 
 func (fake *FakeMyHelmClient) InstallReleaseFromChartCallCount() int {
@@ -508,7 +523,7 @@ func (fake *FakeMyHelmClient) UpdateReleaseReturnsOnCall(i int, result1 *rls.Upd
 }
 
 func (fake *FakeMyHelmClient) UpdateReleaseFromChart(rlsName string, chart *chart.Chart, opts ...helmpkg.UpdateOption) (*rls.UpdateReleaseResponse, error) {
-	return nil, nil
+	panic("counterfeiter generation fail")
 }
 
 func (fake *FakeMyHelmClient) UpdateReleaseFromChartCallCount() int {
@@ -900,6 +915,59 @@ func (fake *FakeMyHelmClient) UpgradeReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeMyHelmClient) InstallReleaseFromDir(arg1 string, arg2 string, arg3 ...helmpkg.InstallOption) (*rls.InstallReleaseResponse, error) {
+	fake.installReleaseFromDirMutex.Lock()
+	ret, specificReturn := fake.installReleaseFromDirReturnsOnCall[len(fake.installReleaseFromDirArgsForCall)]
+	fake.installReleaseFromDirArgsForCall = append(fake.installReleaseFromDirArgsForCall, struct {
+		arg1 string
+		arg2 string
+		arg3 []helmpkg.InstallOption
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("InstallReleaseFromDir", []interface{}{arg1, arg2, arg3})
+	fake.installReleaseFromDirMutex.Unlock()
+	if fake.InstallReleaseFromDirStub != nil {
+		return fake.InstallReleaseFromDirStub(arg1, arg2, arg3...)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.installReleaseFromDirReturns.result1, fake.installReleaseFromDirReturns.result2
+}
+
+func (fake *FakeMyHelmClient) InstallReleaseFromDirCallCount() int {
+	fake.installReleaseFromDirMutex.RLock()
+	defer fake.installReleaseFromDirMutex.RUnlock()
+	return len(fake.installReleaseFromDirArgsForCall)
+}
+
+func (fake *FakeMyHelmClient) InstallReleaseFromDirArgsForCall(i int) (string, string, []helmpkg.InstallOption) {
+	fake.installReleaseFromDirMutex.RLock()
+	defer fake.installReleaseFromDirMutex.RUnlock()
+	return fake.installReleaseFromDirArgsForCall[i].arg1, fake.installReleaseFromDirArgsForCall[i].arg2, fake.installReleaseFromDirArgsForCall[i].arg3
+}
+
+func (fake *FakeMyHelmClient) InstallReleaseFromDirReturns(result1 *rls.InstallReleaseResponse, result2 error) {
+	fake.InstallReleaseFromDirStub = nil
+	fake.installReleaseFromDirReturns = struct {
+		result1 *rls.InstallReleaseResponse
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) InstallReleaseFromDirReturnsOnCall(i int, result1 *rls.InstallReleaseResponse, result2 error) {
+	fake.InstallReleaseFromDirStub = nil
+	if fake.installReleaseFromDirReturnsOnCall == nil {
+		fake.installReleaseFromDirReturnsOnCall = make(map[int]struct {
+			result1 *rls.InstallReleaseResponse
+			result2 error
+		})
+	}
+	fake.installReleaseFromDirReturnsOnCall[i] = struct {
+		result1 *rls.InstallReleaseResponse
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeMyHelmClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -931,6 +999,8 @@ func (fake *FakeMyHelmClient) Invocations() map[string][][]interface{} {
 	defer fake.installMutex.RUnlock()
 	fake.upgradeMutex.RLock()
 	defer fake.upgradeMutex.RUnlock()
+	fake.installReleaseFromDirMutex.RLock()
+	defer fake.installReleaseFromDirMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
