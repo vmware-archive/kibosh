@@ -176,7 +176,7 @@ func (pksServiceBroker *PksServiceBroker) LastOperation(ctx context.Context, ins
 	code := response.Info.Status.Code
 	switch code {
 	case hapi_release.Status_DEPLOYED:
-	//todo: treat Status_DELETED as succeeded
+		//todo: treat Status_DELETED as succeeded
 		brokerStatus = brokerapi.Succeeded
 		description = "service deployment succeeded"
 	case hapi_release.Status_PENDING_INSTALL:

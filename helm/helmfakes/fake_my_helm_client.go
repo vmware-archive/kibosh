@@ -328,7 +328,8 @@ func (fake *FakeMyHelmClient) InstallReleaseReturnsOnCall(i int, result1 *rls.In
 }
 
 func (fake *FakeMyHelmClient) InstallReleaseFromChart(chart *chart.Chart, namespace string, opts ...helmpkg.InstallOption) (*rls.InstallReleaseResponse, error) {
-	panic("counterfeiter generation fail")}
+	panic("counterfeiter generation fail")
+}
 
 func (fake *FakeMyHelmClient) InstallReleaseFromChartCallCount() int {
 	fake.installReleaseFromChartMutex.RLock()
