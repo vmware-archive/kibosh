@@ -6,6 +6,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/cf-platform-eng/kibosh/k8s"
 	helmstaller "k8s.io/helm/cmd/helm/installer"
+	"k8s.io/helm/pkg/chartutil"
 	"k8s.io/helm/pkg/helm"
 	"k8s.io/helm/pkg/proto/hapi/chart"
 	rls "k8s.io/helm/pkg/proto/hapi/services"
@@ -22,6 +23,7 @@ type MyHelmClient interface {
 	helm.Interface
 	Install(*helmstaller.Options) error
 	Upgrade(*helmstaller.Options) error
+	InstallReleaseFromDir(string, string, ...helm.InstallOption) (*rls.InstallReleaseResponse, error)
 }
 
 func NewMyHelmClient(cluster k8s.Cluster, logger lager.Logger) MyHelmClient {
@@ -66,7 +68,22 @@ func (c myHelmClient) InstallRelease(chStr, namespace string, opts ...helm.Insta
 }
 
 func (c myHelmClient) InstallReleaseFromChart(chart *chart.Chart, namespace string, opts ...helm.InstallOption) (*rls.InstallReleaseResponse, error) {
-	panic("Not yet implemented")
+	tunnel, client, err := c.open()
+	if err != nil {
+		return nil, err
+	}
+	defer tunnel.Close()
+
+	return client.InstallReleaseFromChart(chart, namespace, opts...)
+}
+
+func (c myHelmClient) InstallReleaseFromDir(chartPath string, namespace string, opts ...helm.InstallOption) (*rls.InstallReleaseResponse, error) {
+	chartRequested, err := chartutil.Load(chartPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.InstallReleaseFromChart(chartRequested, namespace, opts...)
 }
 
 func (c myHelmClient) DeleteRelease(rlsName string, opts ...helm.DeleteOption) (*rls.UninstallReleaseResponse, error) {
@@ -74,7 +91,13 @@ func (c myHelmClient) DeleteRelease(rlsName string, opts ...helm.DeleteOption) (
 }
 
 func (c myHelmClient) ReleaseStatus(rlsName string, opts ...helm.StatusOption) (*rls.GetReleaseStatusResponse, error) {
-	panic("Not yet implemented")
+	tunnel, client, err := c.open()
+	if err != nil {
+		return nil, err
+	}
+	defer tunnel.Close()
+
+	return client.ReleaseStatus(rlsName, opts...)
 }
 
 func (c myHelmClient) UpdateRelease(rlsName, chStr string, opts ...helm.UpdateOption) (*rls.UpdateReleaseResponse, error) {

@@ -10,10 +10,11 @@ import (
 
 //go:generate counterfeiter ./ Cluster
 type Cluster interface {
-	//todo: ListPods is just to validate that API working, delete as appropriate
-	ListPods() (*api_v1.PodList, error)
 	GetClient() kubernetes.Interface
 	GetClientConfig() *rest.Config
+
+	CreateNamespace(*api_v1.Namespace) (*api_v1.Namespace, error)
+	ListPods() (*api_v1.PodList, error)
 }
 
 type cluster struct {
@@ -68,6 +69,10 @@ func buildClientConfig(kuboConfig *config.KuboODBVCAP) (*rest.Config, error) {
 
 func (cluster *cluster) GetClient() kubernetes.Interface {
 	return cluster.client
+}
+
+func (cluster *cluster) CreateNamespace(namespace *api_v1.Namespace) (*api_v1.Namespace, error) {
+	return cluster.GetClient().CoreV1().Namespaces().Create(namespace)
 }
 
 func (cluster *cluster) ListPods() (*api_v1.PodList, error) {
