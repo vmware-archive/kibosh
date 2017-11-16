@@ -2,7 +2,6 @@ package broker_test
 
 import (
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -30,16 +29,13 @@ version: 0.0.1
 		It("Provides a catalog", func() {
 			// Create a temporary directory (defer removing it until after method)
 			dir, err := ioutil.TempDir("", "chart-")
-			if err != nil {
-				log.Fatal(err)
-			}
+			Expect(err).To(BeNil())
 			defer os.RemoveAll(dir)
 
 			// Create a temporary file in that directory with chart yaml.
 			tmpfn := filepath.Join(dir, "Chart.yaml")
-			if err := ioutil.WriteFile(tmpfn, chartYamlContent, 0666); err != nil {
-				log.Fatal(err)
-			}
+			err = ioutil.WriteFile(tmpfn, chartYamlContent, 0666)
+			Expect(err).To(BeNil())
 
 			// Create the service catalog using that yaml.
 			serviceBroker := NewPksServiceBroker(dir, "service-id", nil, nil)

@@ -29,6 +29,7 @@ type PksServiceBroker struct {
 	myHelmClient my_helm.MyHelmClient
 }
 
+// todo: now that we're including helm, it probably make sense to defer to the helm library's parsing?
 // HelmChart contains heml chart data useful for Broker Catalog
 type HelmChart struct {
 	Name        string `yaml:"name"`

@@ -219,6 +219,19 @@ type FakeMyHelmClient struct {
 		result1 *rls.InstallReleaseResponse
 		result2 error
 	}
+	ReadDefaultValsStub        func(chartPath string) ([]byte, error)
+	readDefaultValsMutex       sync.RWMutex
+	readDefaultValsArgsForCall []struct {
+		chartPath string
+	}
+	readDefaultValsReturns struct {
+		result1 []byte
+		result2 error
+	}
+	readDefaultValsReturnsOnCall map[int]struct {
+		result1 []byte
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -968,6 +981,57 @@ func (fake *FakeMyHelmClient) InstallReleaseFromDirReturnsOnCall(i int, result1 
 	}{result1, result2}
 }
 
+func (fake *FakeMyHelmClient) ReadDefaultVals(chartPath string) ([]byte, error) {
+	fake.readDefaultValsMutex.Lock()
+	ret, specificReturn := fake.readDefaultValsReturnsOnCall[len(fake.readDefaultValsArgsForCall)]
+	fake.readDefaultValsArgsForCall = append(fake.readDefaultValsArgsForCall, struct {
+		chartPath string
+	}{chartPath})
+	fake.recordInvocation("ReadDefaultVals", []interface{}{chartPath})
+	fake.readDefaultValsMutex.Unlock()
+	if fake.ReadDefaultValsStub != nil {
+		return fake.ReadDefaultValsStub(chartPath)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.readDefaultValsReturns.result1, fake.readDefaultValsReturns.result2
+}
+
+func (fake *FakeMyHelmClient) ReadDefaultValsCallCount() int {
+	fake.readDefaultValsMutex.RLock()
+	defer fake.readDefaultValsMutex.RUnlock()
+	return len(fake.readDefaultValsArgsForCall)
+}
+
+func (fake *FakeMyHelmClient) ReadDefaultValsArgsForCall(i int) string {
+	fake.readDefaultValsMutex.RLock()
+	defer fake.readDefaultValsMutex.RUnlock()
+	return fake.readDefaultValsArgsForCall[i].chartPath
+}
+
+func (fake *FakeMyHelmClient) ReadDefaultValsReturns(result1 []byte, result2 error) {
+	fake.ReadDefaultValsStub = nil
+	fake.readDefaultValsReturns = struct {
+		result1 []byte
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) ReadDefaultValsReturnsOnCall(i int, result1 []byte, result2 error) {
+	fake.ReadDefaultValsStub = nil
+	if fake.readDefaultValsReturnsOnCall == nil {
+		fake.readDefaultValsReturnsOnCall = make(map[int]struct {
+			result1 []byte
+			result2 error
+		})
+	}
+	fake.readDefaultValsReturnsOnCall[i] = struct {
+		result1 []byte
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeMyHelmClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -1001,6 +1065,8 @@ func (fake *FakeMyHelmClient) Invocations() map[string][][]interface{} {
 	defer fake.upgradeMutex.RUnlock()
 	fake.installReleaseFromDirMutex.RLock()
 	defer fake.installReleaseFromDirMutex.RUnlock()
+	fake.readDefaultValsMutex.RLock()
+	defer fake.readDefaultValsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

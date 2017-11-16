@@ -2,9 +2,11 @@ package helm
 
 import (
 	"fmt"
+	"path"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/cf-platform-eng/kibosh/k8s"
+	"io/ioutil"
 	helmstaller "k8s.io/helm/cmd/helm/installer"
 	"k8s.io/helm/pkg/chartutil"
 	"k8s.io/helm/pkg/helm"
@@ -24,6 +26,7 @@ type MyHelmClient interface {
 	Install(*helmstaller.Options) error
 	Upgrade(*helmstaller.Options) error
 	InstallReleaseFromDir(string, string, ...helm.InstallOption) (*rls.InstallReleaseResponse, error)
+	ReadDefaultVals(chartPath string) ([]byte, error)
 }
 
 func NewMyHelmClient(cluster k8s.Cluster, logger lager.Logger) MyHelmClient {
@@ -83,7 +86,23 @@ func (c myHelmClient) InstallReleaseFromDir(chartPath string, namespace string, 
 		return nil, err
 	}
 
-	return c.InstallReleaseFromChart(chartRequested, namespace, opts...)
+	raw, err := c.ReadDefaultVals(chartPath)
+	if err != nil {
+		return nil, err
+	}
+
+	newOpts := append(opts, helm.ValueOverrides(raw))
+	return c.InstallReleaseFromChart(chartRequested, namespace, newOpts...)
+}
+
+func (c myHelmClient) ReadDefaultVals(chartPath string) ([]byte, error) {
+	valuesPath := path.Join(chartPath, "values.yaml")
+	bytes, err := ioutil.ReadFile(valuesPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return bytes, nil
 }
 
 func (c myHelmClient) DeleteRelease(rlsName string, opts ...helm.DeleteOption) (*rls.UninstallReleaseResponse, error) {
