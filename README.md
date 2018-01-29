@@ -13,6 +13,11 @@ go get github.com/onsi/gomega
 go get github.com/maxbrunsfeld/counterfeiter
 ```
 
+#### Minikube
+To set things up in a way that authentication is done the same way as against PKS, run 
+`./dev/minikube_auth.sh`
+Which create a service account with `cluster-admin` and output the token.
+
 #### Dependency vendoring
 Dependency management is kind of a horror show here. For background, see
 * https://github.com/kubernetes/client-go/blob/master/INSTALL.md
