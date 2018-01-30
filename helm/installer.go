@@ -22,10 +22,10 @@ package helm
 //}
 //
 ////todo: the image needs to somehow be increment-able + local, deferring to packaging stories
-//const (
-//	nameSpace = "kube-system"
-//	image     = "gcr.io/kubernetes-helm/tiller:v2.6.1"
-//)
+const (
+	nameSpace = "kube-system"
+	image     = "gcr.io/kubernetes-helm/tiller:v2.8.0"
+)
 //
 //func NewInstaller(cluster k8s.Cluster, client MyHelmClient, logger lager.Logger) Installer {
 //	return &installer{
