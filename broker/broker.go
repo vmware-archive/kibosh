@@ -14,9 +14,6 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	api_v1 "k8s.io/client-go/pkg/api/v1"
-	"k8s.io/helm/pkg/helm"
 	hapi_release "k8s.io/helm/pkg/proto/hapi/release"
 )
 
@@ -102,6 +99,7 @@ func (pksServiceBroker *PksServiceBroker) Provision(ctx context.Context, instanc
 		return brokerapi.ProvisionedServiceSpec{}, brokerapi.ErrAsyncRequired
 	}
 
+	/*
 	namespaceName := instanceID
 	namespace := api_v1.Namespace{
 		Spec: api_v1.NamespaceSpec{},
@@ -115,6 +113,7 @@ func (pksServiceBroker *PksServiceBroker) Provision(ctx context.Context, instanc
 			},
 		},
 	}
+
 	_, err := pksServiceBroker.cluster.CreateNamespace(&namespace)
 	if err != nil {
 		return brokerapi.ProvisionedServiceSpec{}, err
@@ -125,7 +124,7 @@ func (pksServiceBroker *PksServiceBroker) Provision(ctx context.Context, instanc
 	)
 	if err != nil {
 		return brokerapi.ProvisionedServiceSpec{}, err
-	}
+	}*/
 
 	return brokerapi.ProvisionedServiceSpec{
 		IsAsync: true,

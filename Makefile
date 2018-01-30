@@ -30,4 +30,22 @@ run:
 	SECURITY_USER_PASSWORD=pass \
 	go run main.go
 
+clean:
+	rm -rf vendor
+	rm -f Gopkg.lock
+
+HAS_DEP := $(shell command -v dep;)
+HAS_BINDATA := $(shell command -v go-bindata;)
+
+.PHONY: bootstrap
+bootstrap:
+ifndef HAS_DEP
+	go get -u github.com/golang/dep/cmd/dep
+endif
+ifndef HAS_BINDATA
+	go get github.com/jteeuwen/go-bindata/...
+endif
+	dep ensure -v
+	scripts/setup-apimachinery.sh
+
 all: fmt test do-build

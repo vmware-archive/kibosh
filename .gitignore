@@ -2,6 +2,7 @@ pks-generic-broker
 main
 debug
 kibosh
+vendor
 
 .vscode
 .idea

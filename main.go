@@ -8,8 +8,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/cf-platform-eng/kibosh/broker"
 	"github.com/cf-platform-eng/kibosh/config"
-	"github.com/cf-platform-eng/kibosh/helm"
-	"github.com/cf-platform-eng/kibosh/k8s"
 	"github.com/pivotal-cf/brokerapi"
 )
 
@@ -24,24 +22,25 @@ func main() {
 		brokerLogger.Fatal("Loading config file", err)
 	}
 
-	cluster, err := k8s.NewCluster(conf.KuboODBVCAP)
-	if err != nil {
-		brokerLogger.Fatal("Error setting up k8s cluster", err)
-	}
-	myHelmClient := helm.NewMyHelmClient(cluster, brokerLogger)
+	//cluster, err := k8s.NewCluster(conf.KuboODBVCAP)
+	//if err != nil {
+	//	brokerLogger.Fatal("Error setting up k8s cluster", err)
+	//}
+	//myHelmClient := helm.NewMyHelmClient(cluster, brokerLogger)
 	serviceBroker := broker.NewPksServiceBroker(
-		conf.HelmChartDir, conf.ServiceID, cluster, myHelmClient,
+		//conf.HelmChartDir, conf.ServiceID, cluster, myHelmClient,
+		conf.HelmChartDir, conf.ServiceID, nil, nil,
 	)
 	brokerCredentials := brokerapi.BrokerCredentials{
 		Username: conf.AdminUsername,
 		Password: conf.AdminPassword,
 	}
 
-	helmInstaller := helm.NewInstaller(cluster, myHelmClient, brokerLogger)
-	err = helmInstaller.Install()
-	if err != nil {
-		brokerLogger.Fatal("Error setting installing helm", err)
-	}
+	//helmInstaller := helm.NewInstaller(cluster, myHelmClient, brokerLogger)
+	//err = helmInstaller.Install()
+	//if err != nil {
+	//	brokerLogger.Fatal("Error setting installing helm", err)
+	//}
 
 	brokerAPI := brokerapi.New(serviceBroker, brokerLogger, brokerCredentials)
 

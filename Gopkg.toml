@@ -1,0 +1,23 @@
+[[constraint]]
+  name = "github.com/pkg/errors"
+  version = "~v0.8.0"
+
+[[constraint]]
+  name = "github.com/kelseyhightower/envconfig"
+  version = "~v1.3.0"
+
+[[constraint]]
+  name = "code.cloudfoundry.org/lager"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/pivotal-cf/brokerapi"
+  branch = "master"
+
+[[constraint]]
+  name = "k8s.io/helm"
+  version = "~v2.7.0"
+
+[[override]]
+  name = "k8s.io/kubernetes"
+  version = "=v1.8.0"
