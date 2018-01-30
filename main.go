@@ -10,6 +10,7 @@ import (
 	"github.com/cf-platform-eng/kibosh/config"
 	"github.com/cf-platform-eng/kibosh/helm"
 	"github.com/pivotal-cf/brokerapi"
+	"github.com/cf-platform-eng/kibosh/k8s"
 )
 
 func main() {
@@ -23,12 +24,12 @@ func main() {
 		brokerLogger.Fatal("Loading config file", err)
 	}
 
-	//cluster, err := k8s.NewCluster(conf.KuboODBVCAP)
-	//if err != nil {
-	//	brokerLogger.Fatal("Error setting up k8s cluster", err)
-	//}
-	//myHelmClient := helm.NewMyHelmClient(cluster, brokerLogger)
-	myHelmClient := helm.NewMyHelmClient(nil, brokerLogger)
+	cluster, err := k8s.NewCluster(conf.KuboODBVCAP)
+	if err != nil {
+		brokerLogger.Fatal("Error setting up k8s cluster", err)
+	}
+	myHelmClient := helm.NewMyHelmClient(cluster, brokerLogger)
+	//myHelmClient := helm.NewMyHelmClient(nil, brokerLogger)
 	println(myHelmClient)
 	serviceBroker := broker.NewPksServiceBroker(
 		//conf.HelmChartDir, conf.ServiceID, cluster, myHelmClient,

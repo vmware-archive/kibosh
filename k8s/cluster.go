@@ -1,11 +1,11 @@
 package k8s
 
 import (
-	//"github.com/cf-platform-eng/kibosh/config"
+	"github.com/cf-platform-eng/kibosh/config"
 //	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 //	"k8s.io/client-go/kubernetes"
 //	api_v1 "k8s.io/client-go/pkg/api/v1"
-//	"k8s.io/client-go/rest"
+	"k8s.io/client-go/rest"
 )
 
 ////go:generate counterfeiter ./ Cluster
@@ -17,13 +17,13 @@ type Cluster interface {
 //	ListPods() (*api_v1.PodList, error)
 }
 
-//type cluster struct {
+type cluster struct {
 //	kuboConfig *config.KuboODBVCAP
 //	client     kubernetes.Interface
 //	k8sConfig  *rest.Config
-//}
-//
-//func NewCluster(kuboConfig *config.KuboODBVCAP) (Cluster, error) {
+}
+
+func NewCluster(kuboConfig *config.KuboODBVCAP) (Cluster, error) {
 //	k8sConfig, err := buildClientConfig(kuboConfig)
 //	if err != nil {
 //		return nil, err
@@ -34,16 +34,17 @@ type Cluster interface {
 //		return nil, err
 //	}
 //
-//	return &cluster{
+	return &cluster{
 //		kuboConfig: kuboConfig,
 //		k8sConfig:  k8sConfig,
 //		client:     client,
-//	}, nil
-//}
-//
-//func (cluster *cluster) GetClientConfig() *rest.Config {
-//	return cluster.k8sConfig
-//}
+	}, nil
+}
+
+func (cluster *cluster) GetClientConfig() *rest.Config {
+	//return cluster.k8sConfig
+	return nil
+}
 //
 //func buildClientConfig(kuboConfig *config.KuboODBVCAP) (*rest.Config, error) {
 //	user := kuboConfig.Credentials.KubeConfig.Users[0]

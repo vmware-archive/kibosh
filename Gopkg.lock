@@ -8,7 +8,6 @@
   version = "v0.18.0"
 
 [[projects]]
-  branch = "master"
   name = "code.cloudfoundry.org/lager"
   packages = ["."]
   revision = "0bfa98e49e7a976af91e918d47978f07c00b081f"
@@ -578,7 +577,7 @@
   branch = "master"
   name = "k8s.io/apiextensions-apiserver"
   packages = ["pkg/features"]
-  revision = "27d22a50314782b60cbb150b34dd1ba8e0c8d55c"
+  revision = "1883a8e165527041d9985ab918246085d740cad0"
 
 [[projects]]
   branch = "master"
@@ -918,6 +917,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "4993f1ef931c6a01cabffb804318ce4c5b19243a6dd51a0d00dc09a3839b43fc"
+  inputs-digest = "7eb7d8b172bcd78b796787e56a2958c88dd407cff52f8b29ead180d9cd822a93"
   solver-name = "gps-cdcl"
   solver-version = 1
