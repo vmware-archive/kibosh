@@ -9,8 +9,8 @@ import (
 	"github.com/cf-platform-eng/kibosh/broker"
 	"github.com/cf-platform-eng/kibosh/config"
 	"github.com/cf-platform-eng/kibosh/helm"
-	"github.com/pivotal-cf/brokerapi"
 	"github.com/cf-platform-eng/kibosh/k8s"
+	"github.com/pivotal-cf/brokerapi"
 )
 
 func main() {

@@ -4,13 +4,9 @@ required = [
     "github.com/go-openapi/spec"
 ]
 
-#ignored = [
-#    "k8s.io/api/*",
-#    "k8s.io/apimachinery/*",
-#    "k8s.io/apiserver/*",
-#    "k8s.io/client-go/*",
-#    "k8s.io/metrics/*"
-#]
+ignored = [
+    "k8s.io/client-go/pkg/*"
+]
 
 [[override]]
   name = "k8s.io/kubernetes"

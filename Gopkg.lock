@@ -691,7 +691,6 @@
     "listers/apps/v1beta1",
     "listers/core/v1",
     "listers/extensions/v1beta1",
-    "pkg/version",
     "plugin/pkg/client/auth",
     "plugin/pkg/client/auth/azure",
     "plugin/pkg/client/auth/gcp",
@@ -917,6 +916,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "7eb7d8b172bcd78b796787e56a2958c88dd407cff52f8b29ead180d9cd822a93"
+  inputs-digest = "ea5a393ca084ab23184f16267f41bbcce4ea0f9263309bc8c1bfe1b13bea816d"
   solver-name = "gps-cdcl"
   solver-version = 1

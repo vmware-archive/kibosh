@@ -1,17 +1,17 @@
 package helm
 
 import (
-//	"fmt"
-//	"path"
-//
+	//	"fmt"
+	//	"path"
+	//
 	"code.cloudfoundry.org/lager"
 	"github.com/cf-platform-eng/kibosh/k8s"
-//	"io/ioutil"
+	//	"io/ioutil"
 	helmstaller "k8s.io/helm/cmd/helm/installer"
-//	"k8s.io/helm/pkg/chartutil"
-//	"k8s.io/helm/pkg/helm"
-//	"k8s.io/helm/pkg/proto/hapi/chart"
-//	rls "k8s.io/helm/pkg/proto/hapi/services"
+	//	"k8s.io/helm/pkg/chartutil"
+	//	"k8s.io/helm/pkg/helm"
+	//	"k8s.io/helm/pkg/proto/hapi/chart"
+	//	rls "k8s.io/helm/pkg/proto/hapi/services"
 )
 
 type myHelmClient struct {
@@ -22,11 +22,11 @@ type myHelmClient struct {
 //- go:generate counterfeiter ./ MyHelmClient
 //^ counterfeiter is generating bad stubs interface. If needing to regenerate, fix above line & then re-fix stubs
 type MyHelmClient interface {
-//	helm.Interface
+	//	helm.Interface
 	Install(*helmstaller.Options) error
-//	Upgrade(*helmstaller.Options) error
-//	InstallReleaseFromDir(string, string, ...helm.InstallOption) (*rls.InstallReleaseResponse, error)
-//	ReadDefaultVals(chartPath string) ([]byte, error)
+	//	Upgrade(*helmstaller.Options) error
+	//	InstallReleaseFromDir(string, string, ...helm.InstallOption) (*rls.InstallReleaseResponse, error)
+	//	ReadDefaultVals(chartPath string) ([]byte, error)
 }
 
 func NewMyHelmClient(cluster k8s.Cluster, logger lager.Logger) MyHelmClient {
@@ -35,6 +35,7 @@ func NewMyHelmClient(cluster k8s.Cluster, logger lager.Logger) MyHelmClient {
 		logger:  logger,
 	}
 }
+
 //
 //func (c myHelmClient) open() (*Tunnel, helm.Interface, error) {
 //	config, client := c.cluster.GetClientConfig(), c.cluster.GetClient()
