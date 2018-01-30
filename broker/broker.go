@@ -2,19 +2,18 @@ package broker
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path"
 
 	"code.cloudfoundry.org/lager"
-	my_helm "github.com/cf-platform-eng/kibosh/helm"
-	"github.com/cf-platform-eng/kibosh/k8s"
+	//my_helm "github.com/cf-platform-eng/kibosh/helm"
+	//"github.com/cf-platform-eng/kibosh/k8s"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
-	hapi_release "k8s.io/helm/pkg/proto/hapi/release"
+	//hapi_release "k8s.io/helm/pkg/proto/hapi/release"
 )
 
 // PksServiceBroker contains values passed in from configuration necessary for broker's work.
@@ -22,8 +21,8 @@ type PksServiceBroker struct {
 	Logger       lager.Logger
 	HelmChartDir string
 	ServiceID    string
-	cluster      k8s.Cluster
-	myHelmClient my_helm.MyHelmClient
+	//cluster      k8s.Cluster
+	//myHelmClient my_helm.MyHelmClient
 }
 
 // todo: now that we're including helm, it probably make sense to defer to the helm library's parsing?
@@ -33,12 +32,13 @@ type HelmChart struct {
 	Description string `yaml:"description"`
 }
 
-func NewPksServiceBroker(helmChartDir string, serviceID string, cluster k8s.Cluster, myHelmClient my_helm.MyHelmClient) *PksServiceBroker {
+//func NewPksServiceBroker(helmChartDir string, serviceID string, cluster k8s.Cluster, myHelmClient my_helm.MyHelmClient) *PksServiceBroker {
+func NewPksServiceBroker(helmChartDir string, serviceID string, cluster interface{}, myHelmClient interface{}) *PksServiceBroker {
 	return &PksServiceBroker{
 		HelmChartDir: helmChartDir,
 		ServiceID:    serviceID,
-		cluster:      cluster,
-		myHelmClient: myHelmClient,
+		//cluster:      cluster,
+		//myHelmClient: myHelmClient,
 	}
 }
 
@@ -166,6 +166,7 @@ func (pksServiceBroker *PksServiceBroker) Update(ctx context.Context, instanceID
 
 // LastOperation is for async
 func (pksServiceBroker *PksServiceBroker) LastOperation(ctx context.Context, instanceID, operationData string) (brokerapi.LastOperation, error) {
+	/*
 	var brokerStatus brokerapi.LastOperationState
 	var description string
 	response, err := pksServiceBroker.myHelmClient.ReleaseStatus(instanceID)
@@ -193,4 +194,6 @@ func (pksServiceBroker *PksServiceBroker) LastOperation(ctx context.Context, ins
 		State:       brokerStatus,
 		Description: description,
 	}, nil
+	*/
+	return brokerapi.LastOperation{}, nil
 }

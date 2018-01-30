@@ -3,7 +3,7 @@ default: all
 GO_PACKAGES = $$(go list ./... | grep -v vendor)
 GO_FILES = $$(find . -name "*.go" | grep -v vendor | uniq)
 
-do-build:
+build:
 	go build -o kibosh ./main.go
 
 unit-test:

@@ -1,27 +1,27 @@
 package k8s
 
-//import (
-//	"github.com/cf-platform-eng/kibosh/config"
+import (
+	"github.com/cf-platform-eng/kibosh/config"
 //	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-//	"k8s.io/client-go/kubernetes"
-//	api_v1 "k8s.io/client-go/pkg/api/v1"
-//	"k8s.io/client-go/rest"
-//)
-//
+	"k8s.io/client-go/kubernetes"
+	api_v1 "k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/rest"
+)
+
 ////go:generate counterfeiter ./ Cluster
-//type Cluster interface {
-//	GetClient() kubernetes.Interface
-//	GetClientConfig() *rest.Config
-//
-//	CreateNamespace(*api_v1.Namespace) (*api_v1.Namespace, error)
-//	ListPods() (*api_v1.PodList, error)
-//}
-//
-//type cluster struct {
-//	kuboConfig *config.KuboODBVCAP
-//	client     kubernetes.Interface
-//	k8sConfig  *rest.Config
-//}
+type Cluster interface {
+	GetClient() kubernetes.Interface
+	GetClientConfig() *rest.Config
+
+	CreateNamespace(*api_v1.Namespace) (*api_v1.Namespace, error)
+	ListPods() (*api_v1.PodList, error)
+}
+
+type cluster struct {
+	kuboConfig *config.KuboODBVCAP
+	client     kubernetes.Interface
+	k8sConfig  *rest.Config
+}
 //
 //func NewCluster(kuboConfig *config.KuboODBVCAP) (Cluster, error) {
 //	k8sConfig, err := buildClientConfig(kuboConfig)

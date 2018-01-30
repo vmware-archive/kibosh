@@ -1,6 +1,6 @@
 package helm
-//
-//import (
+
+import (
 //	"fmt"
 //	"path"
 //
@@ -12,8 +12,8 @@ package helm
 //	"k8s.io/helm/pkg/helm"
 //	"k8s.io/helm/pkg/proto/hapi/chart"
 //	rls "k8s.io/helm/pkg/proto/hapi/services"
-//)
-//
+)
+
 //type myHelmClient struct {
 //	cluster k8s.Cluster
 //	logger  lager.Logger
