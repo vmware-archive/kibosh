@@ -32,6 +32,7 @@ run:
 
 clean:
 	rm -rf vendor
+	rm -f kibosh
 	rm -f Gopkg.lock
 
 HAS_DEP := $(shell command -v dep;)

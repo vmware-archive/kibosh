@@ -8,6 +8,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/cf-platform-eng/kibosh/broker"
 	"github.com/cf-platform-eng/kibosh/config"
+	"github.com/cf-platform-eng/kibosh/helm"
 	"github.com/pivotal-cf/brokerapi"
 )
 
@@ -27,6 +28,8 @@ func main() {
 	//	brokerLogger.Fatal("Error setting up k8s cluster", err)
 	//}
 	//myHelmClient := helm.NewMyHelmClient(cluster, brokerLogger)
+	myHelmClient := helm.NewMyHelmClient(nil, brokerLogger)
+	println(myHelmClient)
 	serviceBroker := broker.NewPksServiceBroker(
 		//conf.HelmChartDir, conf.ServiceID, cluster, myHelmClient,
 		conf.HelmChartDir, conf.ServiceID, nil, nil,

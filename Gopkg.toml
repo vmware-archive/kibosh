@@ -1,3 +1,32 @@
+### Begin helm/k8s constraints
+
+required = [
+    "github.com/go-openapi/spec"
+]
+
+#ignored = [
+#    "k8s.io/api/*",
+#    "k8s.io/apimachinery/*",
+#    "k8s.io/apiserver/*",
+#    "k8s.io/client-go/*",
+#    "k8s.io/metrics/*"
+#]
+
+[[override]]
+  name = "k8s.io/kubernetes"
+  version = "=v1.8.7"
+
+[[constraint]]
+  name = "k8s.io/helm"
+  version = "~v2.7.0"
+
+# figured out this override using Draft
+[[override]]
+  name = "github.com/docker/distribution"
+  revision = "b38e5838b7b2f2ad48e06ec4b500011976080621"
+
+### End helm/k8s constraints
+
 [[constraint]]
   name = "github.com/pkg/errors"
   version = "~v0.8.0"
@@ -13,11 +42,3 @@
 [[constraint]]
   name = "github.com/pivotal-cf/brokerapi"
   branch = "master"
-
-[[constraint]]
-  name = "k8s.io/helm"
-  version = "~v2.7.0"
-
-[[override]]
-  name = "k8s.io/kubernetes"
-  version = "=v1.8.0"

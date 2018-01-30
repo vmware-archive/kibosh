@@ -4,37 +4,37 @@ import (
 //	"fmt"
 //	"path"
 //
-//	"code.cloudfoundry.org/lager"
-//	"github.com/cf-platform-eng/kibosh/k8s"
+	"code.cloudfoundry.org/lager"
+	"github.com/cf-platform-eng/kibosh/k8s"
 //	"io/ioutil"
-//	helmstaller "k8s.io/helm/cmd/helm/installer"
+	helmstaller "k8s.io/helm/cmd/helm/installer"
 //	"k8s.io/helm/pkg/chartutil"
 //	"k8s.io/helm/pkg/helm"
 //	"k8s.io/helm/pkg/proto/hapi/chart"
 //	rls "k8s.io/helm/pkg/proto/hapi/services"
 )
 
-//type myHelmClient struct {
-//	cluster k8s.Cluster
-//	logger  lager.Logger
-//}
-//
-////- go:generate counterfeiter ./ MyHelmClient
-////^ counterfeiter is generating bad stubs interface. If needing to regenerate, fix above line & then re-fix stubs
-//type MyHelmClient interface {
+type myHelmClient struct {
+	cluster k8s.Cluster
+	logger  lager.Logger
+}
+
+//- go:generate counterfeiter ./ MyHelmClient
+//^ counterfeiter is generating bad stubs interface. If needing to regenerate, fix above line & then re-fix stubs
+type MyHelmClient interface {
 //	helm.Interface
-//	Install(*helmstaller.Options) error
+	Install(*helmstaller.Options) error
 //	Upgrade(*helmstaller.Options) error
 //	InstallReleaseFromDir(string, string, ...helm.InstallOption) (*rls.InstallReleaseResponse, error)
 //	ReadDefaultVals(chartPath string) ([]byte, error)
-//}
-//
-//func NewMyHelmClient(cluster k8s.Cluster, logger lager.Logger) MyHelmClient {
-//	return &myHelmClient{
-//		cluster: cluster,
-//		logger:  logger,
-//	}
-//}
+}
+
+func NewMyHelmClient(cluster k8s.Cluster, logger lager.Logger) MyHelmClient {
+	return &myHelmClient{
+		cluster: cluster,
+		logger:  logger,
+	}
+}
 //
 //func (c myHelmClient) open() (*Tunnel, helm.Interface, error) {
 //	config, client := c.cluster.GetClientConfig(), c.cluster.GetClient()
@@ -49,10 +49,11 @@ import (
 //	return tunnel, helm.NewClient(helm.Host(host)), nil
 //}
 //
-//func (c *myHelmClient) Install(opts *helmstaller.Options) error {
-//	return helmstaller.Install(c.cluster.GetClient(), opts)
-//}
-//
+func (c *myHelmClient) Install(opts *helmstaller.Options) error {
+	//return helmstaller.Install(c.cluster.GetClient(), opts)
+	return nil
+}
+
 //func (c *myHelmClient) Upgrade(opts *helmstaller.Options) error {
 //	return helmstaller.Upgrade(c.cluster.GetClient(), opts)
 //}
