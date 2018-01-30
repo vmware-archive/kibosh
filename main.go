@@ -29,7 +29,6 @@ func main() {
 		brokerLogger.Fatal("Error setting up k8s cluster", err)
 	}
 	myHelmClient := helm.NewMyHelmClient(cluster, brokerLogger)
-	//myHelmClient := helm.NewMyHelmClient(nil, brokerLogger)
 	println(myHelmClient)
 	serviceBroker := broker.NewPksServiceBroker(
 		//conf.HelmChartDir, conf.ServiceID, cluster, myHelmClient,
