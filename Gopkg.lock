@@ -8,7 +8,6 @@
   version = "v0.18.0"
 
 [[projects]]
-  branch = "master"
   name = "code.cloudfoundry.org/lager"
   packages = ["."]
   revision = "0bfa98e49e7a976af91e918d47978f07c00b081f"
@@ -1178,6 +1177,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "52d1edb598e4656f185f171bb8c5d6a0d4b6e2c881d9d5f84abe944d1fac16c6"
+  inputs-digest = "90c20b27e4d84ea8144eee5964c0553f476cdc561858b90354c317b250cb11f6"
   solver-name = "gps-cdcl"
   solver-version = 1
