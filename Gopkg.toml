@@ -1,7 +1,9 @@
-### Begin helm/k8s constraints
+## Begin helm/k8s constraints
+### To build out the list of overrides, see kubernetes/kubernetes/Godeps/Godeps.json
 
 required = [
-    "github.com/go-openapi/spec"
+    "github.com/go-openapi/spec",
+    "github.com/emicklei/go-restful"
 ]
 
 ignored = [
@@ -14,18 +16,21 @@ ignored = [
 
 [[override]]
   name = "github.com/russross/blackfriday"
-  version ="=v1.5"
+  version ="~v1.4"
 
 [[constraint]]
   name = "k8s.io/helm"
   version = "~v2.8.0"
 
-# figured out this override using Draft
 [[override]]
   name = "github.com/docker/distribution"
   revision = "b38e5838b7b2f2ad48e06ec4b500011976080621"
 
-### End helm/k8s constraints
+[[override]]
+  name = "github.com/emicklei/go-restful"
+  version = "~v2.2"
+
+## End helm/k8s constraints
 
 [[constraint]]
   name = "github.com/pkg/errors"

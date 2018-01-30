@@ -175,6 +175,15 @@
   revision = "bc6354cbbc295e925e4c611ffe90c1f287ee54db"
 
 [[projects]]
+  name = "github.com/emicklei/go-restful"
+  packages = [
+    ".",
+    "log"
+  ]
+  revision = "68c9750c36bb8cb433f1b88c807b4b30df4acc40"
+  version = "v2.2.1"
+
+[[projects]]
   branch = "master"
   name = "github.com/evanphx/json-patch"
   packages = ["."]
@@ -310,7 +319,7 @@
     "openstack/utils",
     "pagination"
   ]
-  revision = "a924af7658c466bf641b255397766fd4f4889189"
+  revision = "8128df2865bb9d40a9d09f901483b6cd0436e53c"
 
 [[projects]]
   name = "github.com/gorilla/context"
@@ -524,8 +533,14 @@
 [[projects]]
   name = "github.com/russross/blackfriday"
   packages = ["."]
-  revision = "4048872b16cc0fc2c5fd9eacf0ed2c2fedaa0c8c"
-  version = "v1.5"
+  revision = "0b647d0506a698cca42caca173e55559b12a69f2"
+  version = "v1.4"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/shurcooL/sanitized_anchor_name"
+  packages = ["."]
+  revision = "86672fcb3f950f35f2e675df2240550f2a50762f"
 
 [[projects]]
   name = "github.com/spf13/cobra"
@@ -1163,6 +1178,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "31c60edbdf8519ca547fad85a50b19401e7b15330345dd996b2f07c0c6eab131"
+  inputs-digest = "52d1edb598e4656f185f171bb8c5d6a0d4b6e2c881d9d5f84abe944d1fac16c6"
   solver-name = "gps-cdcl"
   solver-version = 1
