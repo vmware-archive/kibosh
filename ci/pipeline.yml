@@ -37,4 +37,5 @@ jobs:
           mkdir -p $SRC
           cp -r source-repo/* $SRC
           cd $SRC
+          make bootstrap
           make test

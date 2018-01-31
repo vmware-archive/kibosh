@@ -49,4 +49,4 @@ endif
 	dep ensure -v
 	scripts/setup-apimachinery.sh
 
-all: fmt test do-build
+all: fmt test build

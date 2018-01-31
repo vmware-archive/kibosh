@@ -2,18 +2,22 @@ package broker
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path"
 
 	"code.cloudfoundry.org/lager"
-	//my_helm "github.com/cf-platform-eng/kibosh/helm"
-	//"github.com/cf-platform-eng/kibosh/k8s"
+	my_helm "github.com/cf-platform-eng/kibosh/helm"
+	"github.com/cf-platform-eng/kibosh/k8s"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
-	//hapi_release "k8s.io/helm/pkg/proto/hapi/release"
+	api_v1 "k8s.io/api/core/v1"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/helm/pkg/helm"
+	hapi_release "k8s.io/helm/pkg/proto/hapi/release"
 )
 
 // PksServiceBroker contains values passed in from configuration necessary for broker's work.
@@ -21,8 +25,8 @@ type PksServiceBroker struct {
 	Logger       lager.Logger
 	HelmChartDir string
 	ServiceID    string
-	//cluster      k8s.Cluster
-	//myHelmClient my_helm.MyHelmClient
+	cluster      k8s.Cluster
+	myHelmClient my_helm.MyHelmClient
 }
 
 // todo: now that we're including helm, it probably make sense to defer to the helm library's parsing?
@@ -32,13 +36,12 @@ type HelmChart struct {
 	Description string `yaml:"description"`
 }
 
-//func NewPksServiceBroker(helmChartDir string, serviceID string, cluster k8s.Cluster, myHelmClient my_helm.MyHelmClient) *PksServiceBroker {
-func NewPksServiceBroker(helmChartDir string, serviceID string, cluster interface{}, myHelmClient interface{}) *PksServiceBroker {
+func NewPksServiceBroker(helmChartDir string, serviceID string, cluster k8s.Cluster, myHelmClient my_helm.MyHelmClient) *PksServiceBroker {
 	return &PksServiceBroker{
 		HelmChartDir: helmChartDir,
 		ServiceID:    serviceID,
-		//cluster:      cluster,
-		//myHelmClient: myHelmClient,
+		cluster:      cluster,
+		myHelmClient: myHelmClient,
 	}
 }
 
@@ -99,32 +102,30 @@ func (pksServiceBroker *PksServiceBroker) Provision(ctx context.Context, instanc
 		return brokerapi.ProvisionedServiceSpec{}, brokerapi.ErrAsyncRequired
 	}
 
-	/*
-		namespaceName := instanceID
-		namespace := api_v1.Namespace{
-			Spec: api_v1.NamespaceSpec{},
-			ObjectMeta: meta_v1.ObjectMeta{
-				Name: namespaceName,
-				Labels: map[string]string{
-					"serviceID":        details.ServiceID,
-					"planID":           details.PlanID,
-					"organizationGUID": details.OrganizationGUID,
-					"spaceGUID":        details.SpaceGUID,
-				},
+	namespaceName := instanceID
+	namespace := api_v1.Namespace{
+		Spec: api_v1.NamespaceSpec{},
+		ObjectMeta: meta_v1.ObjectMeta{
+			Name: namespaceName,
+			Labels: map[string]string{
+				"serviceID":        details.ServiceID,
+				"planID":           details.PlanID,
+				"organizationGUID": details.OrganizationGUID,
+				"spaceGUID":        details.SpaceGUID,
 			},
-		}
+		},
+	}
+	_, err := pksServiceBroker.cluster.CreateNamespace(&namespace)
+	if err != nil {
+		return brokerapi.ProvisionedServiceSpec{}, err
+	}
 
-		_, err := pksServiceBroker.cluster.CreateNamespace(&namespace)
-		if err != nil {
-			return brokerapi.ProvisionedServiceSpec{}, err
-		}
-
-		_, err = pksServiceBroker.myHelmClient.InstallReleaseFromDir(
-			pksServiceBroker.HelmChartDir, namespaceName, helm.ReleaseName(instanceID),
-		)
-		if err != nil {
-			return brokerapi.ProvisionedServiceSpec{}, err
-		}*/
+	_, err = pksServiceBroker.myHelmClient.InstallReleaseFromDir(
+		pksServiceBroker.HelmChartDir, namespaceName, helm.ReleaseName(instanceID),
+	)
+	if err != nil {
+		return brokerapi.ProvisionedServiceSpec{}, err
+	}
 
 	return brokerapi.ProvisionedServiceSpec{
 		IsAsync: true,
@@ -166,34 +167,31 @@ func (pksServiceBroker *PksServiceBroker) Update(ctx context.Context, instanceID
 
 // LastOperation is for async
 func (pksServiceBroker *PksServiceBroker) LastOperation(ctx context.Context, instanceID, operationData string) (brokerapi.LastOperation, error) {
-	/*
-		var brokerStatus brokerapi.LastOperationState
-		var description string
-		response, err := pksServiceBroker.myHelmClient.ReleaseStatus(instanceID)
-		if err != nil {
-			return brokerapi.LastOperation{}, err
-		}
+	var brokerStatus brokerapi.LastOperationState
+	var description string
+	response, err := pksServiceBroker.myHelmClient.ReleaseStatus(instanceID)
+	if err != nil {
+		return brokerapi.LastOperation{}, err
+	}
 
-		code := response.Info.Status.Code
-		switch code {
-		case hapi_release.Status_DEPLOYED:
-			//todo: treat Status_DELETED as succeeded
-			brokerStatus = brokerapi.Succeeded
-			description = "service deployment succeeded"
-		case hapi_release.Status_PENDING_INSTALL:
-			fallthrough
-		case hapi_release.Status_PENDING_UPGRADE:
-			brokerStatus = brokerapi.InProgress
-			description = "service deployment in progress"
-		default:
-			brokerStatus = brokerapi.Failed
-			description = fmt.Sprintf("service deployment failed %v", code)
-		}
+	code := response.Info.Status.Code
+	switch code {
+	case hapi_release.Status_DEPLOYED:
+		//todo: treat Status_DELETED as succeeded
+		brokerStatus = brokerapi.Succeeded
+		description = "service deployment succeeded"
+	case hapi_release.Status_PENDING_INSTALL:
+		fallthrough
+	case hapi_release.Status_PENDING_UPGRADE:
+		brokerStatus = brokerapi.InProgress
+		description = "service deployment in progress"
+	default:
+		brokerStatus = brokerapi.Failed
+		description = fmt.Sprintf("service deployment failed %v", code)
+	}
 
-		return brokerapi.LastOperation{
-			State:       brokerStatus,
-			Description: description,
-		}, nil
-	*/
-	return brokerapi.LastOperation{}, nil
+	return brokerapi.LastOperation{
+		State:       brokerStatus,
+		Description: description,
+	}, nil
 }
