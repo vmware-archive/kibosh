@@ -78,14 +78,5 @@ func (i *installer) SetMaxWait(wait time.Duration) {
 
 func (i *installer) helmHealthy() bool {
 	_, err := i.client.ListReleases()
-	//	if err != nil {
-	//		println("-----------------------")
-	//		println(err.Error())
-	//		println("-----------------------")
-	//	} else {
-	//		println("-----------------------")
-	//		println("Shit finally worked")
-	//	}
-	//
 	return err == nil
 }

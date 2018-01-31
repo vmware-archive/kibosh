@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 set -ex
 
 ls -lah ./vendor/k8s.io
