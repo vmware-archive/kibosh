@@ -30,9 +30,8 @@ run:
 	SECURITY_USER_PASSWORD=pass \
 	go run main.go
 
-clean:
+cleandep:
 	rm -rf vendor
-	rm -f kibosh
 	rm -f Gopkg.lock
 
 HAS_DEP := $(shell command -v dep;)

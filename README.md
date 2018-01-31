@@ -53,6 +53,9 @@ matrix built. Useful inputs into this process are:
     - https://github.com/kubernetes/helm/blob/master/glide.yaml
     - https://github.com/kubernetes/helm/blob/master/glide.lock
 
+Also run the make target `cleandep` to wipe out the lock file an any local state when upgrading
+helm/k8s, to make sure it can be rebuilt cleanly from the specified constraints.
+
 More dep links:
 * Common dep commands:  https://golang.github.io/dep/docs/daily-dep.html
 * `Gopks.toml` details: https://github.com/golang/dep/blob/master/docs/Gopkg.toml.md
