@@ -2,9 +2,10 @@ package k8s
 
 import (
 	"github.com/cf-platform-eng/kibosh/config"
+
+	api_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	api_v1 "k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/rest"
 )
 
@@ -28,6 +29,7 @@ func NewCluster(kuboConfig *config.KuboODBVCAP) (Cluster, error) {
 	if err != nil {
 		return nil, err
 	}
+	println(k8sConfig)
 
 	client, err := kubernetes.NewForConfig(k8sConfig)
 	if err != nil {

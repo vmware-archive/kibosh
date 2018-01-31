@@ -14,8 +14,8 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
+	api_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	api_v1 "k8s.io/client-go/pkg/api/v1"
 	"k8s.io/helm/pkg/helm"
 	hapi_release "k8s.io/helm/pkg/proto/hapi/release"
 )

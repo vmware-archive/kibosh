@@ -182,6 +182,15 @@ type FakeMyHelmClient struct {
 		result1 <-chan *rls.TestReleaseResponse
 		result2 <-chan error
 	}
+	PingTillerStub        func() error
+	pingTillerMutex       sync.RWMutex
+	pingTillerArgsForCall []struct{}
+	pingTillerReturns     struct {
+		result1 error
+	}
+	pingTillerReturnsOnCall map[int]struct {
+		result1 error
+	}
 	InstallStub        func(*helmstaller.Options) error
 	installMutex       sync.RWMutex
 	installArgsForCall []struct {
@@ -341,7 +350,7 @@ func (fake *FakeMyHelmClient) InstallReleaseReturnsOnCall(i int, result1 *rls.In
 }
 
 func (fake *FakeMyHelmClient) InstallReleaseFromChart(chart *chart.Chart, namespace string, opts ...helmpkg.InstallOption) (*rls.InstallReleaseResponse, error) {
-	panic("counterfeiter generation fail")
+	panic("Bad fake generation")
 }
 
 func (fake *FakeMyHelmClient) InstallReleaseFromChartCallCount() int {
@@ -536,7 +545,7 @@ func (fake *FakeMyHelmClient) UpdateReleaseReturnsOnCall(i int, result1 *rls.Upd
 }
 
 func (fake *FakeMyHelmClient) UpdateReleaseFromChart(rlsName string, chart *chart.Chart, opts ...helmpkg.UpdateOption) (*rls.UpdateReleaseResponse, error) {
-	panic("counterfeiter generation fail")
+	panic("bad fake generationt")
 }
 
 func (fake *FakeMyHelmClient) UpdateReleaseFromChartCallCount() int {
@@ -832,6 +841,46 @@ func (fake *FakeMyHelmClient) RunReleaseTestReturnsOnCall(i int, result1 <-chan 
 	}{result1, result2}
 }
 
+func (fake *FakeMyHelmClient) PingTiller() error {
+	fake.pingTillerMutex.Lock()
+	ret, specificReturn := fake.pingTillerReturnsOnCall[len(fake.pingTillerArgsForCall)]
+	fake.pingTillerArgsForCall = append(fake.pingTillerArgsForCall, struct{}{})
+	fake.recordInvocation("PingTiller", []interface{}{})
+	fake.pingTillerMutex.Unlock()
+	if fake.PingTillerStub != nil {
+		return fake.PingTillerStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.pingTillerReturns.result1
+}
+
+func (fake *FakeMyHelmClient) PingTillerCallCount() int {
+	fake.pingTillerMutex.RLock()
+	defer fake.pingTillerMutex.RUnlock()
+	return len(fake.pingTillerArgsForCall)
+}
+
+func (fake *FakeMyHelmClient) PingTillerReturns(result1 error) {
+	fake.PingTillerStub = nil
+	fake.pingTillerReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeMyHelmClient) PingTillerReturnsOnCall(i int, result1 error) {
+	fake.PingTillerStub = nil
+	if fake.pingTillerReturnsOnCall == nil {
+		fake.pingTillerReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.pingTillerReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeMyHelmClient) Install(arg1 *helmstaller.Options) error {
 	fake.installMutex.Lock()
 	ret, specificReturn := fake.installReturnsOnCall[len(fake.installArgsForCall)]
@@ -1059,6 +1108,8 @@ func (fake *FakeMyHelmClient) Invocations() map[string][][]interface{} {
 	defer fake.getVersionMutex.RUnlock()
 	fake.runReleaseTestMutex.RLock()
 	defer fake.runReleaseTestMutex.RUnlock()
+	fake.pingTillerMutex.RLock()
+	defer fake.pingTillerMutex.RUnlock()
 	fake.installMutex.RLock()
 	defer fake.installMutex.RUnlock()
 	fake.upgradeMutex.RLock()

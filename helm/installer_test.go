@@ -41,7 +41,7 @@ var _ = Describe("KubeConfig", func() {
 
 		opts := client.InstallArgsForCall(0)
 		Expect(opts.Namespace).To(Equal("kube-system"))
-		Expect(opts.ImageSpec).To(Equal("gcr.io/kubernetes-helm/tiller:v2.6.1"))
+		Expect(opts.ImageSpec).To(Equal("gcr.io/kubernetes-helm/tiller:v2.8.0"))
 	})
 
 	It("upgrade required", func() {

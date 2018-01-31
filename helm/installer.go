@@ -1,12 +1,13 @@
 package helm
 
 import (
+	"time"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/cf-platform-eng/kibosh/k8s"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	helmstaller "k8s.io/helm/cmd/helm/installer"
-	"time"
 )
 
 type installer struct {
@@ -24,7 +25,7 @@ type Installer interface {
 //todo: the image needs to somehow be increment-able + local, deferring to packaging stories
 const (
 	nameSpace = "kube-system"
-	image     = "gcr.io/kubernetes-helm/tiller:v2.6.1"
+	image     = "gcr.io/kubernetes-helm/tiller:v2.8.0"
 )
 
 func NewInstaller(cluster k8s.Cluster, client MyHelmClient, logger lager.Logger) Installer {
@@ -38,8 +39,9 @@ func NewInstaller(cluster k8s.Cluster, client MyHelmClient, logger lager.Logger)
 
 func (i *installer) Install() error {
 	options := helmstaller.Options{
-		Namespace: nameSpace,
-		ImageSpec: image,
+		Namespace:      nameSpace,
+		ImageSpec:      image,
+		ServiceAccount: "tiller",
 	}
 	i.logger.Debug("Installing helm")
 	err := i.client.Install(&options)
@@ -76,6 +78,5 @@ func (i *installer) SetMaxWait(wait time.Duration) {
 
 func (i *installer) helmHealthy() bool {
 	_, err := i.client.ListReleases()
-
 	return err == nil
 }

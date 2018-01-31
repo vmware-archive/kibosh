@@ -10,6 +10,8 @@ import (
 	helmstaller "k8s.io/helm/cmd/helm/installer"
 	"k8s.io/helm/pkg/chartutil"
 	"k8s.io/helm/pkg/helm"
+	"k8s.io/helm/pkg/helm/portforwarder"
+	"k8s.io/helm/pkg/kube"
 	"k8s.io/helm/pkg/proto/hapi/chart"
 	rls "k8s.io/helm/pkg/proto/hapi/services"
 )
@@ -36,9 +38,9 @@ func NewMyHelmClient(cluster k8s.Cluster, logger lager.Logger) MyHelmClient {
 	}
 }
 
-func (c myHelmClient) open() (*Tunnel, helm.Interface, error) {
+func (c myHelmClient) open() (*kube.Tunnel, helm.Interface, error) {
 	config, client := c.cluster.GetClientConfig(), c.cluster.GetClient()
-	tunnel, err := New(nameSpace, client, config)
+	tunnel, err := portforwarder.New(nameSpace, client, config)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -144,5 +146,9 @@ func (c myHelmClient) GetVersion(opts ...helm.VersionOption) (*rls.GetVersionRes
 }
 
 func (c myHelmClient) RunReleaseTest(rlsName string, opts ...helm.ReleaseTestOption) (<-chan *rls.TestReleaseResponse, <-chan error) {
+	panic("Not yet implemented")
+}
+
+func (c myHelmClient) PingTiller() error {
 	panic("Not yet implemented")
 }
