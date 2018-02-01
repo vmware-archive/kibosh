@@ -9,3 +9,5 @@ vendor
 
 charts
 local_dev.sh
+kibosh.darwin
+kibosh.linux

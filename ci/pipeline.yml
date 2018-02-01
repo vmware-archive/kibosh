@@ -9,6 +9,24 @@ resources:
     username: cf-pe-bot
     password: {{github_token}}
 
+- name: kibosh-linux
+  type: s3
+  source:
+    bucket: kibosh
+    region_name: us-west-2
+    versioned_file: kibosh.linux
+    access_key_id: {{s3_key_id}}
+    secret_access_key: {{s3_secret}}
+
+- name: kibosh-darwin
+  type: s3
+  source:
+    bucket: kibosh
+    region_name: us-west-2
+    versioned_file: kibosh.darwin
+    access_key_id: {{s3_key_id}}
+    secret_access_key: {{s3_secret}}
+
 jobs:
 - name: unit-tests
   plan:
@@ -19,6 +37,8 @@ jobs:
     config:
       inputs:
       - name: source-repo
+      outputs:
+      - name: output
       platform: linux
       image_resource:
         type: docker-image
@@ -39,3 +59,12 @@ jobs:
           cd $SRC
           make bootstrap
           make test
+
+          make build
+          cp kibosh.* output/
+  - put: kibosh-linux
+    params:
+      file: output/kibosh.linux
+  - put: kibosh-darwin
+    params:
+      file: output/kibosh.darwin

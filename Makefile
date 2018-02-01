@@ -3,8 +3,13 @@ default: all
 GO_PACKAGES = $$(go list ./... | grep -v vendor)
 GO_FILES = $$(find . -name "*.go" | grep -v vendor | uniq)
 
-build:
-	go build -o kibosh ./main.go
+linux:
+	GOOS=linux GOARCH=amd64 go build -o kibosh.linux ./main.go
+
+mac:
+	GOOS=darwin GOARCH=amd64 go build -o kibosh.darwin ./main.go
+
+build: linux mac
 
 unit-test:
 	@go test ${GO_PACKAGES}
