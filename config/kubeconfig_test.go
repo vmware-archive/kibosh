@@ -14,7 +14,7 @@ var _ = Describe("KubeConfig", func() {
 	})
 
 	It("parses service block", func() {
-		kuboODBService, err := config.ParseVCAPServices("kubo-odb")
+		kuboODBService, err := config.ParseVCAPServices("user-provided")
 
 		Expect(err).To(BeNil())
 
@@ -31,7 +31,7 @@ var _ = Describe("KubeConfig", func() {
 	})
 
 	It("decode ca data", func() {
-		kuboODBService, err := config.ParseVCAPServices("kubo-odb")
+		kuboODBService, err := config.ParseVCAPServices("user-provided")
 
 		Expect(err).To(BeNil())
 
@@ -51,7 +51,7 @@ var _ = Describe("KubeConfig", func() {
 	})
 
 	It("returns error on bad cd data", func() {
-		kuboODBService, err := config.ParseVCAPServices("kubo-odb")
+		kuboODBService, err := config.ParseVCAPServices("user-provided")
 
 		Expect(err).To(BeNil())
 

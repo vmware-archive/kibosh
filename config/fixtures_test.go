@@ -2,7 +2,7 @@ package config_test
 
 const valid_vcap_services = `
 {
-  "kubo-odb": [
+  "user-provided": [
     {
       "credentials": {
         "kubeconfig": {
