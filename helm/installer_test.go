@@ -10,6 +10,8 @@ import (
 	"github.com/cf-platform-eng/kibosh/helm/helmfakes"
 	"github.com/cf-platform-eng/kibosh/k8s/k8sfakes"
 	"github.com/cf-platform-eng/kibosh/test"
+	"k8s.io/api/core/v1"
+	v1_beta1 "k8s.io/api/extensions/v1beta1"
 	api_errors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"time"
@@ -46,12 +48,46 @@ var _ = Describe("KubeConfig", func() {
 
 	It("upgrade required", func() {
 		client.InstallReturns(api_errors.NewAlreadyExists(schema.GroupResource{}, ""))
+		cluster.GetDeploymentReturns(
+			&v1_beta1.Deployment{
+				Spec: v1_beta1.DeploymentSpec{
+					Template: v1.PodTemplateSpec{
+						Spec: v1.PodSpec{
+							Containers: []v1.Container{
+								{Image: "gcr.io/kubernetes-helm/tiller:v2.7.0"},
+							}},
+					},
+				},
+			}, nil,
+		)
 
 		err := installer.Install()
 
 		Expect(err).To(BeNil())
 		Expect(client.InstallCallCount()).To(Equal(1))
 		Expect(client.UpgradeCallCount()).To(Equal(1))
+	})
+
+	It("installed but upgrade not required (same version)", func() {
+		client.InstallReturns(api_errors.NewAlreadyExists(schema.GroupResource{}, ""))
+		cluster.GetDeploymentReturns(
+			&v1_beta1.Deployment{
+				Spec: v1_beta1.DeploymentSpec{
+					Template: v1.PodTemplateSpec{
+						Spec: v1.PodSpec{
+							Containers: []v1.Container{
+								{Image: "gcr.io/kubernetes-helm/tiller:v2.8.0"},
+							}},
+					},
+				},
+			}, nil,
+		)
+
+		err := installer.Install()
+
+		Expect(err).To(BeNil())
+		Expect(client.InstallCallCount()).To(Equal(1))
+		Expect(client.UpgradeCallCount()).To(Equal(0))
 	})
 
 	It("blocks on error", func() {

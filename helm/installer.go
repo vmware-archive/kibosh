@@ -7,6 +7,7 @@ import (
 	"github.com/cf-platform-eng/kibosh/k8s"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	helmstaller "k8s.io/helm/cmd/helm/installer"
 )
 
@@ -24,8 +25,9 @@ type Installer interface {
 
 //todo: the image needs to somehow be increment-able + local, deferring to packaging stories
 const (
-	nameSpace = "kube-system"
-	image     = "gcr.io/kubernetes-helm/tiller:v2.8.0"
+	nameSpace      = "kube-system"
+	image          = "gcr.io/kubernetes-helm/tiller:v2.8.0"
+	deploymentName = "tiller-deploy"
 )
 
 func NewInstaller(cluster k8s.Cluster, client MyHelmClient, logger lager.Logger) Installer {
@@ -44,12 +46,23 @@ func (i *installer) Install() error {
 		ServiceAccount: "tiller",
 	}
 	i.logger.Debug("Installing helm")
+
 	err := i.client.Install(&options)
 	if err != nil {
 		if !apierrors.IsAlreadyExists(err) {
 			return errors.Wrap(err, "Error installing new helm")
 		}
-		err := i.client.Upgrade(&options)
+
+		obj, err := i.cluster.GetDeployment(nameSpace, deploymentName, meta_v1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		existingImage := obj.Spec.Template.Spec.Containers[0].Image
+		if existingImage == image {
+			return nil
+		}
+
+		err = i.client.Upgrade(&options)
 		if err != nil {
 			return errors.Wrap(err, "Error upgrading helm")
 		}

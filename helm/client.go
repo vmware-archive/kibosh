@@ -142,7 +142,13 @@ func (c myHelmClient) ReleaseHistory(rlsName string, opts ...helm.HistoryOption)
 }
 
 func (c myHelmClient) GetVersion(opts ...helm.VersionOption) (*rls.GetVersionResponse, error) {
-	panic("Not yet implemented")
+	tunnel, client, err := c.open()
+	if err != nil {
+		return nil, err
+	}
+	defer tunnel.Close()
+
+	return client.GetVersion(opts...)
 }
 
 func (c myHelmClient) RunReleaseTest(rlsName string, opts ...helm.ReleaseTestOption) (<-chan *rls.TestReleaseResponse, <-chan error) {

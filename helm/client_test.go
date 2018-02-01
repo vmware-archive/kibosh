@@ -49,8 +49,6 @@ name: value
 		err := ioutil.WriteFile(filepath.Join(chartPath, "values.yaml"), valuesYaml, 0666)
 		Expect(err).To(BeNil())
 
-		println(chartPath)
-
 		parseVals, err := myHelmClient.ReadDefaultVals(chartPath)
 		Expect(err).To(BeNil())
 

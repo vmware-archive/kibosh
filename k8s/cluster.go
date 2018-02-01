@@ -4,6 +4,8 @@ import (
 	"github.com/cf-platform-eng/kibosh/config"
 
 	api_v1 "k8s.io/api/core/v1"
+	v1_beta1 "k8s.io/api/extensions/v1beta1"
+	rbacv1beta1 "k8s.io/api/rbac/v1beta1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -16,6 +18,11 @@ type Cluster interface {
 
 	CreateNamespace(*api_v1.Namespace) (*api_v1.Namespace, error)
 	ListPods() (*api_v1.PodList, error)
+	GetDeployment(string, string, meta_v1.GetOptions) (*v1_beta1.Deployment, error)
+	ListServiceAccounts(string, meta_v1.ListOptions) (*api_v1.ServiceAccountList, error)
+	CreateServiceAccount(string, *api_v1.ServiceAccount) (*api_v1.ServiceAccount, error)
+	ListClusterRoleBindings(meta_v1.ListOptions) (*rbacv1beta1.ClusterRoleBindingList, error)
+	CreateClusterRoleBinding(*rbacv1beta1.ClusterRoleBinding) (*rbacv1beta1.ClusterRoleBinding, error)
 }
 
 type cluster struct {
@@ -29,7 +36,6 @@ func NewCluster(kuboConfig *config.KuboODBVCAP) (Cluster, error) {
 	if err != nil {
 		return nil, err
 	}
-	println(k8sConfig)
 
 	client, err := kubernetes.NewForConfig(k8sConfig)
 	if err != nil {
@@ -84,4 +90,24 @@ func (cluster *cluster) ListPods() (*api_v1.PodList, error) {
 		return nil, err
 	}
 	return pods, nil
+}
+
+func (cluster *cluster) GetDeployment(nameSpace string, deploymentName string, getOptions meta_v1.GetOptions) (*v1_beta1.Deployment, error) {
+	return cluster.GetClient().ExtensionsV1beta1().Deployments(nameSpace).Get(deploymentName, meta_v1.GetOptions{})
+}
+
+func (cluster *cluster) ListServiceAccounts(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.ServiceAccountList, error) {
+	return cluster.GetClient().CoreV1().ServiceAccounts(nameSpace).List(listOptions)
+}
+
+func (cluster *cluster) CreateServiceAccount(nameSpace string, serviceAccount *api_v1.ServiceAccount) (*api_v1.ServiceAccount, error) {
+	return cluster.GetClient().CoreV1().ServiceAccounts(nameSpace).Create(serviceAccount)
+}
+
+func (cluster *cluster) ListClusterRoleBindings(listOptions meta_v1.ListOptions) (*rbacv1beta1.ClusterRoleBindingList, error) {
+	return cluster.GetClient().RbacV1beta1().ClusterRoleBindings().List(listOptions)
+}
+
+func (cluster *cluster) CreateClusterRoleBinding(clusterRoleBinding *rbacv1beta1.ClusterRoleBinding) (*rbacv1beta1.ClusterRoleBinding, error) {
+	return cluster.GetClient().RbacV1beta1().ClusterRoleBindings().Create(clusterRoleBinding)
 }

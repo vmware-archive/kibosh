@@ -1,0 +1,30 @@
+
+export VCAP_SERVICES='{
+  "kubo-odb": [
+    {
+      "credentials": {
+        "kubeconfig": {
+          "apiVersion": "v1",
+          "clusters": [
+            {
+              "cluster": {
+                "certificate-authority-data": "${cat ~/.minikube/ca.crt | base64}",
+                "server": "https://192.168.99.100:8443"
+              }
+            }
+          ],
+          "users": [
+            {
+              "user": {
+                "token": "<token from minikube_auth.sh>"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}'
+export SERVICE_ID=123
+export SECURITY_USER_NAME=admin
+export SECURITY_USER_PASSWORD=pass

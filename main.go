@@ -37,6 +37,12 @@ func main() {
 		Password: conf.AdminPassword,
 	}
 
+	myServiceAccountInstaller := k8s.NewServiceAccountInstaller(cluster, brokerLogger)
+	err = myServiceAccountInstaller.Install()
+	if err != nil {
+		brokerLogger.Fatal("Error creating service account", err)
+	}
+
 	helmInstaller := helm.NewInstaller(cluster, myHelmClient, brokerLogger)
 	err = helmInstaller.Install()
 	if err != nil {
@@ -47,6 +53,7 @@ func main() {
 
 	http.Handle("/", brokerAPI)
 
+	brokerLogger.Info(fmt.Sprintf("Listening on %v", conf.Port))
 	err = http.ListenAndServe(fmt.Sprintf(":%v", conf.Port), nil)
 	brokerLogger.Fatal("http-listen", err)
 }
