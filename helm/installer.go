@@ -47,7 +47,6 @@ func (i *installer) Install() error {
 	err := i.client.Install(&options)
 	if err != nil {
 		if !apierrors.IsAlreadyExists(err) {
-			i.logger.Debug("Already exists, updating")
 			return errors.Wrap(err, "Error installing new helm")
 		}
 		err := i.client.Upgrade(&options)
