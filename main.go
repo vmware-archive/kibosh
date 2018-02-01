@@ -40,7 +40,7 @@ func main() {
 	helmInstaller := helm.NewInstaller(cluster, myHelmClient, brokerLogger)
 	err = helmInstaller.Install()
 	if err != nil {
-		brokerLogger.Fatal("Error setting installing helm", err)
+		brokerLogger.Fatal("Error installing helm", err)
 	}
 
 	brokerAPI := brokerapi.New(serviceBroker, brokerLogger, brokerCredentials)
