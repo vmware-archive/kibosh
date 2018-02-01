@@ -21,7 +21,7 @@ func Parse() (*config, error) {
 		return nil, err
 	}
 
-	c.KuboODBVCAP, err = ParseVCAPServices("kubo-odb")
+	c.KuboODBVCAP, err = ParseVCAPServices("user-provided")
 	if err != nil {
 		return nil, err
 	}
