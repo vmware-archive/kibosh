@@ -1,6 +1,6 @@
 
 export VCAP_SERVICES='{
-  "kubo-odb": [
+  "user-provided": [
     {
       "credentials": {
         "kubeconfig": {
