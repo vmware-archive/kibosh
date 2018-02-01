@@ -1,4 +1,9 @@
 ---
+resource_types:
+- name: gcs-resource
+  type: docker-image
+  source:
+    repository: frodenas/gcs-resource
 
 resources:
 - name: source-repo
@@ -10,22 +15,18 @@ resources:
     password: {{github_token}}
 
 - name: kibosh-linux
-  type: s3
+  type: gcs-resource
   source:
     bucket: kibosh
-    region_name: us-west-2
-    versioned_file: kibosh.linux
-    access_key_id: {{s3_key_id}}
-    secret_access_key: {{s3_secret}}
+    json_key: {{gcp_service_account_key}}
+    regexp: kibosh.linux
 
 - name: kibosh-darwin
-  type: s3
+  type: gcs-resource
   source:
     bucket: kibosh
-    region_name: us-west-2
-    versioned_file: kibosh.darwin
-    access_key_id: {{s3_key_id}}
-    secret_access_key: {{s3_secret}}
+    json_key: {{gcp_service_account_key}}
+    regexp: kibosh.darwin
 
 jobs:
 - name: unit-tests
@@ -56,12 +57,14 @@ jobs:
           export SRC=/go/src/github.com/cf-platform-eng/kibosh
           mkdir -p $SRC
           cp -r source-repo/* $SRC
-          cd $SRC
+
+          pushd $SRC
           make bootstrap
           make test
-
           make build
-          cp kibosh.* output/
+          popd
+
+          cp $SRC/kibosh.* output/
   - put: kibosh-linux
     params:
       file: output/kibosh.linux
