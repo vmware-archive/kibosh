@@ -42,7 +42,7 @@ ignored = [
 
 [[constraint]]
   name = "code.cloudfoundry.org/lager"
-  branch = "master"
+  version = "~v1.0.0"
 
 [[constraint]]
   name = "github.com/pivotal-cf/brokerapi"
