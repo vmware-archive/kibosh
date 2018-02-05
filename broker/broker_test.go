@@ -51,6 +51,7 @@ version: 0.0.1
 				ID:          "service-id",
 				Name:        "spacebears",
 				Description: "spacebears service and spacebears broker helm chart",
+				Bindable:    true,
 				Plans:       expectedPlan,
 			}}
 			Expect(expectedCatalog).Should(Equal(serviceCatalog))

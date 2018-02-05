@@ -87,6 +87,7 @@ func (pksServiceBroker *PksServiceBroker) Services(ctx context.Context) []broker
 		ID:          pksServiceBroker.ServiceID,
 		Name:        helmChart.Name,
 		Description: helmChart.Description,
+		Bindable:    true,
 
 		Plans: plan,
 	}}
