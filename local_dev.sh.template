@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 
 export VCAP_SERVICES='{
   "user-provided": [
@@ -25,6 +26,6 @@ export VCAP_SERVICES='{
     }
   ]
 }'
-export SERVICE_ID=123
+export SERVICE_ID=abc123
 export SECURITY_USER_NAME=admin
 export SECURITY_USER_PASSWORD=pass

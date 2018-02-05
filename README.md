@@ -14,6 +14,18 @@ go get -u github.com/maxbrunsfeld/counterfeiter
 go get -u github.com/golang/dep/cmd/dep
 ```
 
+#### Run
+Run `make bootstrap` from a clean checkout to setup initial dependencies. This will restore
+the locked dependency set specified by `Gopkg.toml` (we're no longer checking in `vendor`).
+
+Copy `local_dev.sh.template` to `local_dev.sh` (which is in `.gitignore`) and 
+configure the values (`cluster.certificate-authority-data`, `cluster.server`, and `user.token`)
+for a working cluster (minikube instructions below). Then run:
+
+```bash
+./local_dev.sh
+```
+
 #### Minikube
 To set things up in a way that authentication is done the same way as against PKS, run 
 ```bash
@@ -27,9 +39,79 @@ For `certificate-authority-data`, encode the minikube certificate:
 cat ~/.minikube/ca.crt | base64
 ```
 
+#### Test
+```bash
+make test
+```
+
+Instructions to manually deploy and verify catalog:
+1) Build the linux binary
+    ```bash
+    make linux
+    ```
+1) Create a directory and put the kibosh executable into it. 
+    ```
+    mkdir kibosh-example
+    cp <somewhere>/kibosh.linux kibosh-example/kibosh.linux
+    ```
+1) Create a Manifest.yml file as shown below in that directory.
+    ```
+    cat > Manifest.yml
+    ---
+    applications:
+    - name: kibosh_manual
+      buildpack: binary_buildpack
+      command: ./kibosh.linux
+      services:
+      - kibosh_cups
+      env:
+        SECURITY_USER_NAME: username
+        SECURITY_USER_PASSWORD: password
+        SERVICE_ID: f448fdea-25b8-41aa-aed4-539d8ace5e32
+        HELM_CHART_DIR: charts
+    ```
+1) Create a helm chart in that directory.
+
+   That helm chart could like like the example-chart in this project, 
+   or could be one of these: https://github.com/kubernetes/charts.  The `HELM_CHART_DIR`
+   environment variable in the Manifest.yml file should point to the sub-directory 
+   in which you put it. 
+   
+1) Push the kibosh application (with its helm chart subdirectory) into CF
+   ```
+   cf push
+   ```
+1) Validate the data that the catalog endpoint provides
+    ```
+    curl -k https://example.com/v2/catalog -u 'username:password'
+    ```
+    The username/password match the manifest's environment variables above.
+
+1) Put the application into the CF Marketplace. 
+    ```
+    cf create-service-broker kibosh-broker username password https://example.com
+    cf enable-service-access spacebears
+    cf service-brokers
+    cf service-access
+    ```
+
+1) Create an instance of the helm application from the marketplace. 
+    ```
+    cf create-service spacebears default sb-instance
+    helm list
+    cf create-service-key sb-instance sb-service-key
+    cf services
+    cf service sb-instance
+    ```
+1) Create a service key to bind to the service instance. 
+    ```
+    cf create-service-key sb-instance sb-service-key
+    ```
+
+### ci
+* https://concourse.cfplatformeng.com/teams/main/pipelines/kibosh
+
 #### Dependency vendoring
-Run `make bootstrap` from a clean checkout to setup initial dependencies. This will restore
-the locked dependency set specified by `Gopkg.toml` (we're not longer checking in `vendor`).
 
 To add a dependency:
 ```bash
@@ -57,82 +139,8 @@ Also run the make target `cleandep` to wipe out the lock file an any local state
 helm/k8s, to make sure it can be rebuilt cleanly from the specified constraints.
 
 More dep links:
-* Common dep commands:  https://golang.github.io/dep/docs/daily-dep.html
+* Common dep commands: https://golang.github.io/dep/docs/daily-dep.html
 * `Gopks.toml` details: https://github.com/golang/dep/blob/master/docs/Gopkg.toml.md
-
-#### Test
-```bash
-make test
-```
-
-Instructions to manually deploy and verify catalog: 
-1) Create a directory and put the kibosh executable into it. 
-    ```
-    mkdir kibosh-example
-    cp <somewhere>/kibosh.linux kibosh-example/kibosh.linux
-    ```
-1) Create a Manifest.yml file as shown below in that directory.
-    ```
-    cat > Manifest.yml
-    ---
-    applications:
-    - name: kibosh_manual
-      buildpack: binary_buildpack
-      command: ./kibosh.linux
-      services:
-      - kibosh_cups
-      env:
-        SECURITY_USER_NAME: username
-        SECURITY_USER_PASSWORD: password
-        SERVICE_ID: f448fdea-25b8-41aa-aed4-539d8ace5e32
-        HELM_CHART_DIR: charts
-    ```
-    The username/password come from XXXX...
-
-1) Create a helm chart in that directory.  
-   That helm chart could like like the example-chart in this project, 
-   or could be one of these: https://github.com/kubernetes/charts.  The HELM_CHART_DIR
-   environment variable in the Manifest.yml file should point to the sub-directory 
-   in which you put it. 
-   
-1) Push the kibosh application (with its helm chart subdirectory) into CF
-   ```
-   cf push
-
-   ```
-1) Validate the data that the catalog endpoint provides
-    ```
-    curl -k https://example.com/v2/catalog -u 'username:password'
-    ```
-
-1) Put the application into the CF Marketplace. 
-    ```
-    cf create-service-broker kibosh-broker username password https://example.com
-    cf enable-service-access spacebears
-    cf service-brokers
-    cf service-access
-    ```
-
-1) Create an instance of the helm application from the marketplace. 
-    ```
-    cf create-service spacebears default sb-instance
-    helm list
-    cf create-service-key sb-instance sb-service-key
-    cf services
-    cf service sb-instance
-    ```
-1) Create a service key to bind to the service instance. 
-    ```
-    cf create-service-key sb-instance sb-service-key
-    ```
-
-#### Run
-```bash
-make run
-```
-
-### ci
-* https://concourse.cfplatformeng.com/teams/main/pipelines/kibosh
 
 ## Notes
 
