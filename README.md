@@ -93,7 +93,7 @@ Instructions to manually deploy and verify catalog:
           "users": [
             {
               "user": {
-                "token": "<bearer token"
+                "token": "<bearer token>"
               }
             }
           ]
