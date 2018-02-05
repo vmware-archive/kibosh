@@ -52,11 +52,11 @@ Instructions to manually deploy and verify catalog:
 1) Create a directory and put the kibosh executable into it. 
     ```
     mkdir kibosh-example
-    cp <somewhere>/kibosh.linux kibosh-example/kibosh.linux
+    cp ~/go/src/github.com/cf-platform-eng/kibosh/kibosh.linux kibosh-example/kibosh.linux
     ```
 1) Create a Manifest.yml file as shown below in that directory.
     ```
-    cat > Manifest.yml
+    cat > manifest.yml
     ---
     applications:
     - name: kibosh_manual
@@ -76,6 +76,31 @@ Instructions to manually deploy and verify catalog:
    or could be one of these: https://github.com/kubernetes/charts.  The `HELM_CHART_DIR`
    environment variable in the Manifest.yml file should point to the sub-directory 
    in which you put it. 
+   
+1) Create a user-provided service with credentials for an existing cluster
+   ```bash
+    cf cups kibosh_cups -p '{
+        "kubeconfig": {
+          "apiVersion": "v1",
+          "clusters": [
+            {
+              "cluster": {
+                "certificate-authority-data": "<base 64 encoded something>",
+                "server": "https://127.0.0.1:8443"
+              }
+            }
+          ],
+          "users": [
+            {
+              "user": {
+                "token": "<bearer token"
+              }
+            }
+          ]
+        }
+      }
+    '
+    ```
    
 1) Push the kibosh application (with its helm chart subdirectory) into CF
    ```
