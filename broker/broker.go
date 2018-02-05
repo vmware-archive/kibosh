@@ -36,12 +36,13 @@ type HelmChart struct {
 	Description string `yaml:"description"`
 }
 
-func NewPksServiceBroker(helmChartDir string, serviceID string, cluster k8s.Cluster, myHelmClient my_helm.MyHelmClient) *PksServiceBroker {
+func NewPksServiceBroker(helmChartDir string, serviceID string, cluster k8s.Cluster, myHelmClient my_helm.MyHelmClient, logger lager.Logger) *PksServiceBroker {
 	return &PksServiceBroker{
 		HelmChartDir: helmChartDir,
 		ServiceID:    serviceID,
 		cluster:      cluster,
 		myHelmClient: myHelmClient,
+		Logger:       logger,
 	}
 }
 

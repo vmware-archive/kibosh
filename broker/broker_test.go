@@ -1,6 +1,7 @@
 package broker_test
 
 import (
+	"code.cloudfoundry.org/lager"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -17,12 +18,17 @@ import (
 )
 
 var _ = Describe("Broker", func() {
+	var logger lager.Logger
 
 	chartYamlContent := []byte(`
 name: spacebears
 description: spacebears service and spacebears broker helm chart
 version: 0.0.1
 `)
+
+	BeforeEach(func() {
+		logger = lager.NewLogger("test")
+	})
 
 	Context("catalog", func() {
 
@@ -38,7 +44,7 @@ version: 0.0.1
 			Expect(err).To(BeNil())
 
 			// Create the service catalog using that yaml.
-			serviceBroker := NewPksServiceBroker(dir, "service-id", nil, nil)
+			serviceBroker := NewPksServiceBroker(dir, "service-id", nil, nil, logger)
 			serviceCatalog := serviceBroker.Services(nil)
 
 			// Evalute correctness of service catalog against expected.
@@ -59,7 +65,7 @@ version: 0.0.1
 		})
 
 		It("Throws an appropriate error", func() {
-			serviceBroker := NewPksServiceBroker("unknown", "service-id", nil, nil)
+			serviceBroker := NewPksServiceBroker("unknown", "service-id", nil, nil, logger)
 
 			Expect(func() {
 				serviceBroker.Services(nil)
@@ -77,7 +83,7 @@ version: 0.0.1
 			fakeMyHelmClient = &helmfakes.FakeMyHelmClient{}
 			fakeCluster = &k8sfakes.FakeCluster{}
 
-			broker = NewPksServiceBroker("/my/chart/dir", "service-id", fakeCluster, fakeMyHelmClient)
+			broker = NewPksServiceBroker("/my/chart/dir", "service-id", fakeCluster, fakeMyHelmClient, logger)
 		})
 
 		It("requires async", func() {
@@ -149,7 +155,7 @@ version: 0.0.1
 			fakeMyHelmClient = &helmfakes.FakeMyHelmClient{}
 			fakeCluster = &k8sfakes.FakeCluster{}
 
-			broker = NewPksServiceBroker("/my/chart/dir", "service-id", fakeCluster, fakeMyHelmClient)
+			broker = NewPksServiceBroker("/my/chart/dir", "service-id", fakeCluster, fakeMyHelmClient, logger)
 		})
 
 		It("elevates error from helm", func() {
