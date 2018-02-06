@@ -104,7 +104,7 @@ func (pksServiceBroker *PksServiceBroker) Provision(ctx context.Context, instanc
 		return brokerapi.ProvisionedServiceSpec{}, brokerapi.ErrAsyncRequired
 	}
 
-	namespaceName := instanceID
+	namespaceName := "kibosh-" + instanceID + "k"
 	namespace := api_v1.Namespace{
 		Spec: api_v1.NamespaceSpec{},
 		ObjectMeta: meta_v1.ObjectMeta{
