@@ -104,7 +104,7 @@ func (pksServiceBroker *PksServiceBroker) Provision(ctx context.Context, instanc
 		return brokerapi.ProvisionedServiceSpec{}, brokerapi.ErrAsyncRequired
 	}
 
-	namespaceName := "kibosh-" + instanceID + "k"
+	namespaceName := "kibosh-" + instanceID
 	namespace := api_v1.Namespace{
 		Spec: api_v1.NamespaceSpec{},
 		ObjectMeta: meta_v1.ObjectMeta{
@@ -123,7 +123,7 @@ func (pksServiceBroker *PksServiceBroker) Provision(ctx context.Context, instanc
 	}
 
 	_, err = pksServiceBroker.myHelmClient.InstallReleaseFromDir(
-		pksServiceBroker.HelmChartDir, namespaceName, helm.ReleaseName(instanceID),
+		pksServiceBroker.HelmChartDir, namespaceName, helm.ReleaseName(namespaceName),
 	)
 	if err != nil {
 		return brokerapi.ProvisionedServiceSpec{}, err

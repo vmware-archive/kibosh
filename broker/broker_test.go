@@ -101,7 +101,7 @@ version: 0.0.1
 			Expect(fakeCluster.CreateNamespaceCallCount()).To(Equal(1))
 
 			namespace := fakeCluster.CreateNamespaceArgsForCall(0)
-			Expect(namespace.Name).To(Equal("kibosh-my-instance-guidk"))
+			Expect(namespace.Name).To(Equal("kibosh-my-instance-guid"))
 		})
 
 		It("returns error on namespace creation failure", func() {
@@ -124,7 +124,7 @@ version: 0.0.1
 			Expect(fakeMyHelmClient.InstallReleaseFromDirCallCount()).To(Equal(1))
 			chartDir, namespaceName, opts := fakeMyHelmClient.InstallReleaseFromDirArgsForCall(0)
 			Expect(chartDir).To(Equal("/my/chart/dir"))
-			Expect(namespaceName).To(Equal("kibosh-my-instance-guidk"))
+			Expect(namespaceName).To(Equal("kibosh-my-instance-guid"))
 			Expect(opts).To(HaveLen(1))
 		})
 
