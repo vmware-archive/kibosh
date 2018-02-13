@@ -64,28 +64,27 @@ func GetConf(yamlReader io.Reader) (*HelmChart, error) {
 }
 
 // Services reads Chart.yaml and uses the name and description in the service catalog.
-func (pksServiceBroker *PksServiceBroker) Services(ctx context.Context) []brokerapi.Service {
-
+func (broker *PksServiceBroker) Services(ctx context.Context) []brokerapi.Service {
 	// Get the helm chart Chart.yaml data
-	file, err := os.Open(path.Join(pksServiceBroker.HelmChartDir, "Chart.yaml"))
+	file, err := os.Open(path.Join(broker.HelmChartDir, "Chart.yaml"))
 	if err != nil {
-		pksServiceBroker.Logger.Fatal("Unable to read Chart.yaml", err)
+		broker.Logger.Fatal("Unable to read Chart.yaml", err)
 	}
 	defer file.Close()
 	helmChart, err := GetConf(file)
 	if err != nil {
-		pksServiceBroker.Logger.Fatal("Unable to parse Chart.yaml", err)
+		broker.Logger.Fatal("Unable to parse Chart.yaml", err)
 	}
 
 	// Create a default plan.
 	plan := []brokerapi.ServicePlan{{
-		ID:          pksServiceBroker.ServiceID + "-default",
+		ID:          broker.ServiceID + "-default",
 		Name:        "default",
 		Description: helmChart.Description,
 	}}
 
 	serviceCatalog := []brokerapi.Service{{
-		ID:          pksServiceBroker.ServiceID,
+		ID:          broker.ServiceID,
 		Name:        helmChart.Name,
 		Description: helmChart.Description,
 		Bindable:    true,
@@ -99,16 +98,15 @@ func (pksServiceBroker *PksServiceBroker) Services(ctx context.Context) []broker
 // Provision uses the cloud controller service id to create a namespace in k8s,
 // does the Helm install into that namespace, and
 // converts the cf create-instance json block into Helm key-value pairs.
-func (pksServiceBroker *PksServiceBroker) Provision(ctx context.Context, instanceID string, details brokerapi.ProvisionDetails, asyncAllowed bool) (brokerapi.ProvisionedServiceSpec, error) {
+func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string, details brokerapi.ProvisionDetails, asyncAllowed bool) (brokerapi.ProvisionedServiceSpec, error) {
 	if !asyncAllowed {
 		return brokerapi.ProvisionedServiceSpec{}, brokerapi.ErrAsyncRequired
 	}
 
-	namespaceName := "kibosh-" + instanceID
 	namespace := api_v1.Namespace{
 		Spec: api_v1.NamespaceSpec{},
 		ObjectMeta: meta_v1.ObjectMeta{
-			Name: namespaceName,
+			Name: broker.getNamespace(instanceID),
 			Labels: map[string]string{
 				"serviceID":        details.ServiceID,
 				"planID":           details.PlanID,
@@ -117,13 +115,13 @@ func (pksServiceBroker *PksServiceBroker) Provision(ctx context.Context, instanc
 			},
 		},
 	}
-	_, err := pksServiceBroker.cluster.CreateNamespace(&namespace)
+	_, err := broker.cluster.CreateNamespace(&namespace)
 	if err != nil {
 		return brokerapi.ProvisionedServiceSpec{}, err
 	}
 
-	_, err = pksServiceBroker.myHelmClient.InstallReleaseFromDir(
-		pksServiceBroker.HelmChartDir, namespaceName, helm.ReleaseName(namespaceName),
+	_, err = broker.myHelmClient.InstallReleaseFromDir(
+		broker.HelmChartDir, broker.getNamespace(instanceID), helm.ReleaseName(broker.getNamespace(instanceID)),
 	)
 	if err != nil {
 		return brokerapi.ProvisionedServiceSpec{}, err
@@ -135,25 +133,43 @@ func (pksServiceBroker *PksServiceBroker) Provision(ctx context.Context, instanc
 }
 
 // Deprovision deletes the namespace (and everything in it) created by provision.
-func (pksServiceBroker *PksServiceBroker) Deprovision(ctx context.Context, instanceID string, details brokerapi.DeprovisionDetails, asyncAllowed bool) (brokerapi.DeprovisionServiceSpec, error) {
+func (broker *PksServiceBroker) Deprovision(ctx context.Context, instanceID string, details brokerapi.DeprovisionDetails, asyncAllowed bool) (brokerapi.DeprovisionServiceSpec, error) {
 
 	// TODO
 
 	return brokerapi.DeprovisionServiceSpec{}, nil
 }
 
-// Bind fetches the secrets and services from the k8s namespace.
-// It may use "kubectl expose" and/or "kubectl show services".
-// It creates environment variables in the scope of the cf app by populating the brokerapi.Binding object.
-func (pksServiceBroker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID string, details brokerapi.BindDetails) (brokerapi.Binding, error) {
+func (broker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID string, details brokerapi.BindDetails) (brokerapi.Binding, error) {
+	secrets, err := broker.cluster.ListSecrets(broker.getNamespace(instanceID), meta_v1.ListOptions{})
+	if err != nil {
+		return brokerapi.Binding{}, err
+	}
 
-	// TODO
+	credentials := []map[string]interface{}{}
+	for _, secret := range secrets.Items {
+		if secret.Type == api_v1.SecretTypeOpaque {
+			credentialSecrets := map[string]string{}
+			for key, val := range secret.Data {
+				credentialSecrets[key] = string(val)
+			}
+			credential := map[string]interface{}{
+				"name": secret.Name,
+				"data": credentialSecrets,
+			}
+			credentials = append(credentials, credential)
+		}
+	}
 
-	return brokerapi.Binding{}, nil
+	return brokerapi.Binding{
+		Credentials: credentials,
+	}, nil
 }
 
+
+
 // Unbind reverses bind
-func (pksServiceBroker *PksServiceBroker) Unbind(ctx context.Context, instanceID, bindingID string, details brokerapi.UnbindDetails) error {
+func (broker *PksServiceBroker) Unbind(ctx context.Context, instanceID, bindingID string, details brokerapi.UnbindDetails) error {
 
 	// noop
 
@@ -163,15 +179,15 @@ func (pksServiceBroker *PksServiceBroker) Unbind(ctx context.Context, instanceID
 // Update is perhaps not needed for MVP.
 // Its purpose may be for changing plans, so if we only have a single default plan
 // it is out of scope.
-func (pksServiceBroker *PksServiceBroker) Update(ctx context.Context, instanceID string, details brokerapi.UpdateDetails, asyncAllowed bool) (brokerapi.UpdateServiceSpec, error) {
+func (broker *PksServiceBroker) Update(ctx context.Context, instanceID string, details brokerapi.UpdateDetails, asyncAllowed bool) (brokerapi.UpdateServiceSpec, error) {
 	return brokerapi.UpdateServiceSpec{}, nil
 }
 
 // LastOperation is for async
-func (pksServiceBroker *PksServiceBroker) LastOperation(ctx context.Context, instanceID, operationData string) (brokerapi.LastOperation, error) {
+func (broker *PksServiceBroker) LastOperation(ctx context.Context, instanceID, operationData string) (brokerapi.LastOperation, error) {
 	var brokerStatus brokerapi.LastOperationState
 	var description string
-	response, err := pksServiceBroker.myHelmClient.ReleaseStatus(instanceID)
+	response, err := broker.myHelmClient.ReleaseStatus(instanceID)
 	if err != nil {
 		return brokerapi.LastOperation{}, err
 	}
@@ -196,4 +212,8 @@ func (pksServiceBroker *PksServiceBroker) LastOperation(ctx context.Context, ins
 		State:       brokerStatus,
 		Description: description,
 	}, nil
+}
+
+func (broker *PksServiceBroker) getNamespace(instanceID string) string {
+	return "kibosh-" + instanceID
 }

@@ -125,6 +125,20 @@ type FakeCluster struct {
 		result1 *rbacv1beta1.ClusterRoleBinding
 		result2 error
 	}
+	ListSecretsStub        func(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.SecretList, error)
+	listSecretsMutex       sync.RWMutex
+	listSecretsArgsForCall []struct {
+		nameSpace   string
+		listOptions meta_v1.ListOptions
+	}
+	listSecretsReturns struct {
+		result1 *api_v1.SecretList
+		result2 error
+	}
+	listSecretsReturnsOnCall map[int]struct {
+		result1 *api_v1.SecretList
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -562,6 +576,58 @@ func (fake *FakeCluster) CreateClusterRoleBindingReturnsOnCall(i int, result1 *r
 	}{result1, result2}
 }
 
+func (fake *FakeCluster) ListSecrets(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.SecretList, error) {
+	fake.listSecretsMutex.Lock()
+	ret, specificReturn := fake.listSecretsReturnsOnCall[len(fake.listSecretsArgsForCall)]
+	fake.listSecretsArgsForCall = append(fake.listSecretsArgsForCall, struct {
+		nameSpace   string
+		listOptions meta_v1.ListOptions
+	}{nameSpace, listOptions})
+	fake.recordInvocation("ListSecrets", []interface{}{nameSpace, listOptions})
+	fake.listSecretsMutex.Unlock()
+	if fake.ListSecretsStub != nil {
+		return fake.ListSecretsStub(nameSpace, listOptions)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.listSecretsReturns.result1, fake.listSecretsReturns.result2
+}
+
+func (fake *FakeCluster) ListSecretsCallCount() int {
+	fake.listSecretsMutex.RLock()
+	defer fake.listSecretsMutex.RUnlock()
+	return len(fake.listSecretsArgsForCall)
+}
+
+func (fake *FakeCluster) ListSecretsArgsForCall(i int) (string, meta_v1.ListOptions) {
+	fake.listSecretsMutex.RLock()
+	defer fake.listSecretsMutex.RUnlock()
+	return fake.listSecretsArgsForCall[i].nameSpace, fake.listSecretsArgsForCall[i].listOptions
+}
+
+func (fake *FakeCluster) ListSecretsReturns(result1 *api_v1.SecretList, result2 error) {
+	fake.ListSecretsStub = nil
+	fake.listSecretsReturns = struct {
+		result1 *api_v1.SecretList
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCluster) ListSecretsReturnsOnCall(i int, result1 *api_v1.SecretList, result2 error) {
+	fake.ListSecretsStub = nil
+	if fake.listSecretsReturnsOnCall == nil {
+		fake.listSecretsReturnsOnCall = make(map[int]struct {
+			result1 *api_v1.SecretList
+			result2 error
+		})
+	}
+	fake.listSecretsReturnsOnCall[i] = struct {
+		result1 *api_v1.SecretList
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeCluster) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -583,6 +649,8 @@ func (fake *FakeCluster) Invocations() map[string][][]interface{} {
 	defer fake.listClusterRoleBindingsMutex.RUnlock()
 	fake.createClusterRoleBindingMutex.RLock()
 	defer fake.createClusterRoleBindingMutex.RUnlock()
+	fake.listSecretsMutex.RLock()
+	defer fake.listSecretsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

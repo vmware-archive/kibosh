@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"encoding/json"
 	"errors"
 	. "github.com/cf-platform-eng/kibosh/broker"
 	"github.com/cf-platform-eng/kibosh/helm/helmfakes"
@@ -13,6 +14,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
+	api_v1 "k8s.io/api/core/v1"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	hapi_release "k8s.io/helm/pkg/proto/hapi/release"
 	hapi_services "k8s.io/helm/pkg/proto/hapi/services"
 )
@@ -31,7 +34,6 @@ version: 0.0.1
 	})
 
 	Context("catalog", func() {
-
 		It("Provides a catalog", func() {
 			// Create a temporary directory (defer removing it until after method)
 			dir, err := ioutil.TempDir("", "chart-")
@@ -230,6 +232,79 @@ version: 0.0.1
 			Expect(err).To(BeNil())
 			Expect(resp.Description).To(ContainSubstring("failed"))
 			Expect(resp.State).To(Equal(brokerapi.Failed))
+		})
+	})
+
+	Context("bind", func() {
+		var fakeMyHelmClient *helmfakes.FakeMyHelmClient
+		var fakeCluster *k8sfakes.FakeCluster
+		var broker *PksServiceBroker
+
+		BeforeEach(func() {
+			fakeMyHelmClient = &helmfakes.FakeMyHelmClient{}
+			fakeCluster = &k8sfakes.FakeCluster{}
+
+			broker = NewPksServiceBroker("/my/chart/dir", "service-id", fakeCluster, fakeMyHelmClient, logger)
+		})
+
+		It("bind returns cluster secrets", func() {
+			secretsList := api_v1.SecretList{
+				Items: []api_v1.Secret{
+					{
+						ObjectMeta: meta_v1.ObjectMeta{Name: "passwords"},
+						Data: map[string][]byte{"db-password": []byte("abc123")},
+						Type: api_v1.SecretTypeOpaque,
+					},
+				},
+			}
+			fakeCluster.ListSecretsReturns(&secretsList, nil)
+
+			binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{})
+
+			Expect(err).To(BeNil())
+			Expect(fakeCluster.ListSecretsCallCount()).To(Equal(1))
+
+			Expect(binding).NotTo(BeNil())
+
+			creds := binding.Credentials
+			credsJson, err := json.Marshal(creds)
+			Expect(string(credsJson)).To(Equal(`[{"data":{"db-password":"abc123"},"name":"passwords"}]`))
+		})
+
+		It("bind filters to only opaque secrets", func() {
+			secretsList := api_v1.SecretList{
+				Items: []api_v1.Secret{
+					{
+						ObjectMeta: meta_v1.ObjectMeta{Name: "passwords"},
+						Data: map[string][]byte{"db-password": []byte("abc123")},
+						Type: api_v1.SecretTypeOpaque,
+					}, {
+						ObjectMeta: meta_v1.ObjectMeta{Name: "default-token-xyz"},
+						Data: map[string][]byte{"token": []byte("my-token")},
+						Type: api_v1.SecretTypeServiceAccountToken,
+					},
+				},
+			}
+			fakeCluster.ListSecretsReturns(&secretsList, nil)
+
+			binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{})
+
+			Expect(err).To(BeNil())
+			Expect(fakeCluster.ListSecretsCallCount()).To(Equal(1))
+
+			Expect(binding).NotTo(BeNil())
+
+			creds := binding.Credentials
+			credsJson, err := json.Marshal(creds)
+			Expect(string(credsJson)).To(Equal(`[{"data":{"db-password":"abc123"},"name":"passwords"}]`))
+		})
+
+		It("bubbles up errors", func() {
+			fakeCluster.ListSecretsReturns(nil, errors.New("foo failed"))
+			_, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{})
+
+			Expect(err).NotTo(BeNil())
+			Expect(fakeCluster.ListSecretsCallCount()).To(Equal(1))
 		})
 	})
 })
