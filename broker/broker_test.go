@@ -248,6 +248,9 @@ version: 0.0.1
 		})
 
 		It("bind returns cluster secrets", func() {
+			serviceList := api_v1.ServiceList{Items: []api_v1.Service{}}
+			fakeCluster.ListServicesReturns(&serviceList, nil)
+
 			secretsList := api_v1.SecretList{
 				Items: []api_v1.Secret{
 					{
@@ -267,11 +270,15 @@ version: 0.0.1
 			Expect(binding).NotTo(BeNil())
 
 			creds := binding.Credentials
-			credsJson, err := json.Marshal(creds)
-			Expect(string(credsJson)).To(Equal(`[{"data":{"db-password":"abc123"},"name":"passwords"}]`))
+			secrets := creds.(map[string]interface{})["secrets"]
+			secretsJson, err := json.Marshal(secrets)
+			Expect(string(secretsJson)).To(Equal(`[{"data":{"db-password":"abc123"},"name":"passwords"}]`))
 		})
 
 		It("bind filters to only opaque secrets", func() {
+			serviceList := api_v1.ServiceList{Items: []api_v1.Service{}}
+			fakeCluster.ListServicesReturns(&serviceList, nil)
+
 			secretsList := api_v1.SecretList{
 				Items: []api_v1.Secret{
 					{
@@ -295,16 +302,83 @@ version: 0.0.1
 			Expect(binding).NotTo(BeNil())
 
 			creds := binding.Credentials
-			credsJson, err := json.Marshal(creds)
-			Expect(string(credsJson)).To(Equal(`[{"data":{"db-password":"abc123"},"name":"passwords"}]`))
+			secrets := creds.(map[string]interface{})["secrets"]
+			secretsJson, err := json.Marshal(secrets)
+			Expect(string(secretsJson)).To(Equal(`[{"data":{"db-password":"abc123"},"name":"passwords"}]`))
 		})
 
-		It("bubbles up errors", func() {
+		It("bubbles up list secrets errors", func() {
+			serviceList := api_v1.ServiceList{Items: []api_v1.Service{}}
+			fakeCluster.ListServicesReturns(&serviceList, nil)
+
 			fakeCluster.ListSecretsReturns(nil, errors.New("foo failed"))
 			_, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{})
 
 			Expect(err).NotTo(BeNil())
 			Expect(fakeCluster.ListSecretsCallCount()).To(Equal(1))
+		})
+
+		It("returns services (load balancer stuff)", func() {
+			secretList := api_v1.SecretList{Items: []api_v1.Secret{}}
+			fakeCluster.ListSecretsReturns(&secretList, nil)
+
+			serviceList := api_v1.ServiceList{
+				Items: []api_v1.Service{
+					{
+						ObjectMeta: meta_v1.ObjectMeta{Name: "kibosh-my-mysql-db-instance"},
+						Spec: api_v1.ServiceSpec{
+							Ports: []api_v1.ServicePort{
+								{
+									Name: "mysql",
+									NodePort: 30092,
+									Port: 3306,
+									Protocol: "TCP",
+								},
+							},
+						},
+						Status: api_v1.ServiceStatus{
+							LoadBalancer: api_v1.LoadBalancerStatus{
+								Ingress: []api_v1.LoadBalancerIngress{
+									{IP: "127.0.0.1"},
+								},
+							},
+						},
+					},
+				},
+			}
+			fakeCluster.ListServicesReturns(&serviceList, nil)
+
+
+			binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{})
+
+			Expect(err).To(BeNil())
+			Expect(fakeCluster.ListServicesCallCount()).To(Equal(1))
+
+			Expect(binding).NotTo(BeNil())
+
+			creds := binding.Credentials
+			services := creds.(map[string]interface{})["services"]
+			name := services.([]map[string]interface{})[0]["name"]
+			Expect(name).To(Equal("kibosh-my-mysql-db-instance"))
+
+			spec := services.([]map[string]interface{})[0]["spec"]
+			specJson, _ := json.Marshal(spec)
+			Expect(string(specJson)).To(Equal(`{"ports":[{"name":"mysql","protocol":"TCP","port":3306,"targetPort":0,"nodePort":30092}]}`))
+
+			status := services.([]map[string]interface{})[0]["status"]
+			statusJson, _ := json.Marshal(status)
+			Expect(string(statusJson)).To(Equal(`{"loadBalancer":{"ingress":[{"ip":"127.0.0.1"}]}}`))
+		})
+
+		It("bubbles up list services errors", func() {
+			secretList := api_v1.SecretList{Items: []api_v1.Secret{}}
+			fakeCluster.ListSecretsReturns(&secretList, nil)
+
+			fakeCluster.ListServicesReturns(nil, errors.New("no services for you"))
+
+			_, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{})
+
+			Expect(err).NotTo(BeNil())
 		})
 	})
 })

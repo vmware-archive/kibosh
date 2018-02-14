@@ -139,6 +139,20 @@ type FakeCluster struct {
 		result1 *api_v1.SecretList
 		result2 error
 	}
+	ListServicesStub        func(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.ServiceList, error)
+	listServicesMutex       sync.RWMutex
+	listServicesArgsForCall []struct {
+		nameSpace   string
+		listOptions meta_v1.ListOptions
+	}
+	listServicesReturns struct {
+		result1 *api_v1.ServiceList
+		result2 error
+	}
+	listServicesReturnsOnCall map[int]struct {
+		result1 *api_v1.ServiceList
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -628,6 +642,58 @@ func (fake *FakeCluster) ListSecretsReturnsOnCall(i int, result1 *api_v1.SecretL
 	}{result1, result2}
 }
 
+func (fake *FakeCluster) ListServices(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.ServiceList, error) {
+	fake.listServicesMutex.Lock()
+	ret, specificReturn := fake.listServicesReturnsOnCall[len(fake.listServicesArgsForCall)]
+	fake.listServicesArgsForCall = append(fake.listServicesArgsForCall, struct {
+		nameSpace   string
+		listOptions meta_v1.ListOptions
+	}{nameSpace, listOptions})
+	fake.recordInvocation("ListServices", []interface{}{nameSpace, listOptions})
+	fake.listServicesMutex.Unlock()
+	if fake.ListServicesStub != nil {
+		return fake.ListServicesStub(nameSpace, listOptions)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.listServicesReturns.result1, fake.listServicesReturns.result2
+}
+
+func (fake *FakeCluster) ListServicesCallCount() int {
+	fake.listServicesMutex.RLock()
+	defer fake.listServicesMutex.RUnlock()
+	return len(fake.listServicesArgsForCall)
+}
+
+func (fake *FakeCluster) ListServicesArgsForCall(i int) (string, meta_v1.ListOptions) {
+	fake.listServicesMutex.RLock()
+	defer fake.listServicesMutex.RUnlock()
+	return fake.listServicesArgsForCall[i].nameSpace, fake.listServicesArgsForCall[i].listOptions
+}
+
+func (fake *FakeCluster) ListServicesReturns(result1 *api_v1.ServiceList, result2 error) {
+	fake.ListServicesStub = nil
+	fake.listServicesReturns = struct {
+		result1 *api_v1.ServiceList
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCluster) ListServicesReturnsOnCall(i int, result1 *api_v1.ServiceList, result2 error) {
+	fake.ListServicesStub = nil
+	if fake.listServicesReturnsOnCall == nil {
+		fake.listServicesReturnsOnCall = make(map[int]struct {
+			result1 *api_v1.ServiceList
+			result2 error
+		})
+	}
+	fake.listServicesReturnsOnCall[i] = struct {
+		result1 *api_v1.ServiceList
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeCluster) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -651,6 +717,8 @@ func (fake *FakeCluster) Invocations() map[string][][]interface{} {
 	defer fake.createClusterRoleBindingMutex.RUnlock()
 	fake.listSecretsMutex.RLock()
 	defer fake.listSecretsMutex.RUnlock()
+	fake.listServicesMutex.RLock()
+	defer fake.listServicesMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

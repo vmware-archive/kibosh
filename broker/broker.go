@@ -135,7 +135,10 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 // Deprovision deletes the namespace (and everything in it) created by provision.
 func (broker *PksServiceBroker) Deprovision(ctx context.Context, instanceID string, details brokerapi.DeprovisionDetails, asyncAllowed bool) (brokerapi.DeprovisionServiceSpec, error) {
 
-	// TODO
+	// TODO:
+	// 	 - delete helm chart. Purge?
+	//   - delete namespace
+	//   - does LB get cleaned on chart deletion?
 
 	return brokerapi.DeprovisionServiceSpec{}, nil
 }
@@ -146,7 +149,7 @@ func (broker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID 
 		return brokerapi.Binding{}, err
 	}
 
-	credentials := []map[string]interface{}{}
+	secretsMap := []map[string]interface{}{}
 	for _, secret := range secrets.Items {
 		if secret.Type == api_v1.SecretTypeOpaque {
 			credentialSecrets := map[string]string{}
@@ -157,12 +160,30 @@ func (broker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID 
 				"name": secret.Name,
 				"data": credentialSecrets,
 			}
-			credentials = append(credentials, credential)
+			secretsMap = append(secretsMap, credential)
 		}
 	}
 
+	services, err := broker.cluster.ListServices(broker.getNamespace(instanceID), meta_v1.ListOptions{})
+	if err != nil {
+		return brokerapi.Binding{}, err
+	}
+
+	servicesMap := []map[string]interface{}{}
+	for _, service := range services.Items {
+		credentialService := map[string]interface{}{
+			"name": service.ObjectMeta.Name,
+			"spec": service.Spec,
+			"status": service.Status,
+		}
+		servicesMap = append(servicesMap, credentialService)
+	}
+
 	return brokerapi.Binding{
-		Credentials: credentials,
+		Credentials: map[string]interface{}{
+			"secrets":  secretsMap,
+			"services": servicesMap,
+		},
 	}, nil
 }
 
@@ -192,6 +213,8 @@ func (broker *PksServiceBroker) LastOperation(ctx context.Context, instanceID, o
 		return brokerapi.LastOperation{}, err
 	}
 
+	//todo: we saw the service sit with external IP pending while the deployment was flagged succeeded,
+	//todo: so might need to wait until that's fully allocated
 	code := response.Info.Status.Code
 	switch code {
 	case hapi_release.Status_DEPLOYED:
