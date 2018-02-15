@@ -24,7 +24,7 @@ func main() {
 		brokerLogger.Fatal("Loading config file", err)
 	}
 
-	cluster, err := k8s.NewCluster(conf.KuboODBVCAP)
+	cluster, err := k8s.NewCluster(conf.ClusterCredentials)
 	if err != nil {
 		brokerLogger.Fatal("Error setting up k8s cluster", err)
 	}

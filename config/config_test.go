@@ -13,7 +13,9 @@ var _ = Describe("Config", func() {
 	Context("config parsing", func() {
 		BeforeEach(func() {
 			os.Clearenv()
-			os.Setenv("VCAP_SERVICES", valid_vcap_services)
+			os.Setenv("CA_DATA", "c29tZSByYW5kb20gc3R1ZmY=")
+			os.Setenv("SERVER", "127.0.0.1/api")
+			os.Setenv("TOKEN", "my-token")
 		})
 
 		It("parses config from environment", func() {
@@ -31,9 +33,9 @@ var _ = Describe("Config", func() {
 			Expect(c.ServiceID).To(Equal("123"))
 			Expect(c.Port).To(Equal(9001))
 
-			Expect(c.KuboODBVCAP).NotTo(BeNil())
-			Expect(c.KuboODBVCAP.Name).To(Equal("my-kubernetes"))
-			Expect(c.KuboODBVCAP.Credentials.KubeConfig.ApiVersion).To(Equal("v1"))
+			Expect(c.ClusterCredentials.CAData).To(Equal("c29tZSByYW5kb20gc3R1ZmY="))
+			Expect(c.ClusterCredentials.Server).To(Equal("127.0.0.1/api"))
+			Expect(c.ClusterCredentials.Token).To(Equal("my-token"))
 		})
 
 		It("check for required password", func() {

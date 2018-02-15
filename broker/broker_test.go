@@ -493,9 +493,9 @@ version: 0.0.1
 		It("bubbles up delete chart errors", func() {
 			fakeMyHelmClient.DeleteReleaseReturns(nil, errors.New("Failed"))
 
-			details := brokerapi.DeprovisionDetails {
-				PlanID:"my-plan-id",
-				ServiceID:"my-service-id",
+			details := brokerapi.DeprovisionDetails{
+				PlanID:    "my-plan-id",
+				ServiceID: "my-service-id",
 			}
 			_, err := broker.Deprovision(nil, "my-instance-guid", details, true)
 
@@ -507,9 +507,9 @@ version: 0.0.1
 		It("bubbles up delete namespace errors", func() {
 			fakeCluster.DeleteNamespaceReturns(errors.New("nope"))
 
-			details := brokerapi.DeprovisionDetails {
-				PlanID:"my-plan-id",
-				ServiceID:"my-service-id",
+			details := brokerapi.DeprovisionDetails{
+				PlanID:    "my-plan-id",
+				ServiceID: "my-service-id",
 			}
 			_, err := broker.Deprovision(nil, "my-instance-guid", details, true)
 
@@ -519,9 +519,9 @@ version: 0.0.1
 		})
 
 		It("correctly calls deletion", func() {
-			details := brokerapi.DeprovisionDetails {
-				PlanID:"my-plan-id",
-				ServiceID:"my-service-id",
+			details := brokerapi.DeprovisionDetails{
+				PlanID:    "my-plan-id",
+				ServiceID: "my-service-id",
 			}
 			response, err := broker.Deprovision(nil, "my-instance-guid", details, true)
 

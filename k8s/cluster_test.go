@@ -11,29 +11,13 @@ import (
 )
 
 var _ = Describe("Config", func() {
-	var kuboConfig *config.KuboODBVCAP
+	var creds *config.ClusterCredentials
 
 	BeforeEach(func() {
-		kuboConfig = &config.KuboODBVCAP{
-			Credentials: config.Credentials{
-				KubeConfig: config.KubeConfig{
-					Users: []config.User{
-						{
-							UserCredentials: config.UserCredentials{
-								Token: "my-token",
-							},
-						},
-					},
-					Clusters: []config.Cluster{
-						{
-							ClusterInfo: config.ClusterInfo{
-								Server: "http://example.com:333",
-								CAData: "bXktZmFrZWNlcnQ=",
-							},
-						},
-					},
-				},
-			},
+		creds = &config.ClusterCredentials{
+			CAData: "c29tZSByYW5kb20gc3R1ZmY=",
+			Server: "127.0.0.1/api",
+			Token:  "my-token",
 		}
 	})
 
@@ -43,9 +27,9 @@ var _ = Describe("Config", func() {
 			url = string(r.URL.Path)
 		})
 		testserver := httptest.NewServer(handler)
-		kuboConfig.Credentials.KubeConfig.Clusters[0].ClusterInfo.Server = testserver.URL
+		creds.Server = testserver.URL
 
-		cluster, err := NewCluster(kuboConfig)
+		cluster, err := NewCluster(creds)
 
 		Expect(err).To(BeNil())
 

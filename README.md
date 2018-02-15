@@ -69,6 +69,12 @@ Instructions to manually deploy and verify catalog:
         SECURITY_USER_PASSWORD: password
         SERVICE_ID: f448fdea-25b8-41aa-aed4-539d8ace5e32
         HELM_CHART_DIR: charts
+        CA_DATA: |
+           -----BEGIN CERTIFICATE-----
+           ...
+           -----END CERTIFICATE-----
+        SERVER: https://127.0.0.1
+        TOKEN: bXktdG9rZW4=
     ```
 1) Create a helm chart in that directory.
 
@@ -76,31 +82,6 @@ Instructions to manually deploy and verify catalog:
    or could be one of these: https://github.com/kubernetes/charts.  The `HELM_CHART_DIR`
    environment variable in the Manifest.yml file should point to the sub-directory 
    in which you put it. 
-   
-1) Create a user-provided service with credentials for an existing cluster
-   ```bash
-    cf cups kibosh_cups -p '{
-        "kubeconfig": {
-          "apiVersion": "v1",
-          "clusters": [
-            {
-              "cluster": {
-                "certificate-authority-data": "<base 64 encoded something>",
-                "server": "https://127.0.0.1:8443"
-              }
-            }
-          ],
-          "users": [
-            {
-              "user": {
-                "token": "<bearer token>"
-              }
-            }
-          ]
-        }
-      }
-    '
-    ```
    
 1) Push the kibosh application (with its helm chart subdirectory) into CF
    ```

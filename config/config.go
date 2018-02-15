@@ -4,6 +4,12 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
+type ClusterCredentials struct {
+	CAData string `envconfig:"CA_DATA"`
+	Server string `envconfig:"SERVER"`
+	Token  string `envconfig:"TOKEN"`
+}
+
 type config struct {
 	AdminUsername string `envconfig:"SECURITY_USER_NAME" required:"true"`
 	AdminPassword string `envconfig:"SECURITY_USER_PASSWORD" required:"true"`
@@ -11,7 +17,7 @@ type config struct {
 	HelmChartDir  string `envconfig:"HELM_CHART_DIR" default:"charts"`
 	ServiceID     string `envconfig:"SERVICE_ID" required:"true"`
 
-	KuboODBVCAP *KuboODBVCAP
+	ClusterCredentials *ClusterCredentials
 }
 
 func Parse() (*config, error) {
@@ -21,10 +27,12 @@ func Parse() (*config, error) {
 		return nil, err
 	}
 
-	c.KuboODBVCAP, err = ParseVCAPServices("user-provided")
+	clusterCredentials := &ClusterCredentials{}
+	err = envconfig.Process("", clusterCredentials)
 	if err != nil {
 		return nil, err
 	}
+	c.ClusterCredentials = clusterCredentials
 
 	return c, nil
 }

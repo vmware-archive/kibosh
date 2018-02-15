@@ -7,5 +7,9 @@ applications:
       SECURITY_USER_NAME: user
       SECURITY_USER_PASSWORD: pass
       SERVICE_ID: kibosh
-    services:
-      - my-kubernetes
+      CA_DATA: |
+         -----BEGIN CERTIFICATE-----
+         ...
+         -----END CERTIFICATE-----
+      SERVER: https://127.0.0.1
+      TOKEN: bXktdG9rZW4=

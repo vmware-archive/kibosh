@@ -29,12 +29,12 @@ type Cluster interface {
 }
 
 type cluster struct {
-	kuboConfig *config.KuboODBVCAP
-	client     kubernetes.Interface
-	k8sConfig  *rest.Config
+	credentials *config.ClusterCredentials
+	client      kubernetes.Interface
+	k8sConfig   *rest.Config
 }
 
-func NewCluster(kuboConfig *config.KuboODBVCAP) (Cluster, error) {
+func NewCluster(kuboConfig *config.ClusterCredentials) (Cluster, error) {
 	k8sConfig, err := buildClientConfig(kuboConfig)
 	if err != nil {
 		return nil, err
@@ -46,9 +46,9 @@ func NewCluster(kuboConfig *config.KuboODBVCAP) (Cluster, error) {
 	}
 
 	return &cluster{
-		kuboConfig: kuboConfig,
-		k8sConfig:  k8sConfig,
-		client:     client,
+		credentials: kuboConfig,
+		k8sConfig:   k8sConfig,
+		client:      client,
 	}, nil
 }
 
@@ -56,24 +56,14 @@ func (cluster *cluster) GetClientConfig() *rest.Config {
 	return cluster.k8sConfig
 }
 
-func buildClientConfig(kuboConfig *config.KuboODBVCAP) (*rest.Config, error) {
-	user := kuboConfig.Credentials.KubeConfig.Users[0]
-	cluster := kuboConfig.Credentials.KubeConfig.Clusters[0]
-
-	token := user.UserCredentials.Token
-	server := cluster.ClusterInfo.Server
-	caData, err := cluster.ClusterInfo.DecodeCAData()
-	if err != nil {
-		return nil, err
-	}
-
+func buildClientConfig(credentials *config.ClusterCredentials) (*rest.Config, error) {
 	tlsClientConfig := rest.TLSClientConfig{
-		CAData: caData,
+		CAData: []byte(credentials.CAData),
 	}
 
 	return &rest.Config{
-		Host:            server,
-		BearerToken:     token,
+		Host:            credentials.Server,
+		BearerToken:     credentials.Token,
 		TLSClientConfig: tlsClientConfig,
 	}, nil
 }

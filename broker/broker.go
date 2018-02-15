@@ -178,8 +178,8 @@ func (broker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID 
 	servicesMap := []map[string]interface{}{}
 	for _, service := range services.Items {
 		credentialService := map[string]interface{}{
-			"name": service.ObjectMeta.Name,
-			"spec": service.Spec,
+			"name":   service.ObjectMeta.Name,
+			"spec":   service.Spec,
 			"status": service.Status,
 		}
 		servicesMap = append(servicesMap, credentialService)
@@ -192,8 +192,6 @@ func (broker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID 
 		},
 	}, nil
 }
-
-
 
 // Unbind reverses bind
 func (broker *PksServiceBroker) Unbind(ctx context.Context, instanceID, bindingID string, details brokerapi.UnbindDetails) error {
