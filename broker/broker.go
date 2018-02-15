@@ -134,7 +134,7 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 
 // Deprovision deletes the namespace (and everything in it) created by provision.
 func (broker *PksServiceBroker) Deprovision(ctx context.Context, instanceID string, details brokerapi.DeprovisionDetails, asyncAllowed bool) (brokerapi.DeprovisionServiceSpec, error) {
-	_, err := broker.myHelmClient.DeleteRelease(broker.getNamespace(instanceID), helm.DeletePurge(true))
+	_, err := broker.myHelmClient.DeleteRelease(broker.getNamespace(instanceID))
 	if err != nil {
 		return brokerapi.DeprovisionServiceSpec{}, err
 	}
@@ -220,17 +220,22 @@ func (broker *PksServiceBroker) LastOperation(ctx context.Context, instanceID, o
 	code := response.Info.Status.Code
 	switch code {
 	case hapi_release.Status_DEPLOYED:
-		//todo: treat Status_DELETED as succeeded
 		brokerStatus = brokerapi.Succeeded
 		description = "service deployment succeeded"
+	case hapi_release.Status_DELETED:
+		return brokerapi.LastOperation{}, brokerapi.NewFailureResponse(
+			errors.New("Instance is Gone - not an error!"), 410, "Instance Gone",
+		)
 	case hapi_release.Status_PENDING_INSTALL:
+		fallthrough
+	case hapi_release.Status_DELETING:
 		fallthrough
 	case hapi_release.Status_PENDING_UPGRADE:
 		brokerStatus = brokerapi.InProgress
-		description = "service deployment in progress"
+		description = "in progress"
 	default:
 		brokerStatus = brokerapi.Failed
-		description = fmt.Sprintf("service deployment failed %v", code)
+		description = fmt.Sprintf("failed %v", code)
 	}
 
 	services, err := broker.cluster.ListServices(broker.getNamespace(instanceID), meta_v1.ListOptions{})

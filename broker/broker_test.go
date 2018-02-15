@@ -184,7 +184,7 @@ version: 0.0.1
 			errMessage := "helm communication failure or something"
 			fakeMyHelmClient.ReleaseStatusReturns(nil, errors.New(errMessage))
 
-			_, err := broker.LastOperation(nil, "my-inststance-guid", "???")
+			_, err := broker.LastOperation(nil, "my-instance-guid", "???")
 
 			Expect(err).NotTo(BeNil())
 			Expect(err.Error()).To(ContainSubstring(errMessage))
@@ -199,7 +199,7 @@ version: 0.0.1
 				},
 			}, nil)
 
-			resp, err := broker.LastOperation(nil, "my-inststance-guid", "???")
+			resp, err := broker.LastOperation(nil, "my-instance-guid", "???")
 
 			Expect(err).To(BeNil())
 			Expect(resp.Description).To(ContainSubstring("succeeded"))
@@ -215,7 +215,7 @@ version: 0.0.1
 				},
 			}, nil)
 
-			resp, err := broker.LastOperation(nil, "my-inststance-guid", "???")
+			resp, err := broker.LastOperation(nil, "my-instance-guid", "???")
 
 			Expect(err).To(BeNil())
 			Expect(resp.Description).To(ContainSubstring("in progress"))
@@ -231,7 +231,39 @@ version: 0.0.1
 				},
 			}, nil)
 
-			resp, err := broker.LastOperation(nil, "my-inststance-guid", "???")
+			resp, err := broker.LastOperation(nil, "my-instance-guid", "???")
+
+			Expect(err).To(BeNil())
+			Expect(resp.Description).To(ContainSubstring("in progress"))
+			Expect(resp.State).To(Equal(brokerapi.InProgress))
+		})
+
+		It("returns instance gone ", func() {
+			fakeMyHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
+				Info: &hapi_release.Info{
+					Status: &hapi_release.Status{
+						Code: hapi_release.Status_DELETED,
+					},
+				},
+			}, nil)
+
+			_, err := broker.LastOperation(nil, "my-instance-guid", "???")
+
+			Expect(err).NotTo(BeNil())
+			Expect(err.Error()).To(ContainSubstring("Gone"))
+
+		})
+
+		It("returns delete in progress", func() {
+			fakeMyHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
+				Info: &hapi_release.Info{
+					Status: &hapi_release.Status{
+						Code: hapi_release.Status_DELETING,
+					},
+				},
+			}, nil)
+
+			resp, err := broker.LastOperation(nil, "my-instance-guid", "???")
 
 			Expect(err).To(BeNil())
 			Expect(resp.Description).To(ContainSubstring("in progress"))
@@ -247,7 +279,7 @@ version: 0.0.1
 				},
 			}, nil)
 
-			resp, err := broker.LastOperation(nil, "my-inststance-guid", "???")
+			resp, err := broker.LastOperation(nil, "my-instance-guid", "???")
 
 			Expect(err).To(BeNil())
 			Expect(resp.Description).To(ContainSubstring("failed"))
@@ -277,7 +309,7 @@ version: 0.0.1
 				},
 			}, nil)
 
-			resp, err := broker.LastOperation(nil, "my-inststance-guid", "???")
+			resp, err := broker.LastOperation(nil, "my-instance-guid", "???")
 
 			Expect(err).To(BeNil())
 			Expect(resp.Description).To(ContainSubstring("progress"))
@@ -295,7 +327,7 @@ version: 0.0.1
 				},
 			}, nil)
 
-			_, err := broker.LastOperation(nil, "my-inststance-guid", "???")
+			_, err := broker.LastOperation(nil, "my-instance-guid", "???")
 
 			Expect(err).NotTo(BeNil())
 		})
