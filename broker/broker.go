@@ -144,7 +144,9 @@ func (broker *PksServiceBroker) Deprovision(ctx context.Context, instanceID stri
 		return brokerapi.DeprovisionServiceSpec{}, err
 	}
 
-	return brokerapi.DeprovisionServiceSpec{}, nil
+	return brokerapi.DeprovisionServiceSpec{
+		IsAsync: true,
+	}, nil
 }
 
 func (broker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID string, details brokerapi.BindDetails) (brokerapi.Binding, error) {

@@ -523,13 +523,16 @@ version: 0.0.1
 				PlanID:"my-plan-id",
 				ServiceID:"my-service-id",
 			}
-			broker.Deprovision(nil, "my-instance-guid", details, true)
+			response, err := broker.Deprovision(nil, "my-instance-guid", details, true)
 
 			namespace, _ := fakeCluster.DeleteNamespaceArgsForCall(0)
 			Expect(namespace).To(Equal("kibosh-my-instance-guid"))
 
 			releaseName, _ := fakeMyHelmClient.DeleteReleaseArgsForCall(0)
 			Expect(releaseName).To(Equal("kibosh-my-instance-guid"))
+
+			Expect(err).To(BeNil())
+			Expect(response.IsAsync).To(BeTrue())
 		})
 
 	})
