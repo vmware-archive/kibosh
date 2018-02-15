@@ -108,7 +108,13 @@ func (c myHelmClient) ReadDefaultVals(chartPath string) ([]byte, error) {
 }
 
 func (c myHelmClient) DeleteRelease(rlsName string, opts ...helm.DeleteOption) (*rls.UninstallReleaseResponse, error) {
-	panic("Not yet implemented")
+	tunnel, client, err := c.open()
+	if err != nil {
+		return nil, err
+	}
+	defer tunnel.Close()
+
+	return client.DeleteRelease(rlsName, opts...)
 }
 
 func (c myHelmClient) ReleaseStatus(rlsName string, opts ...helm.StatusOption) (*rls.GetReleaseStatusResponse, error) {

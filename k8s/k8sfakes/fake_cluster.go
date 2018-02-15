@@ -45,6 +45,18 @@ type FakeCluster struct {
 		result1 *api_v1.Namespace
 		result2 error
 	}
+	DeleteNamespaceStub        func(name string, options *meta_v1.DeleteOptions) error
+	deleteNamespaceMutex       sync.RWMutex
+	deleteNamespaceArgsForCall []struct {
+		name    string
+		options *meta_v1.DeleteOptions
+	}
+	deleteNamespaceReturns struct {
+		result1 error
+	}
+	deleteNamespaceReturnsOnCall map[int]struct {
+		result1 error
+	}
 	ListPodsStub        func() (*api_v1.PodList, error)
 	listPodsMutex       sync.RWMutex
 	listPodsArgsForCall []struct{}
@@ -286,6 +298,55 @@ func (fake *FakeCluster) CreateNamespaceReturnsOnCall(i int, result1 *api_v1.Nam
 		result1 *api_v1.Namespace
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeCluster) DeleteNamespace(name string, options *meta_v1.DeleteOptions) error {
+	fake.deleteNamespaceMutex.Lock()
+	ret, specificReturn := fake.deleteNamespaceReturnsOnCall[len(fake.deleteNamespaceArgsForCall)]
+	fake.deleteNamespaceArgsForCall = append(fake.deleteNamespaceArgsForCall, struct {
+		name    string
+		options *meta_v1.DeleteOptions
+	}{name, options})
+	fake.recordInvocation("DeleteNamespace", []interface{}{name, options})
+	fake.deleteNamespaceMutex.Unlock()
+	if fake.DeleteNamespaceStub != nil {
+		return fake.DeleteNamespaceStub(name, options)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.deleteNamespaceReturns.result1
+}
+
+func (fake *FakeCluster) DeleteNamespaceCallCount() int {
+	fake.deleteNamespaceMutex.RLock()
+	defer fake.deleteNamespaceMutex.RUnlock()
+	return len(fake.deleteNamespaceArgsForCall)
+}
+
+func (fake *FakeCluster) DeleteNamespaceArgsForCall(i int) (string, *meta_v1.DeleteOptions) {
+	fake.deleteNamespaceMutex.RLock()
+	defer fake.deleteNamespaceMutex.RUnlock()
+	return fake.deleteNamespaceArgsForCall[i].name, fake.deleteNamespaceArgsForCall[i].options
+}
+
+func (fake *FakeCluster) DeleteNamespaceReturns(result1 error) {
+	fake.DeleteNamespaceStub = nil
+	fake.deleteNamespaceReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeCluster) DeleteNamespaceReturnsOnCall(i int, result1 error) {
+	fake.DeleteNamespaceStub = nil
+	if fake.deleteNamespaceReturnsOnCall == nil {
+		fake.deleteNamespaceReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.deleteNamespaceReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeCluster) ListPods() (*api_v1.PodList, error) {
@@ -703,6 +764,8 @@ func (fake *FakeCluster) Invocations() map[string][][]interface{} {
 	defer fake.getClientConfigMutex.RUnlock()
 	fake.createNamespaceMutex.RLock()
 	defer fake.createNamespaceMutex.RUnlock()
+	fake.deleteNamespaceMutex.RLock()
+	defer fake.deleteNamespaceMutex.RUnlock()
 	fake.listPodsMutex.RLock()
 	defer fake.listPodsMutex.RUnlock()
 	fake.getDeploymentMutex.RLock()

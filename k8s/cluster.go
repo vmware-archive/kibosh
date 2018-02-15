@@ -17,6 +17,7 @@ type Cluster interface {
 	GetClientConfig() *rest.Config
 
 	CreateNamespace(*api_v1.Namespace) (*api_v1.Namespace, error)
+	DeleteNamespace(name string, options *meta_v1.DeleteOptions) error
 	ListPods() (*api_v1.PodList, error)
 	GetDeployment(string, string, meta_v1.GetOptions) (*v1_beta1.Deployment, error)
 	ListServiceAccounts(string, meta_v1.ListOptions) (*api_v1.ServiceAccountList, error)
@@ -83,6 +84,10 @@ func (cluster *cluster) GetClient() kubernetes.Interface {
 
 func (cluster *cluster) CreateNamespace(namespace *api_v1.Namespace) (*api_v1.Namespace, error) {
 	return cluster.GetClient().CoreV1().Namespaces().Create(namespace)
+}
+
+func (cluster *cluster) DeleteNamespace(name string, options *meta_v1.DeleteOptions) error {
+	return cluster.GetClient().CoreV1().Namespaces().Delete(name, options)
 }
 
 func (cluster *cluster) ListPods() (*api_v1.PodList, error) {

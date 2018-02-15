@@ -446,4 +446,59 @@ version: 0.0.1
 			Expect(err).NotTo(BeNil())
 		})
 	})
+	Context("delete", func() {
+		var fakeMyHelmClient *helmfakes.FakeMyHelmClient
+		var fakeCluster *k8sfakes.FakeCluster
+		var broker *PksServiceBroker
+
+		BeforeEach(func() {
+			fakeMyHelmClient = &helmfakes.FakeMyHelmClient{}
+			fakeCluster = &k8sfakes.FakeCluster{}
+
+			broker = NewPksServiceBroker("/my/chart/dir", "service-id", fakeCluster, fakeMyHelmClient, logger)
+		})
+
+		It("bubbles up delete chart errors", func() {
+			fakeMyHelmClient.DeleteReleaseReturns(nil, errors.New("Failed"))
+
+			details := brokerapi.DeprovisionDetails {
+				PlanID:"my-plan-id",
+				ServiceID:"my-service-id",
+			}
+			_, err := broker.Deprovision(nil, "my-instance-guid", details, true)
+
+			Expect(err).NotTo(BeNil())
+			Expect(fakeMyHelmClient.DeleteReleaseCallCount()).To(Equal(1))
+
+		})
+
+		It("bubbles up delete namespace errors", func() {
+			fakeCluster.DeleteNamespaceReturns(errors.New("nope"))
+
+			details := brokerapi.DeprovisionDetails {
+				PlanID:"my-plan-id",
+				ServiceID:"my-service-id",
+			}
+			_, err := broker.Deprovision(nil, "my-instance-guid", details, true)
+
+			Expect(err).NotTo(BeNil())
+			Expect(fakeCluster.DeleteNamespaceCallCount()).To(Equal(1))
+
+		})
+
+		It("correctly calls deletion", func() {
+			details := brokerapi.DeprovisionDetails {
+				PlanID:"my-plan-id",
+				ServiceID:"my-service-id",
+			}
+			broker.Deprovision(nil, "my-instance-guid", details, true)
+
+			namespace, _ := fakeCluster.DeleteNamespaceArgsForCall(0)
+			Expect(namespace).To(Equal("kibosh-my-instance-guid"))
+
+			releaseName, _ := fakeMyHelmClient.DeleteReleaseArgsForCall(0)
+			Expect(releaseName).To(Equal("kibosh-my-instance-guid"))
+		})
+
+	})
 })

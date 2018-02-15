@@ -134,11 +134,15 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 
 // Deprovision deletes the namespace (and everything in it) created by provision.
 func (broker *PksServiceBroker) Deprovision(ctx context.Context, instanceID string, details brokerapi.DeprovisionDetails, asyncAllowed bool) (brokerapi.DeprovisionServiceSpec, error) {
+	_, err := broker.myHelmClient.DeleteRelease(broker.getNamespace(instanceID), helm.DeletePurge(true))
+	if err != nil {
+		return brokerapi.DeprovisionServiceSpec{}, err
+	}
 
-	// TODO:
-	// 	 - delete helm chart. Purge?
-	//   - delete namespace
-	//   - does LB get cleaned on chart deletion?
+	err = broker.cluster.DeleteNamespace(broker.getNamespace(instanceID), &meta_v1.DeleteOptions{})
+	if err != nil {
+		return brokerapi.DeprovisionServiceSpec{}, err
+	}
 
 	return brokerapi.DeprovisionServiceSpec{}, nil
 }
