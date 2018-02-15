@@ -208,13 +208,11 @@ func (broker *PksServiceBroker) Update(ctx context.Context, instanceID string, d
 func (broker *PksServiceBroker) LastOperation(ctx context.Context, instanceID, operationData string) (brokerapi.LastOperation, error) {
 	var brokerStatus brokerapi.LastOperationState
 	var description string
-	response, err := broker.myHelmClient.ReleaseStatus(instanceID)
+	response, err := broker.myHelmClient.ReleaseStatus(broker.getNamespace(instanceID))
 	if err != nil {
 		return brokerapi.LastOperation{}, err
 	}
 
-	//todo: we saw the service sit with external IP pending while the deployment was flagged succeeded,
-	//todo: so might need to wait until that's fully allocated
 	code := response.Info.Status.Code
 	switch code {
 	case hapi_release.Status_DEPLOYED:
@@ -229,6 +227,24 @@ func (broker *PksServiceBroker) LastOperation(ctx context.Context, instanceID, o
 	default:
 		brokerStatus = brokerapi.Failed
 		description = fmt.Sprintf("service deployment failed %v", code)
+	}
+
+	services, err := broker.cluster.ListServices(broker.getNamespace(instanceID), meta_v1.ListOptions{})
+	if err != nil {
+		return brokerapi.LastOperation{}, err
+	}
+
+	serviceReady := true
+	for _, service := range services.Items {
+		if service.Spec.Type == "LoadBalancer" {
+			if len(service.Status.LoadBalancer.Ingress) < 1 {
+				serviceReady = false
+			}
+		}
+	}
+	if brokerStatus == brokerapi.Succeeded && !serviceReady {
+		brokerStatus = brokerapi.InProgress
+		description = "service deployment in progress"
 	}
 
 	return brokerapi.LastOperation{

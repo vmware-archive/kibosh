@@ -158,6 +158,26 @@ version: 0.0.1
 			fakeCluster = &k8sfakes.FakeCluster{}
 
 			broker = NewPksServiceBroker("/my/chart/dir", "service-id", fakeCluster, fakeMyHelmClient, logger)
+
+			serviceList := api_v1.ServiceList{
+				Items: []api_v1.Service{
+					{
+						ObjectMeta: meta_v1.ObjectMeta{Name: "kibosh-my-mysql-db-instance"},
+						Spec: api_v1.ServiceSpec{
+							Ports: []api_v1.ServicePort{},
+							Type:  "LoadBalancer",
+						},
+						Status: api_v1.ServiceStatus{
+							LoadBalancer: api_v1.LoadBalancerStatus{
+								Ingress: []api_v1.LoadBalancerIngress{
+									{IP: "127.0.0.1"},
+								},
+							},
+						},
+					},
+				},
+			}
+			fakeCluster.ListServicesReturns(&serviceList, nil)
 		})
 
 		It("elevates error from helm", func() {
@@ -233,6 +253,52 @@ version: 0.0.1
 			Expect(resp.Description).To(ContainSubstring("failed"))
 			Expect(resp.State).To(Equal(brokerapi.Failed))
 		})
+
+		It("waits until load balancer servers have ingress", func() {
+			serviceList := api_v1.ServiceList{
+				Items: []api_v1.Service{
+					{
+						ObjectMeta: meta_v1.ObjectMeta{Name: "kibosh-my-mysql-db-instance"},
+						Spec: api_v1.ServiceSpec{
+							Ports: []api_v1.ServicePort{},
+							Type:  "LoadBalancer",
+						},
+						Status: api_v1.ServiceStatus{},
+					},
+				},
+			}
+			fakeCluster.ListServicesReturns(&serviceList, nil)
+
+			fakeMyHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
+				Info: &hapi_release.Info{
+					Status: &hapi_release.Status{
+						Code: hapi_release.Status_DEPLOYED,
+					},
+				},
+			}, nil)
+
+			resp, err := broker.LastOperation(nil, "my-inststance-guid", "???")
+
+			Expect(err).To(BeNil())
+			Expect(resp.Description).To(ContainSubstring("progress"))
+			Expect(resp.State).To(Equal(brokerapi.InProgress))
+		})
+
+		It("bubbles up error on list service failure", func() {
+			fakeCluster.ListServicesReturns(&api_v1.ServiceList{}, errors.New("no services for you"))
+
+			fakeMyHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
+				Info: &hapi_release.Info{
+					Status: &hapi_release.Status{
+						Code: hapi_release.Status_DEPLOYED,
+					},
+				},
+			}, nil)
+
+			_, err := broker.LastOperation(nil, "my-inststance-guid", "???")
+
+			Expect(err).NotTo(BeNil())
+		})
 	})
 
 	Context("bind", func() {
@@ -255,8 +321,8 @@ version: 0.0.1
 				Items: []api_v1.Secret{
 					{
 						ObjectMeta: meta_v1.ObjectMeta{Name: "passwords"},
-						Data: map[string][]byte{"db-password": []byte("abc123")},
-						Type: api_v1.SecretTypeOpaque,
+						Data:       map[string][]byte{"db-password": []byte("abc123")},
+						Type:       api_v1.SecretTypeOpaque,
 					},
 				},
 			}
@@ -283,12 +349,12 @@ version: 0.0.1
 				Items: []api_v1.Secret{
 					{
 						ObjectMeta: meta_v1.ObjectMeta{Name: "passwords"},
-						Data: map[string][]byte{"db-password": []byte("abc123")},
-						Type: api_v1.SecretTypeOpaque,
+						Data:       map[string][]byte{"db-password": []byte("abc123")},
+						Type:       api_v1.SecretTypeOpaque,
 					}, {
 						ObjectMeta: meta_v1.ObjectMeta{Name: "default-token-xyz"},
-						Data: map[string][]byte{"token": []byte("my-token")},
-						Type: api_v1.SecretTypeServiceAccountToken,
+						Data:       map[string][]byte{"token": []byte("my-token")},
+						Type:       api_v1.SecretTypeServiceAccountToken,
 					},
 				},
 			}
@@ -329,9 +395,9 @@ version: 0.0.1
 						Spec: api_v1.ServiceSpec{
 							Ports: []api_v1.ServicePort{
 								{
-									Name: "mysql",
+									Name:     "mysql",
 									NodePort: 30092,
-									Port: 3306,
+									Port:     3306,
 									Protocol: "TCP",
 								},
 							},
@@ -347,7 +413,6 @@ version: 0.0.1
 				},
 			}
 			fakeCluster.ListServicesReturns(&serviceList, nil)
-
 
 			binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{})
 
