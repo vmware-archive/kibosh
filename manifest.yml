@@ -3,7 +3,6 @@ applications:
   - name: kibosh
     command: kibosh
     env:
-      GOPACKAGENAME: github.com/cf-platform-eng/kibosh
       SECURITY_USER_NAME: user
       SECURITY_USER_PASSWORD: pass
       SERVICE_ID: kibosh

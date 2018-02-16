@@ -2,6 +2,8 @@
 
 A generic broker bridging the gap between Kubernetes and CF brokered services.
 
+![](docs/kibosh_logo.png)
+
 ## Dev
 #### Setup
 Grab a newish version of Go (we used 1.9) 
@@ -151,7 +153,7 @@ More dep links:
 ## Notes
 
 Inline-style: 
-![](SeqDiagram.png)
+![](docs/SeqDiagram.png)
 
 Diagram source https://www.websequencediagrams.com/ + 
 ```text
