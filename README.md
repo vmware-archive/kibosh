@@ -99,21 +99,21 @@ Instructions to manually deploy and verify catalog:
 1) Put the application into the CF Marketplace. 
     ```
     cf create-service-broker kibosh-broker username password https://example.com
-    cf enable-service-access spacebears
+    cf enable-service-access myexample_chart
     cf service-brokers
     cf service-access
     ```
 
 1) Create an instance of the helm application from the marketplace. 
     ```
-    cf create-service spacebears default sb-instance
+    cf create-service myexample_chart default myexample_instance
     helm list
     cf services
-    cf service sb-instance
+    cf service myexample_instance
     ```
 1) Create a service key to bind to the service instance. 
     ```
-    cf create-service-key sb-instance sb-service-key
+    cf create-service-key myexample_instance myexample_instance_servicekey
     ```
 
 ### ci
