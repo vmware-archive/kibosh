@@ -65,8 +65,6 @@ Instructions to manually deploy and verify catalog:
     - name: kibosh_manual
       buildpack: binary_buildpack
       command: ./kibosh.linux
-      services:
-      - kibosh_cups
       env:
         SECURITY_USER_NAME: username
         SECURITY_USER_PASSWORD: password
