@@ -57,6 +57,7 @@ Instructions to manually deploy and verify catalog:
     cp ~/go/src/github.com/cf-platform-eng/kibosh/kibosh.linux kibosh-example/kibosh.linux
     ```
 1) Create a Manifest.yml file as shown below in that directory.
+   Get cluster information for kube config file. For `CA_DATA` - `base64 --decode` what comes back from PKS 
     ```
     cat > manifest.yml
     ---
@@ -107,7 +108,6 @@ Instructions to manually deploy and verify catalog:
     ```
     cf create-service spacebears default sb-instance
     helm list
-    cf create-service-key sb-instance sb-service-key
     cf services
     cf service sb-instance
     ```
