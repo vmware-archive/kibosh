@@ -1,14 +1,16 @@
 ---
 applications:
-  - name: kibosh
-    command: kibosh
+  - name: kibosh_manual
+    buildpack: binary_buildpack
+    command: ./kibosh.linux
     env:
-      SECURITY_USER_NAME: user
-      SECURITY_USER_PASSWORD: pass
-      SERVICE_ID: kibosh
-      CA_DATA: |
-         -----BEGIN CERTIFICATE-----
-         ...
-         -----END CERTIFICATE-----
+      SECURITY_USER_NAME: username
+      SECURITY_USER_PASSWORD: password
+      SERVICE_ID: f448fdea-25b8-41aa-aed4-539d8ace5e32
+      HELM_CHART_DIR: example-chart
+      CA_DATA : |
+                -----BEGIN CERTIFICATE-----
+                ...
+                -----END CERTIFICATE-----
       SERVER: https://127.0.0.1
       TOKEN: bXktdG9rZW4=
