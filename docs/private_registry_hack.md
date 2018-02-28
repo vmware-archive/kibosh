@@ -12,6 +12,36 @@ pushed to the cluster itself.
 
 ### Adding the docker registry
 
+Add a service account for tiller:
+```bash
+echo "apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tiller
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: tiller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: tiller
+    namespace: kube-system" > tiller_rbac.yaml
+
+kubectl create -f tiller_rbac.yaml
+```
+
+Add helm to the cluster
+```bash
+helm init --service-account tiller
+```
+
+Install the registry chart
 ```bash
 git clone https://github.com/kubernetes/charts/
 cd charts
