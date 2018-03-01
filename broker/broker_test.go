@@ -93,6 +93,7 @@ version: 0.0.1
 
 			Expect(err).NotTo(BeNil())
 			Expect(err.Error()).To(ContainSubstring("async"))
+
 		})
 
 		It("creates a new namespace", func() {
@@ -104,6 +105,7 @@ version: 0.0.1
 
 			namespace := fakeCluster.CreateNamespaceArgsForCall(0)
 			Expect(namespace.Name).To(Equal("kibosh-my-instance-guid"))
+
 		})
 
 		It("returns error on namespace creation failure", func() {
@@ -145,6 +147,7 @@ version: 0.0.1
 
 			Expect(err).To(BeNil())
 			Expect(resp.IsAsync).To(BeTrue())
+			Expect(resp.OperationData).To(Equal("provision"))
 		})
 	})
 
@@ -199,7 +202,7 @@ version: 0.0.1
 				},
 			}, nil)
 
-			resp, err := broker.LastOperation(nil, "my-instance-guid", "???")
+			resp, err := broker.LastOperation(nil, "my-instance-guid", "provision")
 
 			Expect(err).To(BeNil())
 			Expect(resp.Description).To(ContainSubstring("succeeded"))
@@ -215,7 +218,7 @@ version: 0.0.1
 				},
 			}, nil)
 
-			resp, err := broker.LastOperation(nil, "my-instance-guid", "???")
+			resp, err := broker.LastOperation(nil, "my-instance-guid", "provision")
 
 			Expect(err).To(BeNil())
 			Expect(resp.Description).To(ContainSubstring("in progress"))
@@ -231,14 +234,14 @@ version: 0.0.1
 				},
 			}, nil)
 
-			resp, err := broker.LastOperation(nil, "my-instance-guid", "???")
+			resp, err := broker.LastOperation(nil, "my-instance-guid", "provision")
 
 			Expect(err).To(BeNil())
 			Expect(resp.Description).To(ContainSubstring("in progress"))
 			Expect(resp.State).To(Equal(brokerapi.InProgress))
 		})
 
-		It("returns instance gone ", func() {
+		It("returns ok when instance is gone ", func() {
 			fakeMyHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
 				Info: &hapi_release.Info{
 					Status: &hapi_release.Status{
@@ -247,11 +250,25 @@ version: 0.0.1
 				},
 			}, nil)
 
-			_, err := broker.LastOperation(nil, "my-instance-guid", "???")
+			resp, err := broker.LastOperation(nil, "my-instance-guid", "deprovision")
 
-			Expect(err).NotTo(BeNil())
-			Expect(err.Error()).To(ContainSubstring("Gone"))
+			Expect(err).To(BeNil())
+			Expect(resp.Description).To(ContainSubstring("gone"))
+			Expect(resp.State).To(Equal(brokerapi.Succeeded))
+		})
 
+		It("returns error when instance is gone when trying to create", func() {
+			fakeMyHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
+				Info: &hapi_release.Info{
+					Status: &hapi_release.Status{
+						Code: hapi_release.Status_DELETED,
+					},
+				},
+			}, nil)
+
+			resp, _ := broker.LastOperation(nil, "my-instance-guid", "provision")
+
+			Expect(resp.State).To(Equal(brokerapi.Failed))
 		})
 
 		It("returns delete in progress", func() {
@@ -263,7 +280,7 @@ version: 0.0.1
 				},
 			}, nil)
 
-			resp, err := broker.LastOperation(nil, "my-instance-guid", "???")
+			resp, err := broker.LastOperation(nil, "my-instance-guid", "deprovision")
 
 			Expect(err).To(BeNil())
 			Expect(resp.Description).To(ContainSubstring("in progress"))
@@ -279,7 +296,7 @@ version: 0.0.1
 				},
 			}, nil)
 
-			resp, err := broker.LastOperation(nil, "my-instance-guid", "???")
+			resp, err := broker.LastOperation(nil, "my-instance-guid", "deprovision")
 
 			Expect(err).To(BeNil())
 			Expect(resp.Description).To(ContainSubstring("failed"))
@@ -309,7 +326,7 @@ version: 0.0.1
 				},
 			}, nil)
 
-			resp, err := broker.LastOperation(nil, "my-instance-guid", "???")
+			resp, err := broker.LastOperation(nil, "my-instance-guid", "provision")
 
 			Expect(err).To(BeNil())
 			Expect(resp.Description).To(ContainSubstring("progress"))
@@ -327,7 +344,7 @@ version: 0.0.1
 				},
 			}, nil)
 
-			_, err := broker.LastOperation(nil, "my-instance-guid", "???")
+			_, err := broker.LastOperation(nil, "my-instance-guid", "provision")
 
 			Expect(err).NotTo(BeNil())
 		})
@@ -533,6 +550,7 @@ version: 0.0.1
 
 			Expect(err).To(BeNil())
 			Expect(response.IsAsync).To(BeTrue())
+			Expect(response.OperationData).To(Equal("deprovision"))
 		})
 
 	})

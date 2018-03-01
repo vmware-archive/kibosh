@@ -129,6 +129,7 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 
 	return brokerapi.ProvisionedServiceSpec{
 		IsAsync: true,
+		OperationData: "provision",
 	}, nil
 }
 
@@ -146,6 +147,7 @@ func (broker *PksServiceBroker) Deprovision(ctx context.Context, instanceID stri
 
 	return brokerapi.DeprovisionServiceSpec{
 		IsAsync: true,
+		OperationData: "deprovision",
 	}, nil
 }
 
@@ -218,24 +220,35 @@ func (broker *PksServiceBroker) LastOperation(ctx context.Context, instanceID, o
 	}
 
 	code := response.Info.Status.Code
-	switch code {
-	case hapi_release.Status_DEPLOYED:
-		brokerStatus = brokerapi.Succeeded
-		description = "service deployment succeeded"
-	case hapi_release.Status_DELETED:
-		return brokerapi.LastOperation{}, brokerapi.NewFailureResponse(
-			errors.New("Instance is Gone - not an error!"), 410, "Instance Gone",
-		)
-	case hapi_release.Status_PENDING_INSTALL:
-		fallthrough
-	case hapi_release.Status_DELETING:
-		fallthrough
-	case hapi_release.Status_PENDING_UPGRADE:
-		brokerStatus = brokerapi.InProgress
-		description = "in progress"
-	default:
-		brokerStatus = brokerapi.Failed
-		description = fmt.Sprintf("failed %v", code)
+	if operationData == "provision" {
+		switch code {
+		case hapi_release.Status_DEPLOYED:
+			brokerStatus = brokerapi.Succeeded
+			description = "service deployment succeeded"
+		case hapi_release.Status_PENDING_INSTALL:
+			fallthrough
+		case hapi_release.Status_PENDING_UPGRADE:
+			brokerStatus = brokerapi.InProgress
+			description = "deploy in progress"
+		default:
+			brokerStatus = brokerapi.Failed
+			description = fmt.Sprintf("provision failed %v", code)
+		}
+	} else if operationData == "deprovision" {
+		switch code {
+
+		case hapi_release.Status_DELETED:
+			brokerStatus = brokerapi.Succeeded
+			description = "gone"
+		case hapi_release.Status_DEPLOYED:
+			fallthrough
+		case hapi_release.Status_DELETING:
+			brokerStatus = brokerapi.InProgress
+			description = "delete in progress"
+		default:
+			brokerStatus = brokerapi.Failed
+			description = fmt.Sprintf("deprovision failed %v", code)
+		}
 	}
 
 	services, err := broker.cluster.ListServices(broker.getNamespace(instanceID), meta_v1.ListOptions{})
