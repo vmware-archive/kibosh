@@ -4,6 +4,15 @@ A generic broker bridging the gap between Kubernetes and CF brokered services.
 
 ![](docs/kibosh_logo.png)
 
+## Future Plans
+The epics we're thinking about tackling next:
+- [ ] Configurable plans
+    * Probably models as a set of pre-set default values
+- [ ] Private images
+    * Some way to not depend on public images, shipping images as part of packaging
+- [ ] Service discovery
+    * Right now, the only option that will work is LoadBalancer. Exploring other solutions for things that cannot be internet facing
+
 ## Dev
 #### Setup
 Grab a newish version of Go (we used 1.9) 
