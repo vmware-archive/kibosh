@@ -1,31 +1,14 @@
 #!/usr/bin/env bash
 
-export VCAP_SERVICES='{
-  "user-provided": [
-    {
-      "credentials": {
-        "kubeconfig": {
-          "apiVersion": "v1",
-          "clusters": [
-            {
-              "cluster": {
-                "certificate-authority-data": "${cat ~/.minikube/ca.crt | base64}",
-                "server": "https://192.168.99.100:8443"
-              }
-            }
-          ],
-          "users": [
-            {
-              "user": {
-                "token": "<token from minikube_auth.sh>"
-              }
-            }
-          ]
-        }
-      }
-    }
-  ]
-}'
+export CA_DATA='-----BEGIN CERTIFICATE-----
+...
+-----END CERTIFICATE-----
+'
+export SERVER='https://127.0.0.1:8443'
+export TOKEN=''
+
 export SERVICE_ID=abc123
 export SECURITY_USER_NAME=admin
 export SECURITY_USER_PASSWORD=pass
+
+go run main.go
