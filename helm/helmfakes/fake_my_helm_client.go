@@ -241,6 +241,20 @@ type FakeMyHelmClient struct {
 		result1 []byte
 		result2 error
 	}
+	MergeValueBytesStub        func(base []byte, override []byte) ([]byte, error)
+	mergeValueBytesMutex       sync.RWMutex
+	mergeValueBytesArgsForCall []struct {
+		base     []byte
+		override []byte
+	}
+	mergeValueBytesReturns struct {
+		result1 []byte
+		result2 error
+	}
+	mergeValueBytesReturnsOnCall map[int]struct {
+		result1 []byte
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -1081,6 +1095,68 @@ func (fake *FakeMyHelmClient) ReadDefaultValsReturnsOnCall(i int, result1 []byte
 	}{result1, result2}
 }
 
+func (fake *FakeMyHelmClient) MergeValueBytes(base []byte, override []byte) ([]byte, error) {
+	var baseCopy []byte
+	if base != nil {
+		baseCopy = make([]byte, len(base))
+		copy(baseCopy, base)
+	}
+	var overrideCopy []byte
+	if override != nil {
+		overrideCopy = make([]byte, len(override))
+		copy(overrideCopy, override)
+	}
+	fake.mergeValueBytesMutex.Lock()
+	ret, specificReturn := fake.mergeValueBytesReturnsOnCall[len(fake.mergeValueBytesArgsForCall)]
+	fake.mergeValueBytesArgsForCall = append(fake.mergeValueBytesArgsForCall, struct {
+		base     []byte
+		override []byte
+	}{baseCopy, overrideCopy})
+	fake.recordInvocation("MergeValueBytes", []interface{}{baseCopy, overrideCopy})
+	fake.mergeValueBytesMutex.Unlock()
+	if fake.MergeValueBytesStub != nil {
+		return fake.MergeValueBytesStub(base, override)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.mergeValueBytesReturns.result1, fake.mergeValueBytesReturns.result2
+}
+
+func (fake *FakeMyHelmClient) MergeValueBytesCallCount() int {
+	fake.mergeValueBytesMutex.RLock()
+	defer fake.mergeValueBytesMutex.RUnlock()
+	return len(fake.mergeValueBytesArgsForCall)
+}
+
+func (fake *FakeMyHelmClient) MergeValueBytesArgsForCall(i int) ([]byte, []byte) {
+	fake.mergeValueBytesMutex.RLock()
+	defer fake.mergeValueBytesMutex.RUnlock()
+	return fake.mergeValueBytesArgsForCall[i].base, fake.mergeValueBytesArgsForCall[i].override
+}
+
+func (fake *FakeMyHelmClient) MergeValueBytesReturns(result1 []byte, result2 error) {
+	fake.MergeValueBytesStub = nil
+	fake.mergeValueBytesReturns = struct {
+		result1 []byte
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) MergeValueBytesReturnsOnCall(i int, result1 []byte, result2 error) {
+	fake.MergeValueBytesStub = nil
+	if fake.mergeValueBytesReturnsOnCall == nil {
+		fake.mergeValueBytesReturnsOnCall = make(map[int]struct {
+			result1 []byte
+			result2 error
+		})
+	}
+	fake.mergeValueBytesReturnsOnCall[i] = struct {
+		result1 []byte
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeMyHelmClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -1118,6 +1194,8 @@ func (fake *FakeMyHelmClient) Invocations() map[string][][]interface{} {
 	defer fake.installReleaseFromDirMutex.RUnlock()
 	fake.readDefaultValsMutex.RLock()
 	defer fake.readDefaultValsMutex.RUnlock()
+	fake.mergeValueBytesMutex.RLock()
+	defer fake.mergeValueBytesMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
