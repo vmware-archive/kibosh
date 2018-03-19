@@ -7,6 +7,7 @@ import (
 	v1_beta1 "k8s.io/api/extensions/v1beta1"
 	rbacv1beta1 "k8s.io/api/rbac/v1beta1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -24,8 +25,10 @@ type Cluster interface {
 	CreateServiceAccount(string, *api_v1.ServiceAccount) (*api_v1.ServiceAccount, error)
 	ListClusterRoleBindings(meta_v1.ListOptions) (*rbacv1beta1.ClusterRoleBindingList, error)
 	CreateClusterRoleBinding(*rbacv1beta1.ClusterRoleBinding) (*rbacv1beta1.ClusterRoleBinding, error)
+	CreateSecret(nameSpace string, secret *api_v1.Secret) (*api_v1.Secret, error)
 	ListSecrets(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.SecretList, error)
 	ListServices(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.ServiceList, error)
+	Patch(nameSpace string, name string, pt types.PatchType, data []byte, subresources ...string) (result *api_v1.ServiceAccount, err error)
 }
 
 type cluster struct {
@@ -109,10 +112,18 @@ func (cluster *cluster) CreateClusterRoleBinding(clusterRoleBinding *rbacv1beta1
 	return cluster.GetClient().RbacV1beta1().ClusterRoleBindings().Create(clusterRoleBinding)
 }
 
+func (cluster *cluster) CreateSecret(nameSpace string, secret *api_v1.Secret) (*api_v1.Secret, error) {
+	return cluster.GetClient().CoreV1().Secrets(nameSpace).Create(secret)
+}
+
 func (cluster *cluster) ListSecrets(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.SecretList, error) {
 	return cluster.GetClient().CoreV1().Secrets(nameSpace).List(listOptions)
 }
 
 func (cluster *cluster) ListServices(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.ServiceList, error) {
 	return cluster.GetClient().CoreV1().Services(nameSpace).List(listOptions)
+}
+
+func (cluster *cluster) Patch(nameSpace string, name string, pt types.PatchType, data []byte, subresources ...string) (result *api_v1.ServiceAccount, err error) {
+	return cluster.GetClient().CoreV1().ServiceAccounts(nameSpace).Patch(name, pt, data, subresources...)
 }

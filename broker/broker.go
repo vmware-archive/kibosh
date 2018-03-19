@@ -8,23 +8,31 @@ import (
 	"os"
 	"path"
 
-	"code.cloudfoundry.org/lager"
+	"github.com/cf-platform-eng/kibosh/config"
 	my_helm "github.com/cf-platform-eng/kibosh/helm"
 	"github.com/cf-platform-eng/kibosh/k8s"
+
+	"code.cloudfoundry.org/lager"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 	api_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/helm/pkg/helm"
 	hapi_release "k8s.io/helm/pkg/proto/hapi/release"
+	"encoding/json"
 )
+
+const registrySecretName = "registry-secret"
 
 // PksServiceBroker contains values passed in from configuration necessary for broker's work.
 type PksServiceBroker struct {
-	Logger       lager.Logger
-	HelmChartDir string
-	ServiceID    string
+	Logger         lager.Logger
+	HelmChartDir   string
+	ServiceID      string
+	registryConfig *config.RegistryConfig
+
 	cluster      k8s.Cluster
 	myHelmClient my_helm.MyHelmClient
 }
@@ -36,13 +44,15 @@ type HelmChart struct {
 	Description string `yaml:"description"`
 }
 
-func NewPksServiceBroker(helmChartDir string, serviceID string, cluster k8s.Cluster, myHelmClient my_helm.MyHelmClient, logger lager.Logger) *PksServiceBroker {
+func NewPksServiceBroker(helmChartDir string, serviceID string, registryConfig *config.RegistryConfig, cluster k8s.Cluster, myHelmClient my_helm.MyHelmClient, logger lager.Logger) *PksServiceBroker {
 	return &PksServiceBroker{
-		HelmChartDir: helmChartDir,
-		ServiceID:    serviceID,
+		Logger:         logger,
+		HelmChartDir:   helmChartDir,
+		ServiceID:      serviceID,
+		registryConfig: registryConfig,
+
 		cluster:      cluster,
 		myHelmClient: myHelmClient,
-		Logger:       logger,
 	}
 }
 
@@ -95,18 +105,16 @@ func (broker *PksServiceBroker) Services(ctx context.Context) []brokerapi.Servic
 	return serviceCatalog
 }
 
-// Provision uses the cloud controller service id to create a namespace in k8s,
-// does the Helm install into that namespace, and
-// converts the cf create-instance json block into Helm key-value pairs.
 func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string, details brokerapi.ProvisionDetails, asyncAllowed bool) (brokerapi.ProvisionedServiceSpec, error) {
 	if !asyncAllowed {
 		return brokerapi.ProvisionedServiceSpec{}, brokerapi.ErrAsyncRequired
 	}
 
+	namespaceName := broker.getNamespace(instanceID)
 	namespace := api_v1.Namespace{
 		Spec: api_v1.NamespaceSpec{},
 		ObjectMeta: meta_v1.ObjectMeta{
-			Name: broker.getNamespace(instanceID),
+			Name: namespaceName,
 			Labels: map[string]string{
 				"serviceID":        details.ServiceID,
 				"planID":           details.PlanID,
@@ -120,20 +128,44 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 		return brokerapi.ProvisionedServiceSpec{}, err
 	}
 
+	if broker.registryConfig.HasRegistryConfig() {
+		dockerConfig, _ := broker.registryConfig.GetDockerConfigJson()
+		secret := &api_v1.Secret{
+			ObjectMeta: meta_v1.ObjectMeta{
+				Name: registrySecretName,
+			},
+			Type: api_v1.SecretTypeDockerConfigJson,
+			Data: map[string][]byte{
+				api_v1.DockerConfigJsonKey: dockerConfig,
+			},
+		}
+		_, err = broker.cluster.CreateSecret(namespaceName, secret)
+		if err != nil {
+			return brokerapi.ProvisionedServiceSpec{}, err
+		}
+
+		patch := map[string]interface{}{
+			"imagePullSecrets": []map[string]interface{}{
+				{"name": registrySecretName},
+			},
+		}
+		patchJson, _ := json.Marshal(patch)
+		broker.cluster.Patch(namespaceName, "default", types.MergePatchType, patchJson)
+	}
+
 	_, err = broker.myHelmClient.InstallReleaseFromDir(
-		broker.HelmChartDir, broker.getNamespace(instanceID), helm.ReleaseName(broker.getNamespace(instanceID)),
+		broker.HelmChartDir, namespaceName, helm.ReleaseName(namespaceName),
 	)
 	if err != nil {
 		return brokerapi.ProvisionedServiceSpec{}, err
 	}
 
 	return brokerapi.ProvisionedServiceSpec{
-		IsAsync: true,
+		IsAsync:       true,
 		OperationData: "provision",
 	}, nil
 }
 
-// Deprovision deletes the namespace (and everything in it) created by provision.
 func (broker *PksServiceBroker) Deprovision(ctx context.Context, instanceID string, details brokerapi.DeprovisionDetails, asyncAllowed bool) (brokerapi.DeprovisionServiceSpec, error) {
 	_, err := broker.myHelmClient.DeleteRelease(broker.getNamespace(instanceID))
 	if err != nil {
@@ -146,7 +178,7 @@ func (broker *PksServiceBroker) Deprovision(ctx context.Context, instanceID stri
 	}
 
 	return brokerapi.DeprovisionServiceSpec{
-		IsAsync: true,
+		IsAsync:       true,
 		OperationData: "deprovision",
 	}, nil
 }
@@ -197,7 +229,6 @@ func (broker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID 
 
 // Unbind reverses bind
 func (broker *PksServiceBroker) Unbind(ctx context.Context, instanceID, bindingID string, details brokerapi.UnbindDetails) error {
-
 	// noop
 
 	return nil

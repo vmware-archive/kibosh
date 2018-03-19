@@ -72,14 +72,14 @@ func (c myHelmClient) InstallRelease(chStr, namespace string, opts ...helm.Insta
 	panic("Not yet implemented")
 }
 
-func (c myHelmClient) InstallReleaseFromChart(chart *chart.Chart, namespace string, opts ...helm.InstallOption) (*rls.InstallReleaseResponse, error) {
+func (c myHelmClient) InstallReleaseFromChart(myChart *chart.Chart, namespace string, opts ...helm.InstallOption) (*rls.InstallReleaseResponse, error) {
 	tunnel, client, err := c.open()
 	if err != nil {
 		return nil, err
 	}
 	defer tunnel.Close()
 
-	return client.InstallReleaseFromChart(chart, namespace, opts...)
+	return client.InstallReleaseFromChart(myChart, namespace, opts...)
 }
 
 func (c myHelmClient) InstallReleaseFromDir(chartPath string, namespace string, opts ...helm.InstallOption) (*rls.InstallReleaseResponse, error) {

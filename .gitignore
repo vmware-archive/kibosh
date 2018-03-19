@@ -1,7 +1,9 @@
-pks-generic-broker
+kibosh.darwin
+kibosh.linux
 main
 debug
 kibosh
+
 vendor
 
 .vscode
@@ -9,5 +11,3 @@ vendor
 
 charts
 local_dev.sh
-kibosh.darwin
-kibosh.linux

@@ -162,6 +162,8 @@ More dep links:
 
 ## Notes
 
+todo: some notes around private docker repo and image structure pre-reqs
+
 Inline-style: 
 ![](docs/SeqDiagram.png)
 
