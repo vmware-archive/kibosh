@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+# If a command fails, exit immediately
+set -e
+
+LOG_DIR="/var/vcap/sys/log/kibosh"
+RUN_DIR="/var/vcap/sys/run/kibosh"
+PIDFILE="$RUN_DIR/kibosh.pid"
+
+export SECURITY_USER_NAME=<%= p("kibosh.username", "username") %>
+export SECURITY_USER_PASSWORD=<%= p("kibosh.password", "password") %>
+export SERVICE_ID=<%= p("kibosh.service-id", "f448fdea-25b8-41aa-aed4-539d8ace5f32") %>
+export HELM_CHART_DIR=<%= p("kibosh.helm-chart-dir", "charts") %>
+export CA_DATA=<%= Shellwords.escape p("kibosh.ca-data") %>
+export SERVER=<%= p("kibosh.server", "https://127.0.0.1") %>
+export TOKEN=<%= p("kibosh.token", "bXktdG9rZW4=") %>
+
+mkdir -p "$LOG_DIR" "$RUN_DIR"
+
+# If one of these directories is very large, chowning might take a very long time.
+# Consider only chowning if dir did not yet exist in the previous step
+chown -R vcap:vcap "$LOG_DIR" "$RUN_DIR"
+
+# heed warnings from start-stop-daemon(8) about use of exec flag with interpreters
+/sbin/start-stop-daemon \
+  --pidfile "$PIDFILE" \
+  --make-pidfile \
+  --chuid vcap:vcap \
+  --start \
+  --exec /var/vcap/packages/kibosh_pkg/kibosh \
+   >> "$LOG_DIR/kibosh.out.log" \
+  2>> "$LOG_DIR/kibosh.err.log"
