@@ -4,6 +4,8 @@ A generic broker bridging the gap between Kubernetes and CF brokered services.
 
 ![](docs/kibosh_logo.png)
 
+We BOSH so you don't have to!
+
 ## Future Plans
 The epics we're thinking about tackling next:
 - [ ] Configurable plans

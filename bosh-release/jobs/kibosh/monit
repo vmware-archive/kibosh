@@ -1,0 +1,5 @@
+check process kibosh
+  with pidfile /var/vcap/sys/run/kibosh/kibosh.pid
+  start program /var/vcap/jobs/kibosh/bin/start
+  stop program /var/vcap/jobs/kibosh/bin/stop
+  group vcap

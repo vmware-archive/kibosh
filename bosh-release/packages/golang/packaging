@@ -1,0 +1,6 @@
+set -e
+
+cp go-version.txt ${BOSH_INSTALL_TARGET}
+
+tar xzf go-linux-amd64.tar.gz
+cp -R go/* ${BOSH_INSTALL_TARGET}

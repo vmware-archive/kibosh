@@ -1,0 +1,18 @@
+set -ex
+
+#ls -lahR
+
+mkdir -p ${BOSH_INSTALL_TARGET}/src/
+tar -xvf kibosh_src.tgz -C ${BOSH_INSTALL_TARGET}/src/
+
+export GOPATH=$BOSH_INSTALL_TARGET
+export GOROOT=$(readlink -nf /var/vcap/packages/golang)
+export PATH=$GOROOT/bin:$PATH
+
+pushd ${BOSH_INSTALL_TARGET}/src/github.com/cf-platform-eng/kibosh
+GOOS=linux GOARCH=amd64 go build -o kibosh ./main.go
+cp kibosh ${BOSH_INSTALL_TARGET}
+popd
+
+# clean up source artifacts
+rm -rf ${BOSH_INSTALL_TARGET}/src ${BOSH_INSTALL_TARGET}/pkg
