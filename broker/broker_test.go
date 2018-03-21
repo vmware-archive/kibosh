@@ -1,15 +1,13 @@
 package broker_test
 
 import (
-	"code.cloudfoundry.org/lager"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-
 	"encoding/json"
 	"errors"
+
+	"code.cloudfoundry.org/lager"
 	. "github.com/cf-platform-eng/kibosh/broker"
 	"github.com/cf-platform-eng/kibosh/helm/helmfakes"
+	my_helm "github.com/cf-platform-eng/kibosh/helm"
 	"github.com/cf-platform-eng/kibosh/k8s/k8sfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -18,17 +16,14 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	hapi_release "k8s.io/helm/pkg/proto/hapi/release"
 	hapi_services "k8s.io/helm/pkg/proto/hapi/services"
+	hapi_chart "k8s.io/helm/pkg/proto/hapi/chart"
 	"github.com/cf-platform-eng/kibosh/config"
 )
 
 var _ = Describe("Broker", func() {
 	var logger lager.Logger
 
-	chartYamlContent := []byte(`
-name: spacebears
-description: spacebears service and spacebears broker helm chart
-version: 0.0.1
-`)
+	var myChart *my_helm.MyChart
 	var registryConfig *config.RegistryConfig
 
 	BeforeEach(func() {
@@ -39,22 +34,19 @@ version: 0.0.1
 			Pass:   "monkey123",
 			Email:  "k8s@example.com",
 		}
+		myChart = &my_helm.MyChart{
+			Chart: &hapi_chart.Chart{
+				Metadata: &hapi_chart.Metadata{
+					Name:        "spacebears",
+					Description: "spacebears service and spacebears broker helm chart",
+				},
+			},
+		}
 	})
 
 	Context("catalog", func() {
 		It("Provides a catalog", func() {
-			// Create a temporary directory (defer removing it until after method)
-			dir, err := ioutil.TempDir("", "chart-")
-			Expect(err).To(BeNil())
-			defer os.RemoveAll(dir)
-
-			// Create a temporary file in that directory with chart yaml.
-			tmpfn := filepath.Join(dir, "Chart.yaml")
-			err = ioutil.WriteFile(tmpfn, chartYamlContent, 0666)
-			Expect(err).To(BeNil())
-
-			// Create the service catalog using that yaml.
-			serviceBroker := NewPksServiceBroker(dir, "service-id", registryConfig, nil, nil, logger)
+			serviceBroker := NewPksServiceBroker("service-id", registryConfig, nil, nil, myChart, logger)
 			serviceCatalog := serviceBroker.Services(nil)
 
 			// Evalute correctness of service catalog against expected.
@@ -70,17 +62,8 @@ version: 0.0.1
 				Bindable:    true,
 				Plans:       expectedPlan,
 			}}
+
 			Expect(expectedCatalog).Should(Equal(serviceCatalog))
-
-		})
-
-		It("Throws an appropriate error", func() {
-			serviceBroker := NewPksServiceBroker("unknown", "service-id", registryConfig, nil, nil, logger)
-
-			Expect(func() {
-				serviceBroker.Services(nil)
-			}).To(Panic())
-
 		})
 	})
 
@@ -93,7 +76,7 @@ version: 0.0.1
 			fakeMyHelmClient = &helmfakes.FakeMyHelmClient{}
 			fakeCluster = &k8sfakes.FakeCluster{}
 
-			broker = NewPksServiceBroker("/my/chart/dir", "service-id", registryConfig, fakeCluster, fakeMyHelmClient, logger)
+			broker = NewPksServiceBroker("service-id", registryConfig, fakeCluster, fakeMyHelmClient, myChart, logger)
 		})
 
 		It("requires async", func() {
@@ -156,7 +139,7 @@ version: 0.0.1
 
 			It("doesn't mess with secrets when not configured", func() {
 				registryConfig = &config.RegistryConfig{}
-				broker = NewPksServiceBroker("/my/chart/dir", "service-id", registryConfig, fakeCluster, fakeMyHelmClient, logger)
+				broker = NewPksServiceBroker("service-id", registryConfig, fakeCluster, fakeMyHelmClient, myChart, logger)
 
 				_, err := broker.Provision(nil, "my-instance-guid", brokerapi.ProvisionDetails{}, true)
 
@@ -181,7 +164,7 @@ version: 0.0.1
 				Expect(err).To(BeNil())
 
 				Expect(fakeCluster.PatchCallCount()).To(Equal(1))
-				namespace, name, pathType, data, _ :=  fakeCluster.PatchArgsForCall(0)
+				namespace, name, pathType, data, _ := fakeCluster.PatchArgsForCall(0)
 				Expect(namespace).To(Equal("kibosh-my-instance-guid"))
 				Expect(name).To(Equal("default"))
 				Expect(string(pathType)).To(Equal("application/merge-patch+json"))
@@ -189,24 +172,23 @@ version: 0.0.1
 			})
 		})
 
+
 		Context("chart", func() {
 			It("creates helm chart", func() {
 				_, err := broker.Provision(nil, "my-instance-guid", brokerapi.ProvisionDetails{}, true)
 
 				Expect(err).To(BeNil())
 
-				Expect(fakeMyHelmClient.InstallReleaseFromDirCallCount()).To(Equal(1))
 
-				Expect(fakeMyHelmClient.InstallReleaseFromDirCallCount()).To(Equal(1))
-				chartDir, namespaceName, opts := fakeMyHelmClient.InstallReleaseFromDirArgsForCall(0)
-				Expect(chartDir).To(Equal("/my/chart/dir"))
+				Expect(fakeMyHelmClient.InstallChartCallCount()).To(Equal(1))
+				namespaceName, opts := fakeMyHelmClient.InstallChartArgsForCall(0)
 				Expect(namespaceName).To(Equal("kibosh-my-instance-guid"))
 				Expect(opts).To(HaveLen(1))
 			})
 
 			It("returns error on helm chart creation failure", func() {
 				errorMessage := "no helm for you"
-				fakeMyHelmClient.InstallReleaseFromDirReturns(nil, errors.New(errorMessage))
+				fakeMyHelmClient.InstallChartReturns(nil, errors.New(errorMessage))
 
 				_, err := broker.Provision(nil, "my-instance-guid", brokerapi.ProvisionDetails{}, true)
 
@@ -225,7 +207,7 @@ version: 0.0.1
 			fakeMyHelmClient = &helmfakes.FakeMyHelmClient{}
 			fakeCluster = &k8sfakes.FakeCluster{}
 
-			broker = NewPksServiceBroker("/my/chart/dir", "service-id", registryConfig, fakeCluster, fakeMyHelmClient, logger)
+			broker = NewPksServiceBroker("service-id", registryConfig, fakeCluster, fakeMyHelmClient, myChart, logger)
 
 			serviceList := api_v1.ServiceList{
 				Items: []api_v1.Service{
@@ -424,7 +406,7 @@ version: 0.0.1
 			fakeMyHelmClient = &helmfakes.FakeMyHelmClient{}
 			fakeCluster = &k8sfakes.FakeCluster{}
 
-			broker = NewPksServiceBroker("/my/chart/dir", "service-id", registryConfig, fakeCluster, fakeMyHelmClient, logger)
+			broker = NewPksServiceBroker("service-id", registryConfig, fakeCluster, fakeMyHelmClient, myChart, logger)
 		})
 
 		It("bind returns cluster secrets", func() {
@@ -570,7 +552,7 @@ version: 0.0.1
 			fakeMyHelmClient = &helmfakes.FakeMyHelmClient{}
 			fakeCluster = &k8sfakes.FakeCluster{}
 
-			broker = NewPksServiceBroker("/my/chart/dir", "service-id", registryConfig, fakeCluster, fakeMyHelmClient, logger)
+			broker = NewPksServiceBroker("service-id", registryConfig, fakeCluster, fakeMyHelmClient, myChart, logger)
 		})
 
 		It("bubbles up delete chart errors", func() {
@@ -618,6 +600,5 @@ version: 0.0.1
 			Expect(response.IsAsync).To(BeTrue())
 			Expect(response.OperationData).To(Equal("deprovision"))
 		})
-
 	})
 })

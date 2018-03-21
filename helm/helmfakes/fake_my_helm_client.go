@@ -213,46 +213,18 @@ type FakeMyHelmClient struct {
 	upgradeReturnsOnCall map[int]struct {
 		result1 error
 	}
-	InstallReleaseFromDirStub        func(string, string, ...helmpkg.InstallOption) (*rls.InstallReleaseResponse, error)
-	installReleaseFromDirMutex       sync.RWMutex
-	installReleaseFromDirArgsForCall []struct {
-		arg1 string
-		arg2 string
-		arg3 []helmpkg.InstallOption
+	InstallChartStub        func(namespace string, options ...helmpkg.InstallOption) (*rls.InstallReleaseResponse, error)
+	installChartMutex       sync.RWMutex
+	installChartArgsForCall []struct {
+		namespace string
+		options   []helmpkg.InstallOption
 	}
-	installReleaseFromDirReturns struct {
+	installChartReturns struct {
 		result1 *rls.InstallReleaseResponse
 		result2 error
 	}
-	installReleaseFromDirReturnsOnCall map[int]struct {
+	installChartReturnsOnCall map[int]struct {
 		result1 *rls.InstallReleaseResponse
-		result2 error
-	}
-	ReadDefaultValsStub        func(chartPath string) ([]byte, error)
-	readDefaultValsMutex       sync.RWMutex
-	readDefaultValsArgsForCall []struct {
-		chartPath string
-	}
-	readDefaultValsReturns struct {
-		result1 []byte
-		result2 error
-	}
-	readDefaultValsReturnsOnCall map[int]struct {
-		result1 []byte
-		result2 error
-	}
-	MergeValueBytesStub        func(base []byte, override []byte) ([]byte, error)
-	mergeValueBytesMutex       sync.RWMutex
-	mergeValueBytesArgsForCall []struct {
-		base     []byte
-		override []byte
-	}
-	mergeValueBytesReturns struct {
-		result1 []byte
-		result2 error
-	}
-	mergeValueBytesReturnsOnCall map[int]struct {
-		result1 []byte
 		result2 error
 	}
 	invocations      map[string][][]interface{}
@@ -991,168 +963,54 @@ func (fake *FakeMyHelmClient) UpgradeReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeMyHelmClient) InstallReleaseFromDir(arg1 string, arg2 string, arg3 ...helmpkg.InstallOption) (*rls.InstallReleaseResponse, error) {
-	fake.installReleaseFromDirMutex.Lock()
-	ret, specificReturn := fake.installReleaseFromDirReturnsOnCall[len(fake.installReleaseFromDirArgsForCall)]
-	fake.installReleaseFromDirArgsForCall = append(fake.installReleaseFromDirArgsForCall, struct {
-		arg1 string
-		arg2 string
-		arg3 []helmpkg.InstallOption
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("InstallReleaseFromDir", []interface{}{arg1, arg2, arg3})
-	fake.installReleaseFromDirMutex.Unlock()
-	if fake.InstallReleaseFromDirStub != nil {
-		return fake.InstallReleaseFromDirStub(arg1, arg2, arg3...)
+func (fake *FakeMyHelmClient) InstallChart(namespace string, options ...helmpkg.InstallOption) (*rls.InstallReleaseResponse, error) {
+	fake.installChartMutex.Lock()
+	ret, specificReturn := fake.installChartReturnsOnCall[len(fake.installChartArgsForCall)]
+	fake.installChartArgsForCall = append(fake.installChartArgsForCall, struct {
+		namespace string
+		options   []helmpkg.InstallOption
+	}{namespace, options})
+	fake.recordInvocation("InstallChart", []interface{}{namespace, options})
+	fake.installChartMutex.Unlock()
+	if fake.InstallChartStub != nil {
+		return fake.InstallChartStub(namespace, options...)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.installReleaseFromDirReturns.result1, fake.installReleaseFromDirReturns.result2
+	return fake.installChartReturns.result1, fake.installChartReturns.result2
 }
 
-func (fake *FakeMyHelmClient) InstallReleaseFromDirCallCount() int {
-	fake.installReleaseFromDirMutex.RLock()
-	defer fake.installReleaseFromDirMutex.RUnlock()
-	return len(fake.installReleaseFromDirArgsForCall)
+func (fake *FakeMyHelmClient) InstallChartCallCount() int {
+	fake.installChartMutex.RLock()
+	defer fake.installChartMutex.RUnlock()
+	return len(fake.installChartArgsForCall)
 }
 
-func (fake *FakeMyHelmClient) InstallReleaseFromDirArgsForCall(i int) (string, string, []helmpkg.InstallOption) {
-	fake.installReleaseFromDirMutex.RLock()
-	defer fake.installReleaseFromDirMutex.RUnlock()
-	return fake.installReleaseFromDirArgsForCall[i].arg1, fake.installReleaseFromDirArgsForCall[i].arg2, fake.installReleaseFromDirArgsForCall[i].arg3
+func (fake *FakeMyHelmClient) InstallChartArgsForCall(i int) (string, []helmpkg.InstallOption) {
+	fake.installChartMutex.RLock()
+	defer fake.installChartMutex.RUnlock()
+	return fake.installChartArgsForCall[i].namespace, fake.installChartArgsForCall[i].options
 }
 
-func (fake *FakeMyHelmClient) InstallReleaseFromDirReturns(result1 *rls.InstallReleaseResponse, result2 error) {
-	fake.InstallReleaseFromDirStub = nil
-	fake.installReleaseFromDirReturns = struct {
+func (fake *FakeMyHelmClient) InstallChartReturns(result1 *rls.InstallReleaseResponse, result2 error) {
+	fake.InstallChartStub = nil
+	fake.installChartReturns = struct {
 		result1 *rls.InstallReleaseResponse
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeMyHelmClient) InstallReleaseFromDirReturnsOnCall(i int, result1 *rls.InstallReleaseResponse, result2 error) {
-	fake.InstallReleaseFromDirStub = nil
-	if fake.installReleaseFromDirReturnsOnCall == nil {
-		fake.installReleaseFromDirReturnsOnCall = make(map[int]struct {
+func (fake *FakeMyHelmClient) InstallChartReturnsOnCall(i int, result1 *rls.InstallReleaseResponse, result2 error) {
+	fake.InstallChartStub = nil
+	if fake.installChartReturnsOnCall == nil {
+		fake.installChartReturnsOnCall = make(map[int]struct {
 			result1 *rls.InstallReleaseResponse
 			result2 error
 		})
 	}
-	fake.installReleaseFromDirReturnsOnCall[i] = struct {
+	fake.installChartReturnsOnCall[i] = struct {
 		result1 *rls.InstallReleaseResponse
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeMyHelmClient) ReadDefaultVals(chartPath string) ([]byte, error) {
-	fake.readDefaultValsMutex.Lock()
-	ret, specificReturn := fake.readDefaultValsReturnsOnCall[len(fake.readDefaultValsArgsForCall)]
-	fake.readDefaultValsArgsForCall = append(fake.readDefaultValsArgsForCall, struct {
-		chartPath string
-	}{chartPath})
-	fake.recordInvocation("ReadDefaultVals", []interface{}{chartPath})
-	fake.readDefaultValsMutex.Unlock()
-	if fake.ReadDefaultValsStub != nil {
-		return fake.ReadDefaultValsStub(chartPath)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.readDefaultValsReturns.result1, fake.readDefaultValsReturns.result2
-}
-
-func (fake *FakeMyHelmClient) ReadDefaultValsCallCount() int {
-	fake.readDefaultValsMutex.RLock()
-	defer fake.readDefaultValsMutex.RUnlock()
-	return len(fake.readDefaultValsArgsForCall)
-}
-
-func (fake *FakeMyHelmClient) ReadDefaultValsArgsForCall(i int) string {
-	fake.readDefaultValsMutex.RLock()
-	defer fake.readDefaultValsMutex.RUnlock()
-	return fake.readDefaultValsArgsForCall[i].chartPath
-}
-
-func (fake *FakeMyHelmClient) ReadDefaultValsReturns(result1 []byte, result2 error) {
-	fake.ReadDefaultValsStub = nil
-	fake.readDefaultValsReturns = struct {
-		result1 []byte
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeMyHelmClient) ReadDefaultValsReturnsOnCall(i int, result1 []byte, result2 error) {
-	fake.ReadDefaultValsStub = nil
-	if fake.readDefaultValsReturnsOnCall == nil {
-		fake.readDefaultValsReturnsOnCall = make(map[int]struct {
-			result1 []byte
-			result2 error
-		})
-	}
-	fake.readDefaultValsReturnsOnCall[i] = struct {
-		result1 []byte
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeMyHelmClient) MergeValueBytes(base []byte, override []byte) ([]byte, error) {
-	var baseCopy []byte
-	if base != nil {
-		baseCopy = make([]byte, len(base))
-		copy(baseCopy, base)
-	}
-	var overrideCopy []byte
-	if override != nil {
-		overrideCopy = make([]byte, len(override))
-		copy(overrideCopy, override)
-	}
-	fake.mergeValueBytesMutex.Lock()
-	ret, specificReturn := fake.mergeValueBytesReturnsOnCall[len(fake.mergeValueBytesArgsForCall)]
-	fake.mergeValueBytesArgsForCall = append(fake.mergeValueBytesArgsForCall, struct {
-		base     []byte
-		override []byte
-	}{baseCopy, overrideCopy})
-	fake.recordInvocation("MergeValueBytes", []interface{}{baseCopy, overrideCopy})
-	fake.mergeValueBytesMutex.Unlock()
-	if fake.MergeValueBytesStub != nil {
-		return fake.MergeValueBytesStub(base, override)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.mergeValueBytesReturns.result1, fake.mergeValueBytesReturns.result2
-}
-
-func (fake *FakeMyHelmClient) MergeValueBytesCallCount() int {
-	fake.mergeValueBytesMutex.RLock()
-	defer fake.mergeValueBytesMutex.RUnlock()
-	return len(fake.mergeValueBytesArgsForCall)
-}
-
-func (fake *FakeMyHelmClient) MergeValueBytesArgsForCall(i int) ([]byte, []byte) {
-	fake.mergeValueBytesMutex.RLock()
-	defer fake.mergeValueBytesMutex.RUnlock()
-	return fake.mergeValueBytesArgsForCall[i].base, fake.mergeValueBytesArgsForCall[i].override
-}
-
-func (fake *FakeMyHelmClient) MergeValueBytesReturns(result1 []byte, result2 error) {
-	fake.MergeValueBytesStub = nil
-	fake.mergeValueBytesReturns = struct {
-		result1 []byte
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeMyHelmClient) MergeValueBytesReturnsOnCall(i int, result1 []byte, result2 error) {
-	fake.MergeValueBytesStub = nil
-	if fake.mergeValueBytesReturnsOnCall == nil {
-		fake.mergeValueBytesReturnsOnCall = make(map[int]struct {
-			result1 []byte
-			result2 error
-		})
-	}
-	fake.mergeValueBytesReturnsOnCall[i] = struct {
-		result1 []byte
 		result2 error
 	}{result1, result2}
 }
@@ -1190,12 +1048,8 @@ func (fake *FakeMyHelmClient) Invocations() map[string][][]interface{} {
 	defer fake.installMutex.RUnlock()
 	fake.upgradeMutex.RLock()
 	defer fake.upgradeMutex.RUnlock()
-	fake.installReleaseFromDirMutex.RLock()
-	defer fake.installReleaseFromDirMutex.RUnlock()
-	fake.readDefaultValsMutex.RLock()
-	defer fake.readDefaultValsMutex.RUnlock()
-	fake.mergeValueBytesMutex.RLock()
-	defer fake.mergeValueBytesMutex.RUnlock()
+	fake.installChartMutex.RLock()
+	defer fake.installChartMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

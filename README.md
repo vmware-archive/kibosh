@@ -8,13 +8,42 @@ A generic broker bridging the gap between Kubernetes and CF brokered services.
 The epics we're thinking about tackling next:
 - [ ] Configurable plans
     * Probably models as a set of pre-set default values
-- [ ] Private images
-    * Some way to not depend on public images, shipping images as part of packaging
 - [ ] Service discovery
     * Right now, the only option that will work is LoadBalancer. Exploring other solutions for things that cannot be internet facing
 
 #### Caution
 We're not yet API stable. Future binaries will very likely break against current configuration and chart structures.
+
+## Charts
+
+In order to successfully pull private images, we're imposing some requirements
+on the `values.yaml` file structure
+
+* Single image charts should use this structure:
+    ```yaml
+    ---
+    image: "my-image"
+    imageTag: "5.7.14"
+    ```
+* Multi-image charts shoud use this structure:
+    ```yaml
+    ---
+    images:
+      thing1:
+        image: "my-first-image"
+        imageTag: "5.7.14"
+      thing2:
+        image: "my-second-image"
+        imageTag: "1.2.3"
+    ```
+
+### Private registries
+When the environment settings for a private registry are present (`REG_SERVER`, `REG_USER`, `REG_PASS`), 
+then Kibosh will transform images to pull them from the private registry. It assumes
+the image is already present (see the Kibosh deployment). It will patch
+the default service account in the instance namespaces to add in the registry credentials.
+
+Be sure that `REG_SERVER` contains any required path information. For example, in gcp `gcr.io/my-project-name`
 
 ## Dev
 #### Setup
@@ -161,8 +190,6 @@ More dep links:
 * `Gopks.toml` details: https://github.com/golang/dep/blob/master/docs/Gopkg.toml.md
 
 ## Notes
-
-todo: some notes around private docker repo and image structure pre-reqs
 
 Inline-style: 
 ![](docs/SeqDiagram.png)

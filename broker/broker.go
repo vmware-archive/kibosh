@@ -2,26 +2,19 @@ package broker
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"os"
-	"path"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/cf-platform-eng/kibosh/config"
 	my_helm "github.com/cf-platform-eng/kibosh/helm"
 	"github.com/cf-platform-eng/kibosh/k8s"
-
-	"code.cloudfoundry.org/lager"
 	"github.com/pivotal-cf/brokerapi"
-	"github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
 	api_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/helm/pkg/helm"
 	hapi_release "k8s.io/helm/pkg/proto/hapi/release"
-	"encoding/json"
 )
 
 const registrySecretName = "registry-secret"
@@ -29,74 +22,38 @@ const registrySecretName = "registry-secret"
 // PksServiceBroker contains values passed in from configuration necessary for broker's work.
 type PksServiceBroker struct {
 	Logger         lager.Logger
-	HelmChartDir   string
 	ServiceID      string
 	registryConfig *config.RegistryConfig
 
 	cluster      k8s.Cluster
 	myHelmClient my_helm.MyHelmClient
+	myChart      *my_helm.MyChart
 }
 
-// todo: now that we're including helm, it probably make sense to defer to the helm library's parsing?
-// HelmChart contains heml chart data useful for Broker Catalog
-type HelmChart struct {
-	Name        string `yaml:"name"`
-	Description string `yaml:"description"`
-}
-
-func NewPksServiceBroker(helmChartDir string, serviceID string, registryConfig *config.RegistryConfig, cluster k8s.Cluster, myHelmClient my_helm.MyHelmClient, logger lager.Logger) *PksServiceBroker {
+func NewPksServiceBroker(serviceID string, registryConfig *config.RegistryConfig, cluster k8s.Cluster, myHelmClient my_helm.MyHelmClient, myChart *my_helm.MyChart, logger lager.Logger) *PksServiceBroker {
 	return &PksServiceBroker{
 		Logger:         logger,
-		HelmChartDir:   helmChartDir,
 		ServiceID:      serviceID,
 		registryConfig: registryConfig,
 
 		cluster:      cluster,
 		myHelmClient: myHelmClient,
+		myChart:      myChart,
 	}
 }
 
-// GetConf parses the chart yaml file.
-func GetConf(yamlReader io.Reader) (*HelmChart, error) {
-
-	yamlFile, err := ioutil.ReadAll(yamlReader)
-	if err != nil {
-		return nil, errors.Wrap(err, "Unable to read Chart.yaml")
-	}
-
-	c := &HelmChart{}
-	err = yaml.Unmarshal(yamlFile, c)
-	if err != nil {
-		return nil, errors.Wrap(err, "Unable to unmarshal Chart.yaml")
-	}
-
-	return c, nil
-}
-
-// Services reads Chart.yaml and uses the name and description in the service catalog.
 func (broker *PksServiceBroker) Services(ctx context.Context) []brokerapi.Service {
-	// Get the helm chart Chart.yaml data
-	file, err := os.Open(path.Join(broker.HelmChartDir, "Chart.yaml"))
-	if err != nil {
-		broker.Logger.Fatal("Unable to read Chart.yaml", err)
-	}
-	defer file.Close()
-	helmChart, err := GetConf(file)
-	if err != nil {
-		broker.Logger.Fatal("Unable to parse Chart.yaml", err)
-	}
-
 	// Create a default plan.
 	plan := []brokerapi.ServicePlan{{
 		ID:          broker.ServiceID + "-default",
 		Name:        "default",
-		Description: helmChart.Description,
+		Description: broker.myChart.Metadata.Description,
 	}}
 
 	serviceCatalog := []brokerapi.Service{{
 		ID:          broker.ServiceID,
-		Name:        helmChart.Name,
-		Description: helmChart.Description,
+		Name:        broker.myChart.Metadata.Name,
+		Description: broker.myChart.Metadata.Description,
 		Bindable:    true,
 
 		Plans: plan,
@@ -153,9 +110,7 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 		broker.cluster.Patch(namespaceName, "default", types.MergePatchType, patchJson)
 	}
 
-	_, err = broker.myHelmClient.InstallReleaseFromDir(
-		broker.HelmChartDir, namespaceName, helm.ReleaseName(namespaceName),
-	)
+	_, err = broker.myHelmClient.InstallChart(namespaceName, helm.ReleaseName(namespaceName))
 	if err != nil {
 		return brokerapi.ProvisionedServiceSpec{}, err
 	}
