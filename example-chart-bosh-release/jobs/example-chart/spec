@@ -1,0 +1,5 @@
+---
+name: example-chart
+
+packages:
+- example-chart

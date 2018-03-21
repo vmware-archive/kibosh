@@ -21,7 +21,8 @@ echo "Packaging local source"
 
 # Go up to the src directory above github.com in src/github.com/cf-platform-eng/kibosh in order
 # to get the go path correct.
-tar -cvzf ./${TMPDIR}/kibosh_src.tgz -C ../../../../ \
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+tar -cvzf ./${TMPDIR}/kibosh_src.tgz -C "${DIR}/../../../../" \
   github.com/cf-platform-eng/kibosh/broker/ \
   github.com/cf-platform-eng/kibosh/config/ \
   github.com/cf-platform-eng/kibosh/helm/ \

@@ -5,6 +5,8 @@ name: kibosh
 releases:
   - name: kibosh
     version: latest
+  - name: example-chart
+    version: latest
 
 stemcells:
   - alias: bosh-warden-boshlite-ubuntu-trusty-go_agent
@@ -24,12 +26,14 @@ instance_groups:
     jobs:
       - name: kibosh
         release: kibosh
+      - name: example-chart
+        release: example-chart
     properties:
       kibosh:
         username: admin
         password: ((kibosh-password))
         service-id: f448fdea-25b8-41aa-aed4-539d8ace5f32
-        helm-chart-dir: charts
+        helm-chart-dir: /var/vcap/packages/example-chart/example-chart
         ca-data: ((k8s-cluster-ca-cert))
         server: ((k8s-cluster-server))
         token: ((k8s-cluster-token))
