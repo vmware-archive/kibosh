@@ -28,9 +28,15 @@ func main() {
 	if err != nil {
 		brokerLogger.Fatal("Error setting up k8s cluster", err)
 	}
-	myHelmClient := helm.NewMyHelmClient(cluster, brokerLogger)
+
+	myChart, err := helm.NewChart(conf.HelmChartDir, conf.RegistryConfig.Server)
+	if err != nil {
+		brokerLogger.Fatal("Helm chart failed to load", err)
+	}
+
+	myHelmClient := helm.NewMyHelmClient(myChart, cluster, brokerLogger)
 	serviceBroker := broker.NewPksServiceBroker(
-		conf.HelmChartDir, conf.ServiceID, cluster, myHelmClient, brokerLogger,
+		conf.ServiceID, conf.RegistryConfig, cluster, myHelmClient, myChart, brokerLogger,
 	)
 	brokerCredentials := brokerapi.BrokerCredentials{
 		Username: conf.AdminUsername,

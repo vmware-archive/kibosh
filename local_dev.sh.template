@@ -11,4 +11,14 @@ export SERVICE_ID=abc123
 export SECURITY_USER_NAME=admin
 export SECURITY_USER_PASSWORD=pass
 
+# REG_* settings are optional, for configuring a private docker registry
+export REG_SERVER='gcr.io'
+export REG_USER='_json_key'
+export REG_PASS='{
+  "type": "service_account",
+  ...
+}'
+'
+export REG_EMAIL='_json_key'
+
 go run main.go

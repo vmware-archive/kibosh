@@ -2,13 +2,10 @@ package helm
 
 import (
 	"fmt"
-	"path"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/cf-platform-eng/kibosh/k8s"
-	"io/ioutil"
 	helmstaller "k8s.io/helm/cmd/helm/installer"
-	"k8s.io/helm/pkg/chartutil"
 	"k8s.io/helm/pkg/helm"
 	"k8s.io/helm/pkg/helm/portforwarder"
 	"k8s.io/helm/pkg/kube"
@@ -17,8 +14,10 @@ import (
 )
 
 type myHelmClient struct {
-	cluster k8s.Cluster
-	logger  lager.Logger
+	privateRegistryServer string
+	cluster               k8s.Cluster
+	logger                lager.Logger
+	chart                 *MyChart
 }
 
 //- go:generate counterfeiter ./ MyHelmClient
@@ -27,12 +26,12 @@ type MyHelmClient interface {
 	helm.Interface
 	Install(*helmstaller.Options) error
 	Upgrade(*helmstaller.Options) error
-	InstallReleaseFromDir(string, string, ...helm.InstallOption) (*rls.InstallReleaseResponse, error)
-	ReadDefaultVals(chartPath string) ([]byte, error)
+	InstallChart(namespace string, options ...helm.InstallOption) (*rls.InstallReleaseResponse, error)
 }
 
-func NewMyHelmClient(cluster k8s.Cluster, logger lager.Logger) MyHelmClient {
+func NewMyHelmClient(chart *MyChart, cluster k8s.Cluster, logger lager.Logger) MyHelmClient {
 	return &myHelmClient{
+		chart:   chart,
 		cluster: cluster,
 		logger:  logger,
 	}
@@ -72,39 +71,19 @@ func (c myHelmClient) InstallRelease(chStr, namespace string, opts ...helm.Insta
 	panic("Not yet implemented")
 }
 
-func (c myHelmClient) InstallReleaseFromChart(chart *chart.Chart, namespace string, opts ...helm.InstallOption) (*rls.InstallReleaseResponse, error) {
+func (c myHelmClient) InstallReleaseFromChart(myChart *chart.Chart, namespace string, opts ...helm.InstallOption) (*rls.InstallReleaseResponse, error) {
 	tunnel, client, err := c.open()
 	if err != nil {
 		return nil, err
 	}
 	defer tunnel.Close()
 
-	return client.InstallReleaseFromChart(chart, namespace, opts...)
+	return client.InstallReleaseFromChart(myChart, namespace, opts...)
 }
 
-func (c myHelmClient) InstallReleaseFromDir(chartPath string, namespace string, opts ...helm.InstallOption) (*rls.InstallReleaseResponse, error) {
-	chartRequested, err := chartutil.Load(chartPath)
-	if err != nil {
-		return nil, err
-	}
-
-	raw, err := c.ReadDefaultVals(chartPath)
-	if err != nil {
-		return nil, err
-	}
-
-	newOpts := append(opts, helm.ValueOverrides(raw))
-	return c.InstallReleaseFromChart(chartRequested, namespace, newOpts...)
-}
-
-func (c myHelmClient) ReadDefaultVals(chartPath string) ([]byte, error) {
-	valuesPath := path.Join(chartPath, "values.yaml")
-	bytes, err := ioutil.ReadFile(valuesPath)
-	if err != nil {
-		return nil, err
-	}
-
-	return bytes, nil
+func (c myHelmClient) InstallChart(namespace string, opts ...helm.InstallOption) (*rls.InstallReleaseResponse, error) {
+	newOpts := append(opts, helm.ValueOverrides(c.chart.Values))
+	return c.InstallReleaseFromChart(c.chart.Chart, namespace, newOpts...)
 }
 
 func (c myHelmClient) DeleteRelease(rlsName string, opts ...helm.DeleteOption) (*rls.UninstallReleaseResponse, error) {
