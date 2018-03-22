@@ -38,6 +38,19 @@ on the `values.yaml` file structure
         image: "my-second-image"
         imageTag: "1.2.3"
     ```
+* Plans
+    Kibosh requires that helm chart has additional file that describes plan in plans.yaml at root level
+    ```yaml
+    - name: "small"
+      description: "default (small) plan for mysql"
+      file: "small.yaml"
+    - name: "medium"
+      description: "medium sized plan for mysql"
+      file: "medium.yaml"
+    ```
+    File is a filename that exists in the `plans` subdirectory of the chart
+    Name should be lower alpha, numeric, `.`, or `-` 
+    Values `values.yaml` sets the defaults and plans only need override values 
 
 ### Private registries
 When the environment settings for a private registry are present (`REG_SERVER`, `REG_USER`, `REG_PASS`), 
