@@ -6,6 +6,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/cf-platform-eng/kibosh/k8s"
 	helmstaller "k8s.io/helm/cmd/helm/installer"
+	"github.com/ghodss/yaml"
 	"k8s.io/helm/pkg/helm"
 	"k8s.io/helm/pkg/helm/portforwarder"
 	"k8s.io/helm/pkg/kube"
@@ -26,7 +27,8 @@ type MyHelmClient interface {
 	helm.Interface
 	Install(*helmstaller.Options) error
 	Upgrade(*helmstaller.Options) error
-	InstallChart(namespace string, options ...helm.InstallOption) (*rls.InstallReleaseResponse, error)
+	InstallChart(namespace string, planName string, options ...helm.InstallOption) (*rls.InstallReleaseResponse, error)
+	MergeValueBytes(base []byte, override []byte) ([]byte, error)
 }
 
 func NewMyHelmClient(chart *MyChart, cluster k8s.Cluster, logger lager.Logger) MyHelmClient {
@@ -81,8 +83,12 @@ func (c myHelmClient) InstallReleaseFromChart(myChart *chart.Chart, namespace st
 	return client.InstallReleaseFromChart(myChart, namespace, opts...)
 }
 
-func (c myHelmClient) InstallChart(namespace string, opts ...helm.InstallOption) (*rls.InstallReleaseResponse, error) {
-	newOpts := append(opts, helm.ValueOverrides(c.chart.Values))
+func (c myHelmClient) InstallChart(namespace string, planName string, opts ...helm.InstallOption) (*rls.InstallReleaseResponse, error) {
+	overrideValues, err := c.MergeValueBytes(c.chart.Values, c.chart.Plans[planName].Values)
+	if err != nil {
+		return nil, err
+	}
+	newOpts := append(opts, helm.ValueOverrides(overrideValues))
 	return c.InstallReleaseFromChart(c.chart.Chart, namespace, newOpts...)
 }
 
@@ -142,4 +148,58 @@ func (c myHelmClient) RunReleaseTest(rlsName string, opts ...helm.ReleaseTestOpt
 
 func (c myHelmClient) PingTiller() error {
 	panic("Not yet implemented")
+}
+
+func (c myHelmClient) MergeValueBytes(base []byte, override []byte) ([]byte, error) {
+	baseVals := map[string]interface{}{}
+	err := yaml.Unmarshal(base, &baseVals)
+	if err != nil {
+		panic(err)
+	}
+	overrideVals := map[string]interface{}{}
+	err = yaml.Unmarshal(override, &overrideVals)
+	if err != nil {
+		panic(err)
+	}
+
+	mergeValueMaps(baseVals, overrideVals)
+
+	merged, err := yaml.Marshal(baseVals)
+	if err != nil {
+		panic(err)
+	}
+
+	return merged, nil
+}
+
+// we stole this from Helm cmd/helm/installer/install.mergeValues
+func mergeValueMaps(dest map[string]interface{}, src map[string]interface{}) map[string]interface{} {
+	for k, v := range src {
+		// If the key doesn't exist already, then just set the key to that value
+		if _, exists := dest[k]; !exists {
+			dest[k] = v
+			continue
+		}
+		nextMap, ok := v.(map[string]interface{})
+		// If it isn't another map, overwrite the value
+		if !ok {
+			dest[k] = v
+			continue
+		}
+		// If the key doesn't exist already, then just set the key to that value
+		if _, exists := dest[k]; !exists {
+			dest[k] = nextMap
+			continue
+		}
+		// Edge case: If the key exists in the destination, but isn't a map
+		destMap, isMap := dest[k].(map[string]interface{})
+		// If the source map has a map for this key, prefer it
+		if !isMap {
+			dest[k] = v
+			continue
+		}
+		// If we got to this point, it is a map in both, so merge them
+		dest[k] = mergeValueMaps(destMap, nextMap)
+	}
+	return dest
 }

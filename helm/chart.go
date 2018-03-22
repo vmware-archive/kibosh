@@ -10,6 +10,8 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/helm/pkg/chartutil"
 	"k8s.io/helm/pkg/proto/hapi/chart"
+	"path/filepath"
+	"regexp"
 )
 
 type MyChart struct {
@@ -18,6 +20,14 @@ type MyChart struct {
 	chartPath             string
 	privateRegistryServer string
 	Values                []byte
+	Plans                 map[string]Plan
+}
+
+type Plan struct {
+	Name        string `yaml:"name"`
+	Description string `yaml:"description"`
+	File        string `yaml:"file"`
+	Values      []byte
 }
 
 func NewChart(chartPath string, privateRegistryServer string) (*MyChart, error) {
@@ -32,6 +42,11 @@ func NewChart(chartPath string, privateRegistryServer string) (*MyChart, error) 
 		privateRegistryServer: privateRegistryServer,
 	}
 	err = myChart.LoadChartValues()
+	if err != nil {
+		return nil, err
+	}
+
+	err = myChart.loadPlans()
 	if err != nil {
 		return nil, err
 	}
@@ -113,4 +128,42 @@ func (c *MyChart) OverrideImageSources(rawVals map[string]interface{}) (map[stri
 		}
 	}
 	return transformedVals, nil
+}
+
+func (c *MyChart) loadPlans() error {
+	plansPath := path.Join(c.chartPath, "plans.yaml")
+	bytes, err := ioutil.ReadFile(plansPath)
+	if err != nil {
+		return err
+	}
+
+	plans := []Plan{}
+	err = yaml.Unmarshal(bytes, &plans)
+	if err != nil {
+		return err
+	}
+
+	c.Plans = map[string]Plan{}
+	for _, p := range plans {
+
+		match, err := regexp.MatchString(`^[0-9a-z.\-]+$`, p.Name)
+		if err != nil {
+			return err
+		}
+		if !match {
+			return errors.New(fmt.Sprintf("Name [%s] contains invalid characters", p.Name))
+		}
+
+		planValues, err := ioutil.ReadFile(filepath.Join(c.chartPath, "plans", p.File))
+		if err != nil {
+			return err
+		}
+
+		p.Values = planValues
+		c.Plans[p.Name] = p
+
+	}
+
+	return nil
+
 }

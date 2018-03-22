@@ -6,18 +6,18 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	. "github.com/cf-platform-eng/kibosh/broker"
-	"github.com/cf-platform-eng/kibosh/helm/helmfakes"
+	"github.com/cf-platform-eng/kibosh/config"
 	my_helm "github.com/cf-platform-eng/kibosh/helm"
+	"github.com/cf-platform-eng/kibosh/helm/helmfakes"
 	"github.com/cf-platform-eng/kibosh/k8s/k8sfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
 	api_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	hapi_chart "k8s.io/helm/pkg/proto/hapi/chart"
 	hapi_release "k8s.io/helm/pkg/proto/hapi/release"
 	hapi_services "k8s.io/helm/pkg/proto/hapi/services"
-	hapi_chart "k8s.io/helm/pkg/proto/hapi/chart"
-	"github.com/cf-platform-eng/kibosh/config"
 )
 
 var _ = Describe("Broker", func() {
@@ -41,29 +41,52 @@ var _ = Describe("Broker", func() {
 					Description: "spacebears service and spacebears broker helm chart",
 				},
 			},
+			Plans: map[string]my_helm.Plan{
+				"small": {
+					Name:        "small",
+					Description: "default (small) plan for spacebears",
+					File:        "small.yaml",
+				},
+				"medium": {
+					Name:        "medium",
+					Description: "medium plan for spacebears",
+					File:        "medium.yaml",
+				},
+			},
 		}
+
 	})
 
 	Context("catalog", func() {
-		It("Provides a catalog", func() {
+		It("Provides a catalog with correct service", func() {
 			serviceBroker := NewPksServiceBroker("service-id", registryConfig, nil, nil, myChart, logger)
 			serviceCatalog := serviceBroker.Services(nil)
 
-			// Evalute correctness of service catalog against expected.
-			expectedPlan := []brokerapi.ServicePlan{{
-				ID:          "service-id-default",
-				Name:        "default",
-				Description: "spacebears service and spacebears broker helm chart",
-			}}
-			expectedCatalog := []brokerapi.Service{{
-				ID:          "service-id",
-				Name:        "spacebears",
-				Description: "spacebears service and spacebears broker helm chart",
-				Bindable:    true,
-				Plans:       expectedPlan,
-			}}
+			Expect(len(serviceCatalog)).To(Equal(1))
+			Expect(serviceCatalog[0].ID).To(Equal("service-id"))
+			Expect(serviceCatalog[0].Name).To(Equal("spacebears"))
+			Expect(serviceCatalog[0].Description).To(Equal("spacebears service and spacebears broker helm chart"))
+			Expect(serviceCatalog[0].Bindable).To(BeTrue())
+		})
 
-			Expect(expectedCatalog).Should(Equal(serviceCatalog))
+		It("Provides a catalog with correct plans", func() {
+			serviceBroker := NewPksServiceBroker("service-id", registryConfig, nil, nil, myChart, logger)
+			serviceCatalog := serviceBroker.Services(nil)
+
+			expectedPlans := []brokerapi.ServicePlan{
+				{
+					ID:          "service-id-small",
+					Name:        "small",
+					Description: "default (small) plan for spacebears",
+				},
+				{
+					ID:          "service-id-medium",
+					Name:        "medium",
+					Description: "medium plan for spacebears",
+				},
+			}
+
+			Expect(serviceCatalog[0].Plans).Should(ConsistOf(expectedPlans))
 		})
 	})
 
@@ -172,17 +195,19 @@ var _ = Describe("Broker", func() {
 			})
 		})
 
-
 		Context("chart", func() {
 			It("creates helm chart", func() {
-				_, err := broker.Provision(nil, "my-instance-guid", brokerapi.ProvisionDetails{}, true)
+				_, err := broker.Provision(nil, "my-instance-guid", brokerapi.ProvisionDetails{
+					ServiceID: "my-service",
+					PlanID: "my-service-my-plan",
+				}, true)
 
 				Expect(err).To(BeNil())
 
-
 				Expect(fakeMyHelmClient.InstallChartCallCount()).To(Equal(1))
-				namespaceName, opts := fakeMyHelmClient.InstallChartArgsForCall(0)
+				namespaceName, plan, opts := fakeMyHelmClient.InstallChartArgsForCall(0)
 				Expect(namespaceName).To(Equal("kibosh-my-instance-guid"))
+				Expect(plan).To(Equal("my-plan"))
 				Expect(opts).To(HaveLen(1))
 			})
 

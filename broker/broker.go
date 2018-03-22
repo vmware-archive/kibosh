@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/helm/pkg/helm"
 	hapi_release "k8s.io/helm/pkg/proto/hapi/release"
+	"strings"
 )
 
 const registrySecretName = "registry-secret"
@@ -43,12 +44,18 @@ func NewPksServiceBroker(serviceID string, registryConfig *config.RegistryConfig
 }
 
 func (broker *PksServiceBroker) Services(ctx context.Context) []brokerapi.Service {
-	// Create a default plan.
-	plan := []brokerapi.ServicePlan{{
-		ID:          broker.ServiceID + "-default",
-		Name:        "default",
-		Description: broker.myChart.Metadata.Description,
-	}}
+
+	plans := []brokerapi.ServicePlan{}
+
+	for _, plan := range broker.myChart.Plans {
+
+		plans = append(plans, brokerapi.ServicePlan{
+			ID:          broker.ServiceID + "-" + plan.Name,
+			Name:        plan.Name,
+			Description: plan.Description,
+		})
+
+	}
 
 	serviceCatalog := []brokerapi.Service{{
 		ID:          broker.ServiceID,
@@ -56,7 +63,7 @@ func (broker *PksServiceBroker) Services(ctx context.Context) []brokerapi.Servic
 		Description: broker.myChart.Metadata.Description,
 		Bindable:    true,
 
-		Plans: plan,
+		Plans: plans,
 	}}
 
 	return serviceCatalog
@@ -110,7 +117,8 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 		broker.cluster.Patch(namespaceName, "default", types.MergePatchType, patchJson)
 	}
 
-	_, err = broker.myHelmClient.InstallChart(namespaceName, helm.ReleaseName(namespaceName))
+	planName := strings.TrimPrefix(details.PlanID, details.ServiceID + "-")
+	_, err = broker.myHelmClient.InstallChart(namespaceName, planName, helm.ReleaseName(namespaceName))
 	if err != nil {
 		return brokerapi.ProvisionedServiceSpec{}, err
 	}
