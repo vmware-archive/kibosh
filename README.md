@@ -6,9 +6,6 @@ A generic broker bridging the gap between Kubernetes and CF brokered services.
 
 We BOSH so you don't have to!
 
-#### Caution
-We're not yet API stable. Future binaries will very likely break against current configuration and chart structures.
-
 ## Charts
 
 In order to successfully pull private images, we're imposing some requirements
