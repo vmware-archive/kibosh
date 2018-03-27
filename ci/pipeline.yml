@@ -1,10 +1,4 @@
 ---
-resource_types:
-- name: gcs-resource
-  type: docker-image
-  source:
-    repository: frodenas/gcs-resource
-
 resources:
 - name: source-repo
   type: git
@@ -14,19 +8,22 @@ resources:
     username: cf-pe-bot
     password: {{github_token}}
 
-- name: kibosh-linux
-  type: gcs-resource
+- name: release-repo
+  type: github-release
   source:
-    bucket: kibosh
-    json_key: {{gcp_service_account_key}}
-    regexp: kibosh.linux
+    owner: cf-platform-eng
+    repository: kibosh
+    access_token: {{github_token}}
 
-- name: kibosh-darwin
-  type: gcs-resource
+- name: version
+  type: semver
   source:
-    bucket: kibosh
-    json_key: {{gcp_service_account_key}}
-    regexp: kibosh.darwin
+    driver: git
+    uri: git@github.com:cf-platform-eng/kibosh
+    branch: version
+    file: version/version
+    initial_version: 0.0.1
+    private_key: {{github_deploy_key}}
 
 jobs:
 - name: unit-tests
@@ -34,10 +31,14 @@ jobs:
   - aggregate:
     - get: source-repo
       trigger: true
+    - get: version
+      params:
+        bump: patch
   - task: run-tests
     config:
       inputs:
       - name: source-repo
+      - name: version
       outputs:
       - name: output
       platform: linux
@@ -64,10 +65,18 @@ jobs:
           make build
           popd
 
-          cp $SRC/kibosh.* output/
-  - put: kibosh-linux
+          VERSION=`cat version/version`
+          cp $SRC/kibosh.darwin output/kibosh-${VERSION}.darwin
+          cp $SRC/kibosh.darwin output/kibosh-${VERSION}.linux
+
+  - put: version
     params:
-      file: output/kibosh.linux
-  - put: kibosh-darwin
+      file: version/version
+
+  - put: release-repo
     params:
-      file: output/kibosh.darwin
+      name: version/version
+      tag: version/version
+      globs:
+      - output/kibosh*.*
+
