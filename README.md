@@ -6,13 +6,6 @@ A generic broker bridging the gap between Kubernetes and CF brokered services.
 
 We BOSH so you don't have to!
 
-## Future Plans
-The epics we're thinking about tackling next:
-- [ ] Configurable plans
-    * Probably models as a set of pre-set default values
-- [ ] Service discovery
-    * Right now, the only option that will work is LoadBalancer. Exploring other solutions for things that cannot be internet facing
-
 #### Caution
 We're not yet API stable. Future binaries will very likely break against current configuration and chart structures.
 
