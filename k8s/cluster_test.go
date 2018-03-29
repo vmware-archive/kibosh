@@ -1,13 +1,14 @@
 package k8s_test
 
 import (
+	"net/http"
+	"net/http/httptest"
+
 	"github.com/cf-platform-eng/kibosh/config"
 	. "github.com/cf-platform-eng/kibosh/k8s"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"net/http"
-	"net/http/httptest"
 )
 
 var _ = Describe("Config", func() {

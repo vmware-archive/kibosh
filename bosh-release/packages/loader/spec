@@ -1,0 +1,7 @@
+---
+name: loader
+
+dependencies: []
+
+files:
+- loader.linux

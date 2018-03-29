@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+
+set -e
+
+LOG_DIR="/var/vcap/sys/log/load-image"
+export PATH=/var/vcap/packages/docker/bin:$PATH
+export DOCKER_HOST=unix:///var/vcap/sys/run/docker/docker.sock
+
+mkdir -p "$LOG_DIR"
+
+<% if p("registry.server", "") == "" %>
+echo "'registry.server' is not configured, errand exiting as no-op"
+exit 0
+<% end %>
+
+python << EOF
+import subprocess
+import sys
+import re
+import time
+
+match = re.search("Process 'docker'\s*running", subprocess.check_output(["/var/vcap/bosh/bin/monit", "summary"]))
+i = 0
+while not match:
+    print "looping", match
+    time.sleep(5)
+    match = re.search("Process 'docker'\s*running", subprocess.check_output(["/var/vcap/bosh/bin/monit", "summary"]))
+    i = i + 1
+    if i > 12:
+        print "Docker proccess didn't become healthy"
+        sys.exit(1)
+EOF
+
+docker login \
+    -u '<%= p("registry.username") %>' \
+    -p '<%= p("registry.password") %>' \
+    <%= p("registry.server") %> \
+    >> "$LOG_DIR/load-image.out.log" \
+    2>> "$LOG_DIR/load-image.err.log"
+
+/var/vcap/packages/loader/loader.linux \
+    <%= p("chart_path", "/var/vcap/packages/kibosh-chart") %> \
+    <%= p("registry.server", "") %> \
+    >> "$LOG_DIR/load-image.out.log" \
+    2>> "$LOG_DIR/load-image.err.log"

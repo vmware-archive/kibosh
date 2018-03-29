@@ -1,0 +1,80 @@
+---
+
+name: kibosh
+
+releases:
+  - name: kibosh
+    version: latest
+  - name: example-chart
+    version: latest
+  - name: docker
+    version: latest
+
+stemcells:
+  - alias: bosh-warden-boshlite-ubuntu-trusty-go_agent
+    os: ubuntu-trusty
+    version: latest
+
+update:
+  canaries: 1
+  max_in_flight: 10
+  canary_watch_time: 1000-30000
+  update_watch_time: 1000-30000
+
+instance_groups:
+- name: loader
+  instances: 1
+  azs: [z1]
+  lifecycle: errand
+  jobs:
+    - name: load-image
+      release: kibosh
+    - name: example-chart
+      release: example-chart
+    - name: docker
+      release: docker
+  properties:
+    chart_path: /var/vcap/packages/example-chart/example-chart
+    registry:
+      server: ((registry-server))
+      username: ((registry-user))
+      password: ((registry-pass))
+  vm_type: default
+  stemcell: bosh-warden-boshlite-ubuntu-trusty-go_agent
+  networks:
+    - name: default
+
+- name: kibosh_node
+  instances: 1
+  azs: [z1]
+  jobs:
+    - name: kibosh
+      release: kibosh
+    - name: example-chart
+      release: example-chart
+  properties:
+    kibosh:
+      username: admin
+      password: ((kibosh-password))
+      service-id: f448fdea-25b8-41aa-aed4-539d8ace5f32
+      helm-chart-dir: /var/vcap/packages/example-chart/example-chart
+      ca-data: ((k8s-cluster-ca-cert))
+      server: ((k8s-cluster-server))
+      token: ((k8s-cluster-token))
+    registry:
+      server: ((registry-server))
+      username: ((registry-user))
+      password: ((registry-pass))
+
+  vm_type: default
+  cloud_properties:
+    tags:
+      - allow-ssh
+  stemcell: bosh-warden-boshlite-ubuntu-trusty-go_agent
+  persistent_disk_type: default
+  networks:
+    - name: default
+
+variables:
+- name: kibosh-password
+  type: password

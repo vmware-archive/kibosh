@@ -117,7 +117,7 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 		broker.cluster.Patch(namespaceName, "default", types.MergePatchType, patchJson)
 	}
 
-	planName := strings.TrimPrefix(details.PlanID, details.ServiceID + "-")
+	planName := strings.TrimPrefix(details.PlanID, details.ServiceID+"-")
 	_, err = broker.myHelmClient.InstallChart(namespaceName, planName, helm.ReleaseName(namespaceName))
 	if err != nil {
 		return brokerapi.ProvisionedServiceSpec{}, err

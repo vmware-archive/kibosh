@@ -3,8 +3,8 @@ package config
 import (
 	"github.com/kelseyhightower/envconfig"
 
-	"errors"
 	"encoding/json"
+	"errors"
 )
 
 type ClusterCredentials struct {

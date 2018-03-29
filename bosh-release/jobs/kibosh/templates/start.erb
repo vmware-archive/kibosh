@@ -15,6 +15,12 @@ export CA_DATA=<%= Shellwords.escape p("kibosh.ca-data") %>
 export SERVER=<%= p("kibosh.server", "https://127.0.0.1") %>
 export TOKEN=<%= p("kibosh.token", "bXktdG9rZW4=") %>
 
+export REG_SERVER=<%= p("registry.server") %>
+export REG_USER=<%= p("registry.username") %>
+export REG_PASS='<%= p("registry.password") %>'
+# todo: we believe that email doesn't matter, but an ImagePullSecrets requires that it be specified
+export REG_EMAIL='<%= p("registry.username") %>'
+
 mkdir -p "$LOG_DIR" "$RUN_DIR"
 
 # If one of these directories is very large, chowning might take a very long time.

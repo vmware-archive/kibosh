@@ -1,0 +1,4 @@
+set -e
+
+chmod +x loader.linux
+cp loader.linux ${BOSH_INSTALL_TARGET}

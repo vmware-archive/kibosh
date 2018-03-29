@@ -23,7 +23,6 @@ var _ = Describe("Client", func() {
 		Expect(err).To(BeNil())
 	})
 
-
 	It("merge values bytres overrides", func() {
 		base := []byte(`
 foo: bar
@@ -107,7 +106,6 @@ images:
 		merged := map[string]interface{}{}
 		err = yaml.Unmarshal(mergedBytes, &merged)
 		Expect(err).To(BeNil())
-
 
 		Expect(merged).To(Equal(map[string]interface{}{
 			"images": map[string]interface{}{

@@ -8,6 +8,7 @@ templates:
 packages:
 - kibosh_pkg
 
+# todo: change names to snake case
 properties:
   kibosh.username:
     description: Basic Auth username used to connect to Kibosh broker
@@ -26,3 +27,9 @@ properties:
     default: https://127.0.0.1:8443
   kibosh.token:
     description: Token for the kubernetes cluster. Generally found in kubeconfig.
+  registry.server:
+    description: Private registry server to push images to. Optional, errand is no-op when missing
+  registry.username:
+    description: Private registry username
+  registry.password:
+    description: Private registry password

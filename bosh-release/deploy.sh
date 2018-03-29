@@ -36,9 +36,13 @@ echo "Adding blobs"
 bosh add-blob ./${TMPDIR}/go-linux-amd64.tar.gz go-linux-amd64.tar.gz
 bosh add-blob ./${TMPDIR}/go-version.txt go-version.txt
 bosh add-blob ./${TMPDIR}/kibosh_src.tgz kibosh_src.tgz
+bosh add-blob ./${TMPDIR}/loader.linux loader.linux
+
 
 bosh create-release --name=kibosh --force
 
 bosh upload-release --name=kibosh
 
-yes | bosh -d kibosh deploy manifests/manifest.yml --no-redact --vars-store=manifests/values.yml
+yes | bosh -d kibosh deploy manifests/lite-manifest.yml --no-redact --vars-store=manifests/values.yml
+
+bosh -d kibosh run-errand load-image --keep-alive

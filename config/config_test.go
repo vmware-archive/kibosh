@@ -6,8 +6,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	. "github.com/cf-platform-eng/kibosh/config"
 	"encoding/json"
+	. "github.com/cf-platform-eng/kibosh/config"
 )
 
 var _ = Describe("Config", func() {
@@ -98,7 +98,7 @@ var _ = Describe("Config", func() {
 						"https://127.0.0.1": map[string]interface{}{
 							"username": "k8s",
 							"password": "xyz789",
-							"email": "k8s@example.com",
+							"email":    "k8s@example.com",
 							//"auth": "?????? maybe....",
 						},
 					},

@@ -5,8 +5,8 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/cf-platform-eng/kibosh/k8s"
-	helmstaller "k8s.io/helm/cmd/helm/installer"
 	"github.com/ghodss/yaml"
+	helmstaller "k8s.io/helm/cmd/helm/installer"
 	"k8s.io/helm/pkg/helm"
 	"k8s.io/helm/pkg/helm/portforwarder"
 	"k8s.io/helm/pkg/kube"

@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
       - name: spacebears-db-node
-        image: {{ .Values.spacebears.image }}
+        image: {{ .Values.image }}:{{ .Values.imageTag }}
         imagePullPolicy: Always
         ports:
         - containerPort: 9000

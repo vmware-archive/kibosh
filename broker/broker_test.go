@@ -199,7 +199,7 @@ var _ = Describe("Broker", func() {
 			It("creates helm chart", func() {
 				_, err := broker.Provision(nil, "my-instance-guid", brokerapi.ProvisionDetails{
 					ServiceID: "my-service",
-					PlanID: "my-service-my-plan",
+					PlanID:    "my-service-my-plan",
 				}, true)
 
 				Expect(err).To(BeNil())

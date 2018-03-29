@@ -2,6 +2,8 @@ pks-generic-broker
 /kibosh
 kibosh.darwin
 kibosh.linux
+loader.linux
+loader.mac
 
 vendor
 
@@ -10,3 +12,6 @@ vendor
 
 charts
 local_dev.sh
+
+example-chart/images/**/*
+!example-chart/images/.gitkeep

@@ -1,6 +1,6 @@
 default: all
 
-GO_PACKAGES = $$(go list ./... | grep -v vendor)
+GO_PACKAGES = $$(go list ./... ./cmd/loader | grep -v vendor)
 GO_FILES = $$(find . -name "*.go" | grep -v vendor | uniq)
 
 linux:
@@ -10,6 +10,14 @@ mac:
 	GOOS=darwin GOARCH=amd64 go build -o kibosh.darwin ./main.go
 
 build: linux mac
+
+build-loader-linux:
+	GOOS=linux GOARCH=amd64 go build -o loader.linux ./cmd/loader/main.go
+
+build-loader-mac:
+	GOOS=darwin GOARCH=amd64 go build -o loader.mac ./cmd/loader/main.go
+
+build-loader: build-loader-linux build-loader-mac
 
 unit-test:
 	@go test ${GO_PACKAGES}
@@ -53,4 +61,4 @@ endif
 	dep ensure -v
 	scripts/setup-apimachinery.sh
 
-all: fmt test build
+all: fmt test build build-loader
