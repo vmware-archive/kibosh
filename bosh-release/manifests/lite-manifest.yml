@@ -56,9 +56,9 @@ instance_groups:
     kibosh:
       username: admin
       password: ((kibosh-password))
-      service-id: f448fdea-25b8-41aa-aed4-539d8ace5f32
-      helm-chart-dir: /var/vcap/packages/example-chart/example-chart
-      ca-data: ((k8s-cluster-ca-cert))
+      service_id: f448fdea-25b8-41aa-aed4-539d8ace5f32
+      helm_chart_dir: /var/vcap/packages/example-chart/example-chart
+      ca_data: ((k8s-cluster-ca-cert))
       server: ((k8s-cluster-server))
       token: ((k8s-cluster-token))
     registry:
