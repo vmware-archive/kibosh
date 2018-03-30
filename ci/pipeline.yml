@@ -1,4 +1,10 @@
 ---
+resource_types:
+- name: gcs-resource
+  type: docker-image
+  source:
+    repository: frodenas/gcs-resource
+
 resources:
 - name: source-repo
   type: git
@@ -25,20 +31,51 @@ resources:
     initial_version: 0.0.1
     private_key: {{github_deploy_key}}
 
+#- name: docker-bosh
+#  type: github-release
+#  source:
+#    owner: cloudfoundry-incubator
+#    repository: docker-boshrelease
+#    access_token: {{github_token}}
+- name: kibosh-release
+  type: gcs-resource
+  source:
+    bucket: kibosh
+    json_key: {{gcp_service_account_key}}
+    regexp: kibosh-release-(?P<version>.*).tgz
+
+- name: kibosh-linux
+  type: gcs-resource
+  source:
+    bucket: kibosh
+    json_key: {{gcp_service_account_key}}
+    regexp: kibosh.linux
+
+- name: kibosh-darwin
+  type: gcs-resource
+  source:
+    bucket: kibosh
+    json_key: {{gcp_service_account_key}}
+    regexp: kibosh.darwin
+
+- name: loader-linux
+  type: gcs-resource
+  source:
+    bucket: kibosh
+    json_key: {{gcp_service_account_key}}
+    regexp: loader.linux
+
+
 jobs:
 - name: unit-tests
   plan:
   - aggregate:
     - get: source-repo
       trigger: true
-    - get: version
-      params:
-        bump: patch
   - task: run-tests
     config:
       inputs:
       - name: source-repo
-      - name: version
       outputs:
       - name: output
       platform: linux
@@ -63,20 +100,120 @@ jobs:
           make bootstrap
           make test
           make build
+          make build-loader
           popd
 
-          VERSION=`cat version/version`
-          cp $SRC/kibosh.darwin output/kibosh-${VERSION}.darwin
-          cp $SRC/kibosh.darwin output/kibosh-${VERSION}.linux
 
-  - put: version
+          cp $SRC/kibosh.darwin output/kibosh.darwin
+          cp $SRC/kibosh.linux output/kibosh.linux
+          cp $SRC/loader.linux output/loader.linux
+  - put: kibosh-linux
     params:
-      file: version/version
+      file: output/kibosh.linux
+  - put: kibosh-darwin
+    params:
+      file: output/kibosh.darwin
+  - put: loader-linux
+    params:
+      file: output/loader.linux
 
+
+- name: build-boshrelease
+  plan:
+  - aggregate:
+    - get: source-repo
+      trigger: true
+      passed: [unit-tests]
+    - get: kibosh-linux
+      passed: [unit-tests]
+    - get: loader-linux
+      passed: [unit-tests]
+    - get: version
+  - task: build-release
+    config:
+      inputs:
+      - name: source-repo
+      - name: kibosh-linux
+      - name: loader-linux
+      - name: version
+      outputs:
+      - name: output
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: cfplatformeng/tile-generator
+          tag: "latest"
+      run:
+        path: bash
+        args:
+        - -exc
+        - |
+          set -ex
+
+          export VERSION=`cat version/version`
+
+          pushd source-repo/bosh-release
+
+          bosh add-blob ../../kibosh-linux/kibosh.linux kibosh.linux
+          bosh add-blob ../../loader-linux/loader.linux loader.linux
+
+          bosh create-release --name=kibosh --version=${VERSION} \
+            --tarball=kibosh-release-${VERSION}.tgz --force
+
+          popd
+          cp source-repo/bosh-release/kibosh-release-${VERSION}.tgz output/
+  - put: kibosh-release
+    params:
+      file: output/kibosh-release-*.tgz
+
+
+- name: publish-release
+  plan:
+  - aggregate:
+    - get: source-repo
+      trigger: true
+      passed: [build-boshrelease]
+    - get: kibosh-linux
+      passed: [build-boshrelease]
+    - get: kibosh-darwin
+      passed: [unit-tests]
+    - get: kibosh-release
+      passed: [build-boshrelease]
+    - get: version
+      passed: [build-boshrelease]
+  - task: publish-release
+    config:
+      inputs:
+      - name: source-repo
+      - name: kibosh-linux
+      - name: kibosh-darwin
+      - name: kibosh-release
+      - name: version
+      outputs:
+      - name: output
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: cfplatformeng/tile-generator
+          tag: "latest"
+      run:
+        path: bash
+        args:
+        - -exc
+        - |
+          export VERSION=`cat version/version`
+
+          mv kibosh-linux/kibosh.linux output/kibosh-${VERSION}.linux
+          mv kibosh-darwin/kibosh.darwin output/kibosh-${VERSION}.darwin
+          mv kibosh-release/kibosh*.tgz output/
   - put: release-repo
     params:
       name: version/version
       tag: version/version
       globs:
       - output/kibosh*.*
-
+  - put: version
+    params:
+      bump: patch
