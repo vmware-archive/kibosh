@@ -15,12 +15,12 @@ properties:
     default: admin
   kibosh.password:
     description: Basic Auth password used to connect to Kibosh broker
-  kibosh.service-id:
+  kibosh.service_id:
     description: Unique id for service instance, generally provided by cf create-service
-  kibosh.helm-chart-dir:
+  kibosh.helm_chart_dir:
     description: Location of the helm chart kibosh will deploy
     default: charts
-  kibosh.ca-data:
+  kibosh.ca_data:
     description: Certificate for the kubernetes cluster. Generally found in kubeconfig.
   kibosh.server:
     description: Url to the kubernetes cluster. Generally found in kubeconfig.

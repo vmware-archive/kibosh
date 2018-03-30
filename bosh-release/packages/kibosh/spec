@@ -1,8 +1,7 @@
 ---
 name: kibosh_pkg
 
-dependencies:
-- golang
+dependencies: []
 
 files:
-- kibosh_src.tgz
+- kibosh.linux

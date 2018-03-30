@@ -33,6 +33,6 @@ chown -R vcap:vcap "$LOG_DIR" "$RUN_DIR"
   --make-pidfile \
   --chuid vcap:vcap \
   --start \
-  --exec /var/vcap/packages/kibosh_pkg/kibosh \
+  --exec /var/vcap/packages/kibosh_pkg/kibosh.linux \
    >> "$LOG_DIR/kibosh.out.log" \
   2>> "$LOG_DIR/kibosh.err.log"
