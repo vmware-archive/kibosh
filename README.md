@@ -1,10 +1,6 @@
 # Kibosh
 
-A generic broker bridging the gap between Kubernetes and CF brokered services.
-
-![](docs/kibosh_logo.png)
-
-We BOSH so you don't have to!
+A generic broker bridging the gap between Kubernetes and CF brokered services (we BOSH so you don't have to).
 
 ## Charts
 
