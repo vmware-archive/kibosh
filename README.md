@@ -1,6 +1,7 @@
 # Kibosh
 
 A generic broker bridging the gap between Kubernetes and CF brokered services (we BOSH so you don't have to).
+We are still in early development, but do plan to provide migration for partners working directly with us.
 
 ## Charts
 
@@ -45,6 +46,16 @@ the image is already present (see the Kibosh deployment). It will patch
 the default service account in the instance namespaces to add in the registry credentials.
 
 Be sure that `REG_SERVER` contains any required path information. For example, in gcp `gcr.io/my-project-name`
+
+## Contributing to Kibosh
+
+We welcome comments, questions, and contributions from community members. Please consider
+the following ways to contribute:
+
+* File Github issues for questions, bugs and new features and comment and vote on the ones that you are interested in.
+* If you want to contribute code, please make your code changes on a fork of this repository and submit a
+pull request to the master branch of Kibosh. We strongly suggest that you first file an issue to
+let us know of your intent, or comment on the issue you are planning to address.
 
 ## Dev
 #### Setup
