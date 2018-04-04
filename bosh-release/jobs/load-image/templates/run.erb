@@ -8,10 +8,7 @@ export DOCKER_HOST=unix:///var/vcap/sys/run/docker/docker.sock
 
 mkdir -p "$LOG_DIR"
 
-<% if p("registry.server", "") == "" %>
-echo "'registry.server' is not configured, errand exiting as no-op"
-exit 0
-<% end %>
+<% if p("registry.server", "") != "" %>
 
 python << EOF
 import subprocess
@@ -43,3 +40,5 @@ docker login \
     <%= p("registry.server", "") %> \
     >> "$LOG_DIR/load-image.out.log" \
     2>> "$LOG_DIR/load-image.err.log"
+
+<% end %>

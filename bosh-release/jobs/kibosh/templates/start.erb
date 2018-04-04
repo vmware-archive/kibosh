@@ -15,11 +15,14 @@ export CA_DATA=<%= Shellwords.escape p("kibosh.ca_data") %>
 export SERVER=<%= p("kibosh.server", "https://127.0.0.1") %>
 export TOKEN=<%= p("kibosh.token", "bXktdG9rZW4=") %>
 
+<% if p("registry.server", "") != "" %>
+echo "'registry.server' is not configured, errand exiting as no-op"
 export REG_SERVER=<%= p("registry.server") %>
 export REG_USER=<%= p("registry.username") %>
 export REG_PASS='<%= p("registry.password") %>'
-# todo: we believe that email doesn't matter, but an ImagePullSecrets requires that it be specified
 export REG_EMAIL='<%= p("registry.username") %>'
+<% end %>
+
 
 mkdir -p "$LOG_DIR" "$RUN_DIR"
 
