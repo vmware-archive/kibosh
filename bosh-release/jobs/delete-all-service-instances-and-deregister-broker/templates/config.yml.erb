@@ -1,0 +1,13 @@
+---
+polling_interval: <%=p("polling_interval_seconds") %>
+polling_initial_offset: <%=p("polling_initial_offset_seconds") %>
+disable_ssl_cert_verification: <%=p("disable_ssl_cert_verification") %>
+service_catalog:
+  id: <%= link("kibosh_broker").p("kibosh.service_name") %>
+cf:
+  url: <%=p(cf.api_url) %>
+  authentication:
+    uaa:
+      user_credentials:
+        username: <%=p(cf.admin_username) %>
+        password: <%=p(cf.admin_password) %>

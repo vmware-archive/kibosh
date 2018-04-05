@@ -33,6 +33,7 @@ echo "Adding blobs"
 bosh add-blob ./${TMPDIR}/kibosh.linux kibosh.linux
 bosh add-blob ./${TMPDIR}/loader.linux loader.linux
 bosh add-blob ${cf_cli_pkg_path} cf-cli.tgz
+bosh add-blob ./${TMPDIR}/delete_all_and_deregister.linux delete_all_and_deregister.linux
 
 bosh create-release --name=kibosh --force
 
