@@ -15,8 +15,16 @@ properties:
     default: admin
   kibosh.password:
     description: Basic Auth password used to connect to Kibosh broker
+  kibosh.port:
+    description: Port to connect to Kibosh broker
+    default: 8080
   kibosh.service_id:
-    description: Unique id for service instance, generally provided by cf create-service
+    description: Unique id for service, generated guid
+  kibosh.service_name:
+    description: A CLI-friendly name of the service.
+      MUST only contain lowercase alphanumeric characters, periods, and hyphens (no spaces).
+      MUST be unique across all service objects returned in this response.
+      MUST be a non-empty string.
   kibosh.helm_chart_dir:
     description: Location of the helm chart kibosh will deploy
     default: charts
@@ -33,3 +41,13 @@ properties:
     description: Private registry username
   registry.password:
     description: Private registry password
+
+provides:
+- name: kibosh_broker
+  type: kibosh_broker
+  properties:
+  - kibosh.port
+  - kibosh.username
+  - kibosh.password
+  - kibosh.service_name
+

@@ -59,7 +59,7 @@ var _ = Describe("Broker", func() {
 
 	Context("catalog", func() {
 		It("Provides a catalog with correct service", func() {
-			serviceBroker := NewPksServiceBroker("service-id", registryConfig, nil, nil, myChart, logger)
+			serviceBroker := NewPksServiceBroker("service-id", "spacebears", registryConfig, nil, nil, myChart, logger)
 			serviceCatalog := serviceBroker.Services(nil)
 
 			Expect(len(serviceCatalog)).To(Equal(1))
@@ -70,7 +70,7 @@ var _ = Describe("Broker", func() {
 		})
 
 		It("Provides a catalog with correct plans", func() {
-			serviceBroker := NewPksServiceBroker("service-id", registryConfig, nil, nil, myChart, logger)
+			serviceBroker := NewPksServiceBroker("service-id", "spacebears", registryConfig, nil, nil, myChart, logger)
 			serviceCatalog := serviceBroker.Services(nil)
 
 			expectedPlans := []brokerapi.ServicePlan{
@@ -99,7 +99,7 @@ var _ = Describe("Broker", func() {
 			fakeMyHelmClient = &helmfakes.FakeMyHelmClient{}
 			fakeCluster = &k8sfakes.FakeCluster{}
 
-			broker = NewPksServiceBroker("service-id", registryConfig, fakeCluster, fakeMyHelmClient, myChart, logger)
+			broker = NewPksServiceBroker("service-id", "spacebears", registryConfig, fakeCluster, fakeMyHelmClient, myChart, logger)
 		})
 
 		It("requires async", func() {
@@ -162,7 +162,7 @@ var _ = Describe("Broker", func() {
 
 			It("doesn't mess with secrets when not configured", func() {
 				registryConfig = &config.RegistryConfig{}
-				broker = NewPksServiceBroker("service-id", registryConfig, fakeCluster, fakeMyHelmClient, myChart, logger)
+				broker = NewPksServiceBroker("service-id", "spacebears", registryConfig, fakeCluster, fakeMyHelmClient, myChart, logger)
 
 				_, err := broker.Provision(nil, "my-instance-guid", brokerapi.ProvisionDetails{}, true)
 
@@ -232,7 +232,7 @@ var _ = Describe("Broker", func() {
 			fakeMyHelmClient = &helmfakes.FakeMyHelmClient{}
 			fakeCluster = &k8sfakes.FakeCluster{}
 
-			broker = NewPksServiceBroker("service-id", registryConfig, fakeCluster, fakeMyHelmClient, myChart, logger)
+			broker = NewPksServiceBroker("service-id", "spacebears", registryConfig, fakeCluster, fakeMyHelmClient, myChart, logger)
 
 			serviceList := api_v1.ServiceList{
 				Items: []api_v1.Service{
@@ -431,7 +431,7 @@ var _ = Describe("Broker", func() {
 			fakeMyHelmClient = &helmfakes.FakeMyHelmClient{}
 			fakeCluster = &k8sfakes.FakeCluster{}
 
-			broker = NewPksServiceBroker("service-id", registryConfig, fakeCluster, fakeMyHelmClient, myChart, logger)
+			broker = NewPksServiceBroker("service-id", "spacebears", registryConfig, fakeCluster, fakeMyHelmClient, myChart, logger)
 		})
 
 		It("bind returns cluster secrets", func() {
@@ -577,7 +577,7 @@ var _ = Describe("Broker", func() {
 			fakeMyHelmClient = &helmfakes.FakeMyHelmClient{}
 			fakeCluster = &k8sfakes.FakeCluster{}
 
-			broker = NewPksServiceBroker("service-id", registryConfig, fakeCluster, fakeMyHelmClient, myChart, logger)
+			broker = NewPksServiceBroker("service-id", "spacebears", registryConfig, fakeCluster, fakeMyHelmClient, myChart, logger)
 		})
 
 		It("bubbles up delete chart errors", func() {

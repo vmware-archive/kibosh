@@ -24,6 +24,7 @@ const registrySecretName = "registry-secret"
 type PksServiceBroker struct {
 	Logger         lager.Logger
 	ServiceID      string
+	ServiceName    string
 	registryConfig *config.RegistryConfig
 
 	cluster      k8s.Cluster
@@ -31,10 +32,11 @@ type PksServiceBroker struct {
 	myChart      *my_helm.MyChart
 }
 
-func NewPksServiceBroker(serviceID string, registryConfig *config.RegistryConfig, cluster k8s.Cluster, myHelmClient my_helm.MyHelmClient, myChart *my_helm.MyChart, logger lager.Logger) *PksServiceBroker {
+func NewPksServiceBroker(serviceID string, serviceName string, registryConfig *config.RegistryConfig, cluster k8s.Cluster, myHelmClient my_helm.MyHelmClient, myChart *my_helm.MyChart, logger lager.Logger) *PksServiceBroker {
 	return &PksServiceBroker{
 		Logger:         logger,
 		ServiceID:      serviceID,
+		ServiceName:    serviceName,
 		registryConfig: registryConfig,
 
 		cluster:      cluster,
@@ -59,7 +61,7 @@ func (broker *PksServiceBroker) Services(ctx context.Context) []brokerapi.Servic
 
 	serviceCatalog := []brokerapi.Service{{
 		ID:          broker.ServiceID,
-		Name:        broker.myChart.Metadata.Name,
+		Name:        broker.ServiceName,
 		Description: broker.myChart.Metadata.Description,
 		Bindable:    true,
 

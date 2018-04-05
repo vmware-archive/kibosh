@@ -44,6 +44,25 @@ instance_groups:
   networks:
     - name: default
 
+- name: registrar
+  instances: 1
+  azs: [z1]
+  lifecycle: errand
+  jobs:
+    - name: register-broker
+      release: kibosh
+  properties:
+    broker_name: spacebears-broker
+    disable_ssl_cert_verification: true
+    cf:
+      api_url: https://api.local.pcfdev.io
+      admin_username: admin
+      admin_password: admin
+  vm_type: default
+  stemcell: bosh-warden-boshlite-ubuntu-trusty-go_agent
+  networks:
+    - name: default
+
 - name: kibosh_node
   instances: 1
   azs: [z1]
@@ -57,6 +76,7 @@ instance_groups:
       username: admin
       password: ((kibosh-password))
       service_id: f448fdea-25b8-41aa-aed4-539d8ace5f32
+      service_name: spacebears
       helm_chart_dir: /var/vcap/packages/example-chart/example-chart
       ca_data: ((k8s-cluster-ca-cert))
       server: ((k8s-cluster-server))
