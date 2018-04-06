@@ -49,5 +49,5 @@ provides:
   - kibosh.port
   - kibosh.username
   - kibosh.password
+  - kibosh.service_id
   - kibosh.service_name
-

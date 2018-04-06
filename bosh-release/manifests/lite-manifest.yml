@@ -100,13 +100,14 @@ instance_groups:
   azs: [z1]
   lifecycle: errand
   jobs:
-    - name: delete-all-service-instances-and-deregister-broker
+    - name: delete-all-and-deregister
       release: kibosh
   properties:
     broker_name: spacebears-broker
     disable_ssl_cert_verification: true
     cf:
       api_url: https://api.local.pcfdev.io
+      uaa_url: https://uaa.local.pcfdev.io
       admin_username: admin
       admin_password: admin
   vm_type: default
