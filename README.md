@@ -59,7 +59,6 @@ let us know of your intent, or comment on the issue you are planning to address.
 
 ## Dev
 #### Setup
-Grab a newish version of Go (we used 1.9) 
 
 Install Go depenencies
 ```bash
