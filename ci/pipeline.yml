@@ -14,6 +14,16 @@ resources:
     username: cf-pe-bot
     password: {{github_token}}
 
+# reminder: how do we auto-consume production releases?
+# they're releases alpha tags, which we don't want to consume
+- name: on-demand-service-broker
+  type: git
+  source:
+    branch: v0.20.0
+    uri: https://github.com/pivotal-cf/on-demand-service-broker
+    username: cf-pe-bot
+    password: {{github_token}}
+
 - name: release-repo
   type: github-release
   source:
@@ -65,8 +75,54 @@ resources:
     json_key: {{gcp_service_account_key}}
     regexp: loader.linux
 
+- name: delete-all-and-deregister
+  type: gcs-resource
+  source:
+    bucket: kibosh
+    json_key: {{gcp_service_account_key}}
+    regexp: delete_all_and_deregister.linux
 
 jobs:
+- name: build-delete-all-and-deregister
+  plan:
+  - aggregate:
+    - get: on-demand-service-broker
+      trigger: true
+  - task: build-binary
+    config:
+      inputs:
+      - name: on-demand-service-broker
+      outputs:
+      - name: output
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: golang
+          tag: "1.10"
+      run:
+        path: bash
+        args:
+        - -exc
+        - |
+          set -ex
+
+          export SRC=/go/src/github.com/pivotal-cf/on-demand-service-broker
+          mkdir -p $SRC
+          cp -r on-demand-service-broker/* $SRC
+
+          pushd $SRC
+          GOOS=linux GOARCH=amd64 go build \
+              -o delete_all_and_deregister.linux \
+              cmd/delete-all-service-instances-and-deregister-broker/delete_all_service_instances_and_deregister_broker.go
+          popd
+
+          cp $SRC/delete_all_and_deregister.linux output/delete_all_and_deregister.linux
+  - put: delete-all-and-deregister
+    params:
+      file: output/delete_all_and_deregister.linux
+
+
 - name: unit-tests
   plan:
   - aggregate:
@@ -83,7 +139,7 @@ jobs:
         type: docker-image
         source:
           repository: golang
-          tag: "1.9"
+          tag: "1.10"
       run:
         path: bash
         args:
@@ -128,6 +184,8 @@ jobs:
       passed: [unit-tests]
     - get: loader-linux
       passed: [unit-tests]
+    - get: delete-all-and-deregister
+      passed: [build-delete-all-and-deregister]
     - get: version
   - task: build-release
     config:
@@ -135,6 +193,7 @@ jobs:
       - name: source-repo
       - name: kibosh-linux
       - name: loader-linux
+      - name: delete-all-and-deregister
       - name: version
       outputs:
       - name: output
@@ -157,6 +216,7 @@ jobs:
 
           bosh add-blob ../../kibosh-linux/kibosh.linux kibosh.linux
           bosh add-blob ../../loader-linux/loader.linux loader.linux
+          bosh add-blob ../../delete-all-and-deregister/delete_all_and_deregister.linux delete_all_and_deregister.linux
 
           bosh create-release --name=kibosh --version=${VERSION} \
             --tarball=kibosh-release-${VERSION}.tgz --force
