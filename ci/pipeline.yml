@@ -10,6 +10,7 @@ resources:
   type: git
   source:
     branch: master
+    ignore_paths: ci
     uri: https://github.com/cf-platform-eng/kibosh
     username: cf-pe-bot
     password: {{github_token}}
@@ -41,12 +42,6 @@ resources:
     initial_version: 0.0.1
     private_key: {{github_deploy_key}}
 
-#- name: docker-bosh
-#  type: github-release
-#  source:
-#    owner: cloudfoundry-incubator
-#    repository: docker-boshrelease
-#    access_token: {{github_token}}
 - name: kibosh-release
   type: gcs-resource
   source:
@@ -82,7 +77,55 @@ resources:
     json_key: {{gcp_service_account_key}}
     regexp: delete_all_and_deregister.linux
 
+- name: cf-cli-release
+  type: github-release
+  source:
+    owner: cloudfoundry
+    repository: cli
+    access_token: {{github_token}}
+
+- name: cf-cli-binary
+  type: gcs-resource
+  source:
+    bucket: kibosh
+    json_key: {{gcp_service_account_key}}
+    regexp: cf-cli.tgz
+
 jobs:
+- name: store-cli
+  plan:
+  - aggregate:
+    - get: cf-cli-release
+      trigger: true
+  - task: do-store-cli
+    config:
+      inputs:
+      - name: cf-cli-release
+      outputs:
+      - name: output
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: golang
+          tag: "1.10"
+      run:
+        path: bash
+        args:
+        - -exc
+        - |
+          set -ex
+
+          pushd cf-cli-release
+          wget "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=$(cat version)" -O cf-cli.tgz
+          popd
+
+          mv cf-cli-release/cf-cli.tgz output
+  - put: cf-cli-binary
+    params:
+      file: output/cf-cli.tgz
+
+
 - name: build-delete-all-and-deregister
   plan:
   - aggregate:
@@ -186,6 +229,7 @@ jobs:
       passed: [unit-tests]
     - get: delete-all-and-deregister
       passed: [build-delete-all-and-deregister]
+    - get: cf-cli-binary
     - get: version
   - task: build-release
     config:
@@ -194,6 +238,7 @@ jobs:
       - name: kibosh-linux
       - name: loader-linux
       - name: delete-all-and-deregister
+      - name: cf-cli-binary
       - name: version
       outputs:
       - name: output
@@ -217,6 +262,7 @@ jobs:
           bosh add-blob ../../kibosh-linux/kibosh.linux kibosh.linux
           bosh add-blob ../../loader-linux/loader.linux loader.linux
           bosh add-blob ../../delete-all-and-deregister/delete_all_and_deregister.linux delete_all_and_deregister.linux
+          bosh add-blob ../../cf-cli-binary/cf-cli.tgz cf-cli.tgz
 
           bosh create-release --name=kibosh --version=${VERSION} \
             --tarball=kibosh-release-${VERSION}.tgz --force
