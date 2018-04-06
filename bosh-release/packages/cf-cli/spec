@@ -1,0 +1,7 @@
+---
+name: cf-cli
+
+dependencies: []
+
+files:
+- cf-cli.tgz
