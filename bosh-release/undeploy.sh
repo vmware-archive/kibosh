@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -ex
 
+yes | bosh -d kibosh run-errand deregistrar
 yes | bosh -d kibosh delete-deployment
 yes | bosh delete-release kibosh
 
