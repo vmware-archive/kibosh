@@ -10,7 +10,8 @@ resources:
   type: git
   source:
     branch: master
-    ignore_paths: ci
+    ignore_paths:
+    - ci/*
     uri: https://github.com/cf-platform-eng/kibosh
     username: cf-pe-bot
     password: {{github_token}}
