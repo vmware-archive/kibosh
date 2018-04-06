@@ -1,12 +1,15 @@
 package helm_test
 
 import (
+	"os"
+	"io/ioutil"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	. "github.com/cf-platform-eng/kibosh/helm"
 	"github.com/ghodss/yaml"
-	"io/ioutil"
+
+	. "github.com/cf-platform-eng/kibosh/helm"
 )
 
 var _ = Describe("Client", func() {
@@ -21,6 +24,10 @@ var _ = Describe("Client", func() {
 		var err error
 		chartPath, err = ioutil.TempDir("", "chart-")
 		Expect(err).To(BeNil())
+	})
+
+	BeforeEach(func() {
+		os.RemoveAll(chartPath)
 	})
 
 	It("merge values bytres overrides", func() {
