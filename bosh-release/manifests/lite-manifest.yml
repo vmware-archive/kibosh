@@ -11,7 +11,7 @@ releases:
     version: latest
 
 stemcells:
-  - alias: bosh-warden-boshlite-ubuntu-trusty-go_agent
+  - alias: ((stemcell))
     os: ubuntu-trusty
     version: latest
 
