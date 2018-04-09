@@ -1,8 +1,0 @@
----
-name: kibosh_pkg
-
-dependencies:
-- golang
-
-files:
-- kibosh_src.tgz

@@ -1,6 +1,0 @@
-k8s-cluster-ca-cert: |
-  -----BEGIN CERTIFICATE-----
-  put certificate here
-  -----END CERTIFICATE-----
-k8s-cluster-server: https://ip:8443
-k8s-cluster-token: token goes here
