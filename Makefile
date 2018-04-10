@@ -62,3 +62,4 @@ endif
 	scripts/setup-apimachinery.sh
 
 all: fmt test build build-loader
+

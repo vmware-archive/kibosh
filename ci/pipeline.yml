@@ -12,6 +12,7 @@ resources:
     branch: master
     ignore_paths:
     - ci/*
+    - README.md
     uri: https://github.com/cf-platform-eng/kibosh
     username: cf-pe-bot
     password: {{github_token}}
@@ -92,7 +93,88 @@ resources:
     json_key: {{gcp_service_account_key}}
     regexp: cf-cli.tgz
 
+- name: cf-deployment-concourse-tasks
+  type: git
+  source:
+    branch: master
+    tag_filter: v6.*
+    uri: https://github.com/cloudfoundry/cf-deployment-concourse-tasks.git
+
+- name: lite-stemcell
+  type: bosh-io-stemcell
+  source:
+    name: bosh-google-kvm-ubuntu-trusty-go_agent
+
+- name: kibosh-ci-state
+  type: git
+  source:
+    branch: master
+    uri: git@github.com:cf-platform-eng/kibosh-ci-state
+    private_key: {{github_state_repo_deploy_key}}
+
+- name: spacebears-image
+  type: docker-image
+  source:
+    repository: cfplatformeng/spacebears
+
+- name: cf-deployment-concourse-tasks-docker
+  type: docker-image
+  source:
+    tag: v5.8.0
+    repository: relintdockerhubpushbot/cf-deployment-concourse-tasks
+
+- name: docker-bosh-release
+  type: github-release
+  source:
+    owner: cloudfoundry-incubator
+    repository: docker-boshrelease
+    access_token: {{github_token}}
+    globs:
+    - docker-*.tgz
+
 jobs:
+- name: setup-infrastructure-lite
+  plan:
+  - aggregate:
+    - get: kibosh-ci-state
+    - get: cf-deployment-concourse-tasks
+  - task: setup-infrastructure
+    file: cf-deployment-concourse-tasks/bbl-up/task.yml
+    params:
+      BBL_IAAS: gcp
+      BBL_GCP_SERVICE_ACCOUNT_KEY: {{gcp_service_account_key}}
+      BBL_GCP_REGION: us-central1
+      BBL_GCP_ZONE: us-central1-a
+      SKIP_LB_CREATION: true
+    input_mapping:
+      bbl-state: kibosh-ci-state
+      bbl-config: kibosh-ci-state
+    ensure:
+      put: kibosh-ci-state
+      params:
+        repository: updated-bbl-state
+        rebase: true
+
+
+- name: teardown-infrastructure-lite
+  plan:
+  - aggregate:
+    - get: kibosh-ci-state
+      passed: [setup-infrastructure-lite]
+    - get: cf-deployment-concourse-tasks
+  - task: setup-infrastructure
+    file: cf-deployment-concourse-tasks/bbl-destroy/task.yml
+    params:
+      BBL_GCP_SERVICE_ACCOUNT_KEY: {{gcp_service_account_key}}
+    input_mapping:
+      bbl-state: kibosh-ci-state
+    ensure:
+      put: kibosh-ci-state
+      params:
+        repository: updated-bbl-state
+        rebase: true
+
+
 - name: store-cli
   plan:
   - aggregate:
@@ -217,7 +299,6 @@ jobs:
     params:
       file: output/loader.linux
 
-
 - name: build-boshrelease
   plan:
   - aggregate:
@@ -274,19 +355,156 @@ jobs:
     params:
       file: output/kibosh-release-*.tgz
 
+- name: upload-stemcell-and-release
+  plan:
+  - aggregate:
+    - get: kibosh-ci-state
+      passed: [setup-infrastructure-lite]
+    - get: lite-stemcell
+    - get: cf-deployment-concourse-tasks-docker
+    - get: docker-bosh-release
+    - get: source-repo
+      passed: [build-boshrelease]
+      trigger: true
+    - get: kibosh-release
+      passed: [build-boshrelease]
+    - get: spacebears-image
+      params:
+        save: true
+  - task: do-upload
+    image: cf-deployment-concourse-tasks-docker
+    config:
+      platform: linux
+      inputs:
+      - name: kibosh-ci-state
+      - name: lite-stemcell
+      - name: docker-bosh-release
+      - name: source-repo
+      - name: kibosh-release
+      - name: spacebears-image
+      run:
+        path: bash
+        args:
+        - -exc
+        - |
+          pushd kibosh-ci-state/bbl-state
+          set +x
+          bbl print-env > /tmp/env.sh
+          source /tmp/env.sh
+          set -x
+          popd
+
+          bosh upload-release docker-bosh-release/docker-*.tgz
+          bosh upload-stemcell lite-stemcell/stemcell.tgz
+          bosh upload-release kibosh-release/kibosh-release*
+
+          mkdir source-repo/example-chart-bosh-release/images
+          mv spacebears-image/image source-repo/example-chart-bosh-release/images/spacebears.tgz
+
+          pushd source-repo/example-chart-bosh-release
+          ./deploy.sh
+          popd
+
+- name: deploy
+  plan:
+  - aggregate:
+    - get: kibosh-ci-state
+    - get: cf-deployment-concourse-tasks-docker
+    - get: source-repo
+      passed: [upload-stemcell-and-release]
+      trigger: true
+    - get: kibosh-release
+      passed: [upload-stemcell-and-release]
+  - task: do-deploy
+    image: cf-deployment-concourse-tasks-docker
+    config:
+      platform: linux
+      inputs:
+      - name: kibosh-ci-state
+      - name: source-repo
+      run:
+        path: bash
+        args:
+        - -exc
+        - |
+          pushd kibosh-ci-state/bbl-state
+          set +x
+          bbl print-env > /tmp/env.sh
+          source /tmp/env.sh
+          set -x
+          popd
+
+          pushd source-repo
+
+          echo '
+          stemcell: bosh-google-kvm-ubuntu-trusty-go_agent
+          kibosh-password: {{deployment_broker_password}}
+          k8s-cluster-ca-cert: {{deployment_cluster_ca_cert}}
+          k8s-cluster-server: {{deployment_k8s_cluster_server}}
+          k8s-cluster-token: {{deployment_cluster_token}}
+          registry-server: {{deployment_registry_server}}
+          registry-user: {{deployment_registry_user}}
+          registry-pass: {{deployment_registry_pass}}
+          ' > values.yml
+
+          yes | bosh -d kibosh deploy bosh-release/manifests/lite-manifest.yml --no-redact --vars-store=values.yml
+          popd
+
+- name: push-image-errand
+  plan:
+  - aggregate:
+    - get: kibosh-ci-state
+    - get: cf-deployment-concourse-tasks-docker
+    - get: source-repo
+      passed: [deploy]
+      trigger: true
+    - get: kibosh-release
+      passed: [deploy]
+  - task: run-errand
+    image: cf-deployment-concourse-tasks-docker
+    config:
+      platform: linux
+      inputs:
+      - name: kibosh-ci-state
+      - name: source-repo
+      run:
+        path: bash
+        args:
+        - -exc
+        - |
+          pushd kibosh-ci-state/bbl-state
+          set +x
+          bbl print-env > /tmp/env.sh
+          source /tmp/env.sh
+          set -x
+          popd
+
+          pushd source-repo
+
+          echo '
+          stemcell: bosh-google-kvm-ubuntu-trusty-go_agent
+          kibosh-password: {{deployment_broker_password}}
+          k8s-cluster-ca-cert: {{deployment_cluster_ca_cert}}
+          k8s-cluster-server: {{deployment_k8s_cluster_server}}
+          k8s-cluster-token: {{deployment_cluster_token}}
+          registry-server: {{deployment_registry_server}}
+          registry-user: {{deployment_registry_user}}
+          registry-pass: {{deployment_registry_pass}}
+          ' > values.yml
+
+          yes | bosh -d kibosh run-errand loader
+          popd
 
 - name: publish-release
   plan:
   - aggregate:
     - get: source-repo
       trigger: true
-      passed: [build-boshrelease]
+      passed: [push-image-errand]
     - get: kibosh-linux
-      passed: [build-boshrelease]
     - get: kibosh-darwin
-      passed: [unit-tests]
     - get: kibosh-release
-      passed: [build-boshrelease]
+      passed: [push-image-errand]
     - get: version
       passed: [build-boshrelease]
   - task: publish-release
@@ -324,3 +542,40 @@ jobs:
   - put: version
     params:
       bump: patch
+
+- name: delete-deployment
+  plan:
+  - aggregate:
+    - get: kibosh-ci-state
+    - get: cf-deployment-concourse-tasks
+    - get: kibosh-release
+      passed: [push-image-errand]
+    - get: source-repo
+      passed: [push-image-errand]
+      trigger: true
+  - task: do-delete
+    file: cf-deployment-concourse-tasks/bosh-delete-deployment/task.yml
+    params:
+      DEPLOYMENT_NAME: kibosh
+    input_mapping:
+      bbl-state: kibosh-ci-state
+
+- name: clean-up
+  plan:
+  - aggregate:
+    - get: kibosh-ci-state
+    - get: cf-deployment-concourse-tasks
+    - get: kibosh-release
+      passed: [delete-deployment]
+    - get: source-repo
+      passed: [delete-deployment]
+      trigger: true
+  - task: do-clean-up
+    file: cf-deployment-concourse-tasks/bosh-cleanup/task.yml
+    params:
+      CLEAN_ALL: true
+    input_mapping:
+      bbl-state: kibosh-ci-state
+
+
+
