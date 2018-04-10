@@ -40,7 +40,7 @@ instance_groups:
       username: ((registry-user))
       password: ((registry-pass))
   vm_type: default
-  stemcell: bosh-warden-boshlite-ubuntu-trusty-go_agent
+  stemcell: ((stemcell))
   networks:
     - name: default
 
@@ -59,7 +59,7 @@ instance_groups:
       admin_username: admin
       admin_password: admin
   vm_type: default
-  stemcell: bosh-warden-boshlite-ubuntu-trusty-go_agent
+  stemcell: ((stemcell))
   networks:
     - name: default
 
@@ -90,7 +90,7 @@ instance_groups:
   cloud_properties:
     tags:
       - allow-ssh
-  stemcell: bosh-warden-boshlite-ubuntu-trusty-go_agent
+  stemcell: ((stemcell))
   persistent_disk_type: default
   networks:
     - name: default
@@ -111,7 +111,7 @@ instance_groups:
       admin_username: admin
       admin_password: admin
   vm_type: default
-  stemcell: bosh-warden-boshlite-ubuntu-trusty-go_agent
+  stemcell: ((stemcell))
   networks:
     - name: default
 
