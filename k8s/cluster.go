@@ -34,7 +34,7 @@ type Cluster interface {
 
 	CreateNamespace(*api_v1.Namespace) (*api_v1.Namespace, error)
 	DeleteNamespace(name string, options *meta_v1.DeleteOptions) error
-	ListPods() (*api_v1.PodList, error)
+	ListPods(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.PodList, error)
 	GetDeployment(string, string, meta_v1.GetOptions) (*v1_beta1.Deployment, error)
 	ListServiceAccounts(string, meta_v1.ListOptions) (*api_v1.ServiceAccountList, error)
 	CreateServiceAccount(string, *api_v1.ServiceAccount) (*api_v1.ServiceAccount, error)
@@ -98,9 +98,8 @@ func (cluster *cluster) DeleteNamespace(name string, options *meta_v1.DeleteOpti
 	return cluster.GetClient().CoreV1().Namespaces().Delete(name, options)
 }
 
-func (cluster *cluster) ListPods() (*api_v1.PodList, error) {
-	//todo: ListPods is just to validate that API working, delete as appropriate
-	pods, err := cluster.client.CoreV1().Pods("").List(meta_v1.ListOptions{})
+func (cluster *cluster) ListPods(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.PodList, error) {
+	pods, err := cluster.client.CoreV1().Pods(nameSpace).List(listOptions)
 	if err != nil {
 		return nil, err
 	}

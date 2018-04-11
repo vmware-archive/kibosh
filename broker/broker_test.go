@@ -268,6 +268,11 @@ var _ = Describe("Broker", func() {
 				},
 			}
 			fakeCluster.ListServicesReturns(&serviceList, nil)
+			podList := api_v1.PodList{
+				Items: []api_v1.Pod{},
+			}
+			fakeCluster.ListPodsReturns(&podList, nil)
+
 		})
 
 		It("elevates error from helm", func() {
@@ -418,6 +423,58 @@ var _ = Describe("Broker", func() {
 			Expect(err).To(BeNil())
 			Expect(resp.Description).To(ContainSubstring("progress"))
 			Expect(resp.State).To(Equal(brokerapi.InProgress))
+		})
+
+		It("waits until pods are running", func() {
+			fakeMyHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
+				Info: &hapi_release.Info{
+					Status: &hapi_release.Status{
+						Code: hapi_release.Status_DEPLOYED,
+					},
+				},
+			}, nil)
+
+			podList := api_v1.PodList{
+				Items: []api_v1.Pod{
+					{
+						ObjectMeta: meta_v1.ObjectMeta{Name: "pod1"},
+						Spec:       api_v1.PodSpec{},
+						Status: api_v1.PodStatus{
+							Phase: "Pending",
+							Conditions: []api_v1.PodCondition{
+								{
+									Status:  "False",
+									Type:    "PodScheduled",
+									Reason:  "Unschedulable",
+									Message: "0/1 nodes are available: 1 Insufficient memory",
+								},
+							},
+						},
+					},
+				},
+			}
+			fakeCluster.ListPodsReturns(&podList, nil)
+
+			resp, err := broker.LastOperation(nil, "my-instance-guid", "provision")
+
+			Expect(err).To(BeNil())
+			Expect(resp.State).To(Equal(brokerapi.InProgress))
+			Expect(resp.Description).To(ContainSubstring("0/1 nodes are available: 1 Insufficient memory"))
+		})
+
+		It("returns error when unable to list pods", func() {
+			fakeMyHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
+				Info: &hapi_release.Info{
+					Status: &hapi_release.Status{
+						Code: hapi_release.Status_DEPLOYED,
+					},
+				},
+			}, nil)
+
+			fakeCluster.ListPodsReturns(nil, errors.New("nope"))
+
+			_, err := broker.LastOperation(nil, "my-instance-guid", "provision")
+			Expect(err).NotTo(BeNil())
 		})
 
 		It("bubbles up error on list service failure", func() {

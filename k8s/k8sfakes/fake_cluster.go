@@ -58,10 +58,13 @@ type FakeCluster struct {
 	deleteNamespaceReturnsOnCall map[int]struct {
 		result1 error
 	}
-	ListPodsStub        func() (*api_v1.PodList, error)
+	ListPodsStub        func(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.PodList, error)
 	listPodsMutex       sync.RWMutex
-	listPodsArgsForCall []struct{}
-	listPodsReturns     struct {
+	listPodsArgsForCall []struct {
+		nameSpace   string
+		listOptions meta_v1.ListOptions
+	}
+	listPodsReturns struct {
 		result1 *api_v1.PodList
 		result2 error
 	}
@@ -381,14 +384,17 @@ func (fake *FakeCluster) DeleteNamespaceReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeCluster) ListPods() (*api_v1.PodList, error) {
+func (fake *FakeCluster) ListPods(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.PodList, error) {
 	fake.listPodsMutex.Lock()
 	ret, specificReturn := fake.listPodsReturnsOnCall[len(fake.listPodsArgsForCall)]
-	fake.listPodsArgsForCall = append(fake.listPodsArgsForCall, struct{}{})
-	fake.recordInvocation("ListPods", []interface{}{})
+	fake.listPodsArgsForCall = append(fake.listPodsArgsForCall, struct {
+		nameSpace   string
+		listOptions meta_v1.ListOptions
+	}{nameSpace, listOptions})
+	fake.recordInvocation("ListPods", []interface{}{nameSpace, listOptions})
 	fake.listPodsMutex.Unlock()
 	if fake.ListPodsStub != nil {
-		return fake.ListPodsStub()
+		return fake.ListPodsStub(nameSpace, listOptions)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -400,6 +406,12 @@ func (fake *FakeCluster) ListPodsCallCount() int {
 	fake.listPodsMutex.RLock()
 	defer fake.listPodsMutex.RUnlock()
 	return len(fake.listPodsArgsForCall)
+}
+
+func (fake *FakeCluster) ListPodsArgsForCall(i int) (string, meta_v1.ListOptions) {
+	fake.listPodsMutex.RLock()
+	defer fake.listPodsMutex.RUnlock()
+	return fake.listPodsArgsForCall[i].nameSpace, fake.listPodsArgsForCall[i].listOptions
 }
 
 func (fake *FakeCluster) ListPodsReturns(result1 *api_v1.PodList, result2 error) {

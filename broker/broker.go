@@ -262,28 +262,79 @@ func (broker *PksServiceBroker) LastOperation(ctx context.Context, instanceID, o
 		}
 	}
 
+	if brokerStatus != brokerapi.Succeeded {
+		return brokerapi.LastOperation{
+			State:       brokerStatus,
+			Description: description,
+		}, nil
+	} else {
+		servicesReady, err := broker.servicesReady(instanceID)
+		if err != nil {
+			return brokerapi.LastOperation{}, err
+		}
+		if !servicesReady {
+			return brokerapi.LastOperation{
+				State:       brokerapi.InProgress,
+				Description: "service deployment load balancer in progress",
+			}, nil
+		}
+
+		message, podsReady, err := broker.podsReady(instanceID)
+		if err != nil {
+			return brokerapi.LastOperation{}, err
+		}
+		if !podsReady {
+			return brokerapi.LastOperation{
+				State:       brokerapi.InProgress,
+				Description: message,
+			}, nil
+		}
+
+		return brokerapi.LastOperation{
+			State:       brokerStatus,
+			Description: description,
+		}, nil
+	}
+}
+
+func (broker *PksServiceBroker) servicesReady(instanceID string) (bool, error) {
 	services, err := broker.cluster.ListServices(broker.getNamespace(instanceID), meta_v1.ListOptions{})
 	if err != nil {
-		return brokerapi.LastOperation{}, err
+		return false, err
 	}
 
-	serviceReady := true
+	servicesReady := true
 	for _, service := range services.Items {
 		if service.Spec.Type == "LoadBalancer" {
 			if len(service.Status.LoadBalancer.Ingress) < 1 {
-				serviceReady = false
+				servicesReady = false
 			}
 		}
 	}
-	if brokerStatus == brokerapi.Succeeded && !serviceReady {
-		brokerStatus = brokerapi.InProgress
-		description = "service deployment in progress"
+	return servicesReady, nil
+}
+
+func (broker *PksServiceBroker) podsReady(instanceID string) (string, bool, error) {
+	podList, err := broker.cluster.ListPods(broker.getNamespace(instanceID), meta_v1.ListOptions{})
+	if err != nil {
+		return "", false, err
 	}
 
-	return brokerapi.LastOperation{
-		State:       brokerStatus,
-		Description: description,
-	}, nil
+	podsReady := true
+	message := ""
+	for _, pod := range podList.Items {
+		if pod.Status.Phase != "Running" {
+			podsReady = false
+			for _, condition := range pod.Status.Conditions {
+				if condition.Message != "" {
+					message = message + condition.Message + "\n"
+				}
+			}
+		}
+	}
+	message = strings.TrimSpace(message)
+
+	return message, podsReady, nil
 }
 
 func (broker *PksServiceBroker) getNamespace(instanceID string) string {
