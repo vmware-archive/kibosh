@@ -1,5 +1,17 @@
 #!/usr/bin/env bash
 
+# To set things up in a way that authentication is done the same way as against PKS, run
+# ```bash
+# ./dev/minikube_auth.sh
+# ```
+#
+# Which creates a service account with `cluster-admin` and output the token.
+#
+# For `certificate-authority-data`, encode the minikube certificate:
+# ```bash
+# cat ~/.minikube/ca.crt | base64
+# ```
+
 kubectl --namespace=kube-system delete serviceaccount kibosh-admin
 kubectl --namespace=kube-system delete clusterrolebindings kibosh-cluster-admin
 

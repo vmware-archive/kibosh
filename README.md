@@ -1,9 +1,30 @@
 # Kibosh
 
-A generic broker bridging the gap between Kubernetes and CF brokered services (we BOSH so you don't have to).
+A generic
+[open service broker](https://github.com/openservicebrokerapi/servicebroker)
+bridging the gap between Kubernetes and CF brokered services (we BOSH so you don't have to). 
+
+The consumer of this repo is 
+[tile-generator](https://github.com/cf-platform-eng/tile-generator),
+which provides a packaging abstraction to produce a PCF tile from a helm chart.
+
 We are still in early development, but do plan to provide migration for partners working directly with us.
 
-## Charts
+## Configuration
+### Changes required in Chart
+* Plans
+    Kibosh requires that helm chart has additional file that describes plan in plans.yaml at root level
+    ```yaml
+    - name: "small"
+      description: "default (small) plan for mysql"
+      file: "small.yaml"
+    - name: "medium"
+      description: "medium sized plan for mysql"
+      file: "medium.yaml"
+    ```
+    File is a filename that exists in the `plans` subdirectory of the chart
+    Name should be lower alpha, numeric, `.`, or `-` 
+    Values `values.yaml` sets the defaults and plans only need override values 
 
 In order to successfully pull private images, we're imposing some requirements
 on the `values.yaml` file structure
@@ -25,20 +46,7 @@ on the `values.yaml` file structure
         image: "my-second-image"
         imageTag: "1.2.3"
     ```
-* Plans
-    Kibosh requires that helm chart has additional file that describes plan in plans.yaml at root level
-    ```yaml
-    - name: "small"
-      description: "default (small) plan for mysql"
-      file: "small.yaml"
-    - name: "medium"
-      description: "medium sized plan for mysql"
-      file: "medium.yaml"
-    ```
-    File is a filename that exists in the `plans` subdirectory of the chart
-    Name should be lower alpha, numeric, `.`, or `-` 
-    Values `values.yaml` sets the defaults and plans only need override values 
-
+    
 ### Private registries
 When the environment settings for a private registry are present (`REG_SERVER`, `REG_USER`, `REG_PASS`), 
 then Kibosh will transform images to pull them from the private registry. It assumes
@@ -80,91 +88,15 @@ for a working cluster (minikube instructions below). Then run:
 ./local_dev.sh
 ```
 
-#### Minikube
-To set things up in a way that authentication is done the same way as against PKS, run 
-```bash
-./dev/minikube_auth.sh
-```
-
-Which creates a service account with `cluster-admin` and output the token.
-
-For `certificate-authority-data`, encode the minikube certificate:
-```bash
-cat ~/.minikube/ca.crt | base64
-```
-
 #### Test
 ```bash
 make test
 ```
 
-Instructions to manually deploy and verify catalog:
-1) Build the linux binary
-    ```bash
-    make linux
-    ```
-1) Create a directory and put the kibosh executable into it. 
-    ```
-    mkdir kibosh-example
-    cp ~/go/src/github.com/cf-platform-eng/kibosh/kibosh.linux kibosh-example/kibosh.linux
-    ```
-1) Create a Manifest.yml file as shown below in that directory.
-   Get cluster information for kube config file. For `CA_DATA` - `base64 --decode` what comes back from PKS 
-    ```
-    cat > manifest.yml
-    ---
-    applications:
-    - name: kibosh_manual
-      buildpack: binary_buildpack
-      command: ./kibosh.linux
-      env:
-        SECURITY_USER_NAME: username
-        SECURITY_USER_PASSWORD: password
-        SERVICE_ID: f448fdea-25b8-41aa-aed4-539d8ace5e32
-        HELM_CHART_DIR: charts
-        CA_DATA: |
-           -----BEGIN CERTIFICATE-----
-           ...
-           -----END CERTIFICATE-----
-        SERVER: https://127.0.0.1
-        TOKEN: bXktdG9rZW4=
-    ```
-1) Create a helm chart in that directory.
-
-   That helm chart could like like the example-chart in this project, 
-   or could be one of these: https://github.com/kubernetes/charts.  The `HELM_CHART_DIR`
-   environment variable in the Manifest.yml file should point to the sub-directory 
-   in which you put it. 
-   
-1) Push the kibosh application (with its helm chart subdirectory) into CF
-   ```
-   cf push
-   ```
-1) Validate the data that the catalog endpoint provides
-    ```
-    curl -k https://example.com/v2/catalog -u 'username:password'
-    ```
-    The username/password match the manifest's environment variables above.
-
-1) Put the application into the CF Marketplace. 
-    ```
-    cf create-service-broker kibosh-broker username password https://example.com
-    cf enable-service-access myexample_chart
-    cf service-brokers
-    cf service-access
-    ```
-
-1) Create an instance of the helm application from the marketplace. 
-    ```
-    cf create-service myexample_chart default myexample_instance
-    helm list
-    cf services
-    cf service myexample_instance
-    ```
-1) Create a service key to bind to the service instance. 
-    ```
-    cf create-service-key myexample_instance myexample_instance_servicekey
-    ```
+To generate the test-doubles, after any interface change run: 
+```bash
+make generate
+```
 
 ### ci
 * https://concourse.cfplatformeng.com/teams/main/pipelines/kibosh
@@ -207,19 +139,19 @@ Inline-style:
 
 Diagram source https://www.websequencediagrams.com/ + 
 ```text
-object operator user cf generic_broker k8s app
-operator->cf: deploy tile w/ generic_broker+elastic search configured
-generic_broker->k8s: create odb kubo cluster
-generic_broker->cf: add self to marketplaces (errand?)
-user->cf: create elastic search service
-cf->generic_broker: create-service API call
-generic_broker-> k8s: kubectl create new namespace
-generic_broker-> k8s: kubectl to create deployment in namespace
+title kibosh
+
+operator->cf: deploy tile w/ kibosh + helm chart (Ex:mysql)
+kibosh->cf: add self to marketplaces via errand
+user->cf: create mysql service
+cf->kibosh: create-service API call
+kibosh-> k8s: k8s api create new namespace
+kibosh-> k8s: k8s api to create deployment in namespace
 user->cf: bind-service
-cf->generic_broker: bind-service
-generic_broker-> k8s: kubectl get secrets / kubectl get services
-k8s->generic_broker: secrets and services
-generic_broker->cf: secrets and services in cf format
+cf->kibosh: bind-service
+kibosh-> k8s: k8s api get secrets / k8s api get services
+k8s->kibosh: secrets and services
+kibosh->cf: secrets and services as credentials json
 cf->app: secrets and services as env vars
 ```
 
