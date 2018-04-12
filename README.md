@@ -1,18 +1,21 @@
 # Kibosh
 
-A generic
-[open service broker](https://github.com/openservicebrokerapi/servicebroker)
-bridging the gap between Kubernetes and CF brokered services (we BOSH so you don't have to). 
+An [open service broker](https://github.com/openservicebrokerapi/servicebroker)
+bridging the gap between Kubernetes deployments and CF marketplace.
 
-The consumer of this repo is 
+When deployed with a Helm chart and added to the marketplace,
+* `cf create-serive` calls to Kibosh will create the collection of Kubernetes resources described by the chart.
+* `cf bind-service` calls to Kibosh will expose back any services and secrets created by the chart
+
+The consumer of this repo is
 [tile-generator](https://github.com/cf-platform-eng/tile-generator),
-which provides a packaging abstraction to produce a PCF tile from a helm chart.
+which provides a packaging abstraction to produce a PCF tile from a helm chart: we BOSH so you don't have to.
 
 We are still in early development, but do plan to provide migration for partners working directly with us.
 
 ## Configuration
 ### Changes required in Chart
-* Plans
+* Plans (cf marketplace)
     Kibosh requires that helm chart has additional file that describes plan in plans.yaml at root level
     ```yaml
     - name: "small"
@@ -22,8 +25,8 @@ We are still in early development, but do plan to provide migration for partners
       description: "medium sized plan for mysql"
       file: "medium.yaml"
     ```
-    File is a filename that exists in the `plans` subdirectory of the chart
-    Name should be lower alpha, numeric, `.`, or `-` 
+    `file` is a filename that exists in the `plans` subdirectory of the chart and
+    `name`'s value should be lower alpha, numeric, `.`, or `-` 
     Values `values.yaml` sets the defaults and plans only need override values 
 
 In order to successfully pull private images, we're imposing some requirements
