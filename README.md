@@ -151,17 +151,16 @@ Inline-style:
 
 Diagram source https://www.websequencediagrams.com/ + 
 ```text
-title kibosh
+title Kibosh
 
-operator->cf: deploy tile w/ kibosh + helm chart (Ex:mysql)
-kibosh->cf: add self to marketplaces via errand
-user->cf: create mysql service
-cf->kibosh: create-service API call
-kibosh-> k8s: k8s api create new namespace
-kibosh-> k8s: k8s api to create deployment in namespace
-user->cf: bind-service
-cf->kibosh: bind-service
-kibosh-> k8s: k8s api get secrets / k8s api get services
+operator->cf: deploy tile with kibosh and helm chart
+kibosh->cf: add offering to marketplaces via errand
+user->cf: cf create-service
+cf->kibosh: OSBAPI api provision call
+kibosh-> k8s: deploy chart
+user->cf: cf bind-service
+cf->kibosh: OSBAPI api bind call
+kibosh-> k8s: k8s api to get secrets & services
 k8s->kibosh: secrets and services
 kibosh->cf: secrets and services as credentials json
 cf->app: secrets and services as env vars
