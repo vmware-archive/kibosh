@@ -49,7 +49,16 @@ on the `values.yaml` file structure
         image: "my-second-image"
         imageTag: "1.2.3"
     ```
-    
+
+### Other Requirement
+
+* When defining a `Service`, to expose this back to any applications that are bound,
+  `type: LoadBalancer` is a current requirement.
+* Resizing disks has limitiations. To support upgrade:
+    - You can't resize a persistent volume claim (currently behind an [alpha feature gate](https://kubernetes.io/docs/reference/feature-gates/))
+* Selectors are [immutable](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#selector)
+    - This means that *chart name cannot change* (the name is generally used in selectors)
+
 ### Private registries
 When the environment settings for a private registry are present (`REG_SERVER`, `REG_USER`, `REG_PASS`), 
 then Kibosh will transform images to pull them from the private registry. It assumes
