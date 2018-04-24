@@ -10,7 +10,7 @@ properties:
   value: setTouniqueGuidPerTile
 - name: service_name
   type: string
-  value: setToSameAsTileName
+  value: spacebears
 
 forms:
 - name: k8s_form
@@ -83,7 +83,6 @@ packages:
       release: example-chart
     - name: docker
       release: docker
-    max_in_flight: 1
     properties:
       chart_path: /var/vcap/packages/example-chart/example-chart
       registry:
@@ -91,30 +90,31 @@ packages:
         username: (( .properties.registry_user.value ))
         password: (( .properties.registry_pass.value ))
 
-#  - name: register
-#    templates:
-#    - name: register-broker
-#      release: kibosh
-#    lifecycle: errand
-#    post_deploy: true
-#    properties:
-#      broker_name: setToSameAsTileName
-#      disable_ssl_cert_verification: (( ..cf.ha_proxy.skip_cert_verify.value ))
-#      cf:
-#        api_url: https://api.(( ..cf.cloud_controller.system_domain.value ))
-#        admin_username: (( ..cf.uaa.system_services_credentials.identity ))
-#        admin_password: (( ..cf.uaa.system_services_credentials.password ))
-#
-#  - name: deregistrar
-#    templates:
-#    - name: delete-all-and-deregister
-#      release: kibosh
-#    lifecycle: errand
-#    properties:
-#      broker_name: setToSameAsTileName
-#      disable_ssl_cert_verification: (( ..cf.ha_proxy.skip_cert_verify.value ))
-#      cf:
-#        api_url: https://api.(( ..cf.cloud_controller.system_domain.value ))
-#        uaa_url: https://uaa.(( ..cf.cloud_controller.system_domain.value ))
-#        admin_username: (( ..cf.uaa.system_services_credentials.identity ))
-#        admin_password: (( ..cf.uaa.system_services_credentials.password ))
+  - name: register
+    templates:
+    - name: register-broker
+      release: kibosh
+    lifecycle: errand
+    post_deploy: true
+    properties:
+      broker_name: spacebears
+      disable_ssl_cert_verification: (( ..cf.ha_proxy.skip_cert_verify.value ))
+      cf:
+        api_url: https://api.(( ..cf.cloud_controller.system_domain.value ))
+        admin_username: (( ..cf.uaa.system_services_credentials.identity ))
+        admin_password: (( ..cf.uaa.system_services_credentials.password ))
+
+  - name: deregistrar
+    templates:
+    - name: delete-all-and-deregister
+      release: kibosh
+    lifecycle: errand
+    pre_delete: true
+    properties:
+      broker_name: spacebears
+      disable_ssl_cert_verification: (( ..cf.ha_proxy.skip_cert_verify.value ))
+      cf:
+        api_url: https://api.(( ..cf.cloud_controller.system_domain.value ))
+        uaa_url: https://uaa.(( ..cf.cloud_controller.system_domain.value ))
+        admin_username: (( ..cf.uaa.system_services_credentials.identity ))
+        admin_password: (( ..cf.uaa.system_services_credentials.password ))
