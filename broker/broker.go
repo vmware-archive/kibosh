@@ -17,7 +17,6 @@ package broker
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"code.cloudfoundry.org/lager"
@@ -27,7 +26,6 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	api_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/helm/pkg/helm"
 	hapi_release "k8s.io/helm/pkg/proto/hapi/release"
 	"strings"
@@ -61,7 +59,6 @@ func NewPksServiceBroker(serviceID string, serviceName string, registryConfig *c
 }
 
 func (broker *PksServiceBroker) Services(ctx context.Context) []brokerapi.Service {
-
 	plans := []brokerapi.ServicePlan{}
 
 	for _, plan := range broker.myChart.Plans {
@@ -110,28 +107,11 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 	}
 
 	if broker.registryConfig.HasRegistryConfig() {
-		dockerConfig, _ := broker.registryConfig.GetDockerConfigJson()
-		secret := &api_v1.Secret{
-			ObjectMeta: meta_v1.ObjectMeta{
-				Name: registrySecretName,
-			},
-			Type: api_v1.SecretTypeDockerConfigJson,
-			Data: map[string][]byte{
-				api_v1.DockerConfigJsonKey: dockerConfig,
-			},
-		}
-		_, err = broker.cluster.CreateSecret(namespaceName, secret)
+		privateRegistrySetup := k8s.NewPrivateRegistrySetup(namespaceName, "default", broker.cluster, broker.registryConfig)
+		err := privateRegistrySetup.Setup()
 		if err != nil {
 			return brokerapi.ProvisionedServiceSpec{}, err
 		}
-
-		patch := map[string]interface{}{
-			"imagePullSecrets": []map[string]interface{}{
-				{"name": registrySecretName},
-			},
-		}
-		patchJson, _ := json.Marshal(patch)
-		broker.cluster.Patch(namespaceName, "default", types.MergePatchType, patchJson)
 	}
 
 	planName := strings.TrimPrefix(details.PlanID, details.ServiceID+"-")

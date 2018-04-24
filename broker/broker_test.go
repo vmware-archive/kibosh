@@ -157,24 +157,6 @@ var _ = Describe("Broker", func() {
 		})
 
 		Context("registry secrets", func() {
-			It("creates a new docker registry secret when configured", func() {
-				_, err := broker.Provision(nil, "my-instance-guid", brokerapi.ProvisionDetails{}, true)
-
-				Expect(err).To(BeNil())
-
-				Expect(fakeCluster.CreateSecretCallCount()).To(Equal(1))
-
-				namespace, secret := fakeCluster.CreateSecretArgsForCall(0)
-				Expect(namespace).To(Equal("kibosh-my-instance-guid"))
-
-				Expect(secret.Type).To(Equal(api_v1.SecretTypeDockerConfigJson))
-
-				expectedConfig, _ := registryConfig.GetDockerConfigJson()
-				Expect(secret.Data).To(Equal(map[string][]byte{
-					".dockerconfigjson": expectedConfig,
-				}))
-			})
-
 			It("doesn't mess with secrets when not configured", func() {
 				registryConfig = &config.RegistryConfig{}
 				broker = NewPksServiceBroker("service-id", "spacebears", registryConfig, fakeCluster, fakeMyHelmClient, myChart, logger)
@@ -183,30 +165,8 @@ var _ = Describe("Broker", func() {
 
 				Expect(err).To(BeNil())
 
-				Expect(fakeCluster.CreateSecretCallCount()).To(Equal(0))
+				Expect(fakeCluster.UpdateSecretCallCount()).To(Equal(0))
 				Expect(fakeCluster.PatchCallCount()).To(Equal(0))
-			})
-
-			It("returns error on secret creation failure", func() {
-				fakeCluster.CreateSecretReturns(nil, errors.New("Nope"))
-
-				_, err := broker.Provision(nil, "my-instance-guid", brokerapi.ProvisionDetails{}, true)
-
-				Expect(fakeCluster.CreateSecretCallCount()).To(Equal(1))
-				Expect(err).NotTo(BeNil())
-			})
-
-			It("patches service account with image pull secrets", func() {
-				_, err := broker.Provision(nil, "my-instance-guid", brokerapi.ProvisionDetails{}, true)
-
-				Expect(err).To(BeNil())
-
-				Expect(fakeCluster.PatchCallCount()).To(Equal(1))
-				namespace, name, pathType, data, _ := fakeCluster.PatchArgsForCall(0)
-				Expect(namespace).To(Equal("kibosh-my-instance-guid"))
-				Expect(name).To(Equal("default"))
-				Expect(string(pathType)).To(Equal("application/merge-patch+json"))
-				Expect(data).To(Equal([]byte(`{"imagePullSecrets":[{"name":"registry-secret"}]}`)))
 			})
 		})
 

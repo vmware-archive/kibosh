@@ -155,6 +155,35 @@ type FakeCluster struct {
 		result1 *api_v1.Secret
 		result2 error
 	}
+	UpdateSecretStub        func(nameSpace string, secret *api_v1.Secret) (*api_v1.Secret, error)
+	updateSecretMutex       sync.RWMutex
+	updateSecretArgsForCall []struct {
+		nameSpace string
+		secret    *api_v1.Secret
+	}
+	updateSecretReturns struct {
+		result1 *api_v1.Secret
+		result2 error
+	}
+	updateSecretReturnsOnCall map[int]struct {
+		result1 *api_v1.Secret
+		result2 error
+	}
+	GetSecretStub        func(nameSpace string, name string, getOptions meta_v1.GetOptions) (*api_v1.Secret, error)
+	getSecretMutex       sync.RWMutex
+	getSecretArgsForCall []struct {
+		nameSpace  string
+		name       string
+		getOptions meta_v1.GetOptions
+	}
+	getSecretReturns struct {
+		result1 *api_v1.Secret
+		result2 error
+	}
+	getSecretReturnsOnCall map[int]struct {
+		result1 *api_v1.Secret
+		result2 error
+	}
 	ListSecretsStub        func(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.SecretList, error)
 	listSecretsMutex       sync.RWMutex
 	listSecretsArgsForCall []struct {
@@ -747,6 +776,111 @@ func (fake *FakeCluster) CreateSecretReturnsOnCall(i int, result1 *api_v1.Secret
 	}{result1, result2}
 }
 
+func (fake *FakeCluster) UpdateSecret(nameSpace string, secret *api_v1.Secret) (*api_v1.Secret, error) {
+	fake.updateSecretMutex.Lock()
+	ret, specificReturn := fake.updateSecretReturnsOnCall[len(fake.updateSecretArgsForCall)]
+	fake.updateSecretArgsForCall = append(fake.updateSecretArgsForCall, struct {
+		nameSpace string
+		secret    *api_v1.Secret
+	}{nameSpace, secret})
+	fake.recordInvocation("UpdateSecret", []interface{}{nameSpace, secret})
+	fake.updateSecretMutex.Unlock()
+	if fake.UpdateSecretStub != nil {
+		return fake.UpdateSecretStub(nameSpace, secret)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.updateSecretReturns.result1, fake.updateSecretReturns.result2
+}
+
+func (fake *FakeCluster) UpdateSecretCallCount() int {
+	fake.updateSecretMutex.RLock()
+	defer fake.updateSecretMutex.RUnlock()
+	return len(fake.updateSecretArgsForCall)
+}
+
+func (fake *FakeCluster) UpdateSecretArgsForCall(i int) (string, *api_v1.Secret) {
+	fake.updateSecretMutex.RLock()
+	defer fake.updateSecretMutex.RUnlock()
+	return fake.updateSecretArgsForCall[i].nameSpace, fake.updateSecretArgsForCall[i].secret
+}
+
+func (fake *FakeCluster) UpdateSecretReturns(result1 *api_v1.Secret, result2 error) {
+	fake.UpdateSecretStub = nil
+	fake.updateSecretReturns = struct {
+		result1 *api_v1.Secret
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCluster) UpdateSecretReturnsOnCall(i int, result1 *api_v1.Secret, result2 error) {
+	fake.UpdateSecretStub = nil
+	if fake.updateSecretReturnsOnCall == nil {
+		fake.updateSecretReturnsOnCall = make(map[int]struct {
+			result1 *api_v1.Secret
+			result2 error
+		})
+	}
+	fake.updateSecretReturnsOnCall[i] = struct {
+		result1 *api_v1.Secret
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCluster) GetSecret(nameSpace string, name string, getOptions meta_v1.GetOptions) (*api_v1.Secret, error) {
+	fake.getSecretMutex.Lock()
+	ret, specificReturn := fake.getSecretReturnsOnCall[len(fake.getSecretArgsForCall)]
+	fake.getSecretArgsForCall = append(fake.getSecretArgsForCall, struct {
+		nameSpace  string
+		name       string
+		getOptions meta_v1.GetOptions
+	}{nameSpace, name, getOptions})
+	fake.recordInvocation("GetSecret", []interface{}{nameSpace, name, getOptions})
+	fake.getSecretMutex.Unlock()
+	if fake.GetSecretStub != nil {
+		return fake.GetSecretStub(nameSpace, name, getOptions)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.getSecretReturns.result1, fake.getSecretReturns.result2
+}
+
+func (fake *FakeCluster) GetSecretCallCount() int {
+	fake.getSecretMutex.RLock()
+	defer fake.getSecretMutex.RUnlock()
+	return len(fake.getSecretArgsForCall)
+}
+
+func (fake *FakeCluster) GetSecretArgsForCall(i int) (string, string, meta_v1.GetOptions) {
+	fake.getSecretMutex.RLock()
+	defer fake.getSecretMutex.RUnlock()
+	return fake.getSecretArgsForCall[i].nameSpace, fake.getSecretArgsForCall[i].name, fake.getSecretArgsForCall[i].getOptions
+}
+
+func (fake *FakeCluster) GetSecretReturns(result1 *api_v1.Secret, result2 error) {
+	fake.GetSecretStub = nil
+	fake.getSecretReturns = struct {
+		result1 *api_v1.Secret
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCluster) GetSecretReturnsOnCall(i int, result1 *api_v1.Secret, result2 error) {
+	fake.GetSecretStub = nil
+	if fake.getSecretReturnsOnCall == nil {
+		fake.getSecretReturnsOnCall = make(map[int]struct {
+			result1 *api_v1.Secret
+			result2 error
+		})
+	}
+	fake.getSecretReturnsOnCall[i] = struct {
+		result1 *api_v1.Secret
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeCluster) ListSecrets(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.SecretList, error) {
 	fake.listSecretsMutex.Lock()
 	ret, specificReturn := fake.listSecretsReturnsOnCall[len(fake.listSecretsArgsForCall)]
@@ -936,6 +1070,10 @@ func (fake *FakeCluster) Invocations() map[string][][]interface{} {
 	defer fake.createClusterRoleBindingMutex.RUnlock()
 	fake.createSecretMutex.RLock()
 	defer fake.createSecretMutex.RUnlock()
+	fake.updateSecretMutex.RLock()
+	defer fake.updateSecretMutex.RUnlock()
+	fake.getSecretMutex.RLock()
+	defer fake.getSecretMutex.RUnlock()
 	fake.listSecretsMutex.RLock()
 	defer fake.listSecretsMutex.RUnlock()
 	fake.listServicesMutex.RLock()

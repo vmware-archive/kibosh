@@ -41,6 +41,8 @@ type Cluster interface {
 	ListClusterRoleBindings(meta_v1.ListOptions) (*rbacv1beta1.ClusterRoleBindingList, error)
 	CreateClusterRoleBinding(*rbacv1beta1.ClusterRoleBinding) (*rbacv1beta1.ClusterRoleBinding, error)
 	CreateSecret(nameSpace string, secret *api_v1.Secret) (*api_v1.Secret, error)
+	UpdateSecret(nameSpace string, secret *api_v1.Secret) (*api_v1.Secret, error)
+	GetSecret(nameSpace string, name string, getOptions meta_v1.GetOptions) (*api_v1.Secret, error)
 	ListSecrets(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.SecretList, error)
 	ListServices(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.ServiceList, error)
 	Patch(nameSpace string, name string, pt types.PatchType, data []byte, subresources ...string) (result *api_v1.ServiceAccount, err error)
@@ -128,6 +130,14 @@ func (cluster *cluster) CreateClusterRoleBinding(clusterRoleBinding *rbacv1beta1
 
 func (cluster *cluster) CreateSecret(nameSpace string, secret *api_v1.Secret) (*api_v1.Secret, error) {
 	return cluster.GetClient().CoreV1().Secrets(nameSpace).Create(secret)
+}
+
+func (cluster *cluster) UpdateSecret(nameSpace string, secret *api_v1.Secret) (*api_v1.Secret, error) {
+	return cluster.GetClient().CoreV1().Secrets(nameSpace).Update(secret)
+}
+
+func (cluster *cluster) GetSecret(nameSpace string, name string, getOptions meta_v1.GetOptions) (*api_v1.Secret, error) {
+	return cluster.GetClient().CoreV1().Secrets(nameSpace).Get(name, getOptions)
 }
 
 func (cluster *cluster) ListSecrets(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.SecretList, error) {

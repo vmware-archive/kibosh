@@ -16,8 +16,8 @@
 package helm_test
 
 import (
-	"os"
 	"io/ioutil"
+	"os"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

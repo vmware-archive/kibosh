@@ -21,9 +21,9 @@ import (
 
 	"github.com/cf-platform-eng/kibosh/config"
 	. "github.com/cf-platform-eng/kibosh/k8s"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("Config", func() {
