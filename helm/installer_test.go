@@ -21,6 +21,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"errors"
+	"github.com/cf-platform-eng/kibosh/config"
 	. "github.com/cf-platform-eng/kibosh/helm"
 	"github.com/cf-platform-eng/kibosh/helm/helmfakes"
 	"github.com/cf-platform-eng/kibosh/k8s/k8sfakes"
@@ -34,18 +35,21 @@ import (
 
 var _ = Describe("KubeConfig", func() {
 	var logger lager.Logger
+	var registryConfig config.RegistryConfig
 	var cluster k8sfakes.FakeCluster
 	var client helmfakes.FakeMyHelmClient
 	var installer Installer
 
 	BeforeEach(func() {
 		logger = lager.NewLogger("test")
+		registryConfig = config.RegistryConfig{}
+
 		k8sClient := test.FakeK8sInterface{}
 		cluster = k8sfakes.FakeCluster{}
 		cluster.GetClientReturns(&k8sClient)
 		client = helmfakes.FakeMyHelmClient{}
 
-		installer = NewInstaller(&cluster, &client, logger)
+		installer = NewInstaller(&registryConfig, &cluster, &client, logger)
 	})
 
 	It("success", func() {
@@ -58,7 +62,7 @@ var _ = Describe("KubeConfig", func() {
 
 		opts := client.InstallArgsForCall(0)
 		Expect(opts.Namespace).To(Equal("kube-system"))
-		Expect(opts.ImageSpec).To(Equal("gcr.io/kubernetes-helm/tiller:v2.8.0"))
+		Expect(opts.ImageSpec).To(Equal("gcr.io/kubernetes-helm/tiller:v2.8.2"))
 	})
 
 	It("upgrade required", func() {
@@ -91,7 +95,7 @@ var _ = Describe("KubeConfig", func() {
 					Template: v1.PodTemplateSpec{
 						Spec: v1.PodSpec{
 							Containers: []v1.Container{
-								{Image: "gcr.io/kubernetes-helm/tiller:v2.8.0"},
+								{Image: "gcr.io/kubernetes-helm/tiller:v2.8.2"},
 							}},
 					},
 				},
@@ -124,5 +128,75 @@ var _ = Describe("KubeConfig", func() {
 		err := installer.Install()
 
 		Expect(err).NotTo(BeNil())
+	})
+
+	Context("with private registry configured", func() {
+		BeforeEach(func() {
+			registryConfig = config.RegistryConfig{
+				Server: "registry.example.com",
+				User:   "k8s",
+				Pass:   "monkey123",
+				Email:  "k8s@example.com",
+			}
+
+			installer = NewInstaller(&registryConfig, &cluster, &client, logger)
+		})
+
+		It("adds private registry to secret to default service account", func() {
+			err := installer.Install()
+
+			Expect(err).To(BeNil())
+
+			Expect(cluster.PatchCallCount()).To(Equal(1))
+
+			namespace, name, _, data, _ := cluster.PatchArgsForCall(0)
+			Expect(namespace).To(Equal("kube-system"))
+			Expect(name).To(Equal("tiller"))
+			Expect(data).To(Equal([]byte(`{"imagePullSecrets":[{"name":"registry-secret"}]}`)))
+		})
+
+		It("if private registry setup fails, error bubbles up", func() {
+			cluster.PatchReturns(nil, errors.New("no patch for you"))
+
+			err := installer.Install()
+
+			Expect(err).NotTo(BeNil())
+			Expect(err.Error()).To(Equal("no patch for you"))
+		})
+
+		It("should use private registry image for install when configured", func() {
+			err := installer.Install()
+
+			Expect(err).To(BeNil())
+
+			Expect(client.InstallCallCount()).To(Equal(1))
+			Expect(client.UpgradeCallCount()).To(Equal(0))
+
+			opts := client.InstallArgsForCall(0)
+			Expect(opts.Namespace).To(Equal("kube-system"))
+			Expect(opts.ImageSpec).To(Equal("registry.example.com/tiller:v2.8.2"))
+		})
+
+		It("upgrade required", func() {
+			client.InstallReturns(api_errors.NewAlreadyExists(schema.GroupResource{}, ""))
+			cluster.GetDeploymentReturns(
+				&v1_beta1.Deployment{
+					Spec: v1_beta1.DeploymentSpec{
+						Template: v1.PodTemplateSpec{
+							Spec: v1.PodSpec{
+								Containers: []v1.Container{
+									{Image: "gcr.io/kubernetes-helm/tiller:v2.8.2"},
+								}},
+						},
+					},
+				}, nil,
+			)
+
+			err := installer.Install()
+
+			Expect(err).To(BeNil())
+			Expect(client.InstallCallCount()).To(Equal(1))
+			Expect(client.UpgradeCallCount()).To(Equal(0))
+		})
 	})
 })

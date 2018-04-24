@@ -34,13 +34,15 @@ type Cluster interface {
 
 	CreateNamespace(*api_v1.Namespace) (*api_v1.Namespace, error)
 	DeleteNamespace(name string, options *meta_v1.DeleteOptions) error
-	ListPods() (*api_v1.PodList, error)
+	ListPods(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.PodList, error)
 	GetDeployment(string, string, meta_v1.GetOptions) (*v1_beta1.Deployment, error)
 	ListServiceAccounts(string, meta_v1.ListOptions) (*api_v1.ServiceAccountList, error)
 	CreateServiceAccount(string, *api_v1.ServiceAccount) (*api_v1.ServiceAccount, error)
 	ListClusterRoleBindings(meta_v1.ListOptions) (*rbacv1beta1.ClusterRoleBindingList, error)
 	CreateClusterRoleBinding(*rbacv1beta1.ClusterRoleBinding) (*rbacv1beta1.ClusterRoleBinding, error)
 	CreateSecret(nameSpace string, secret *api_v1.Secret) (*api_v1.Secret, error)
+	UpdateSecret(nameSpace string, secret *api_v1.Secret) (*api_v1.Secret, error)
+	GetSecret(nameSpace string, name string, getOptions meta_v1.GetOptions) (*api_v1.Secret, error)
 	ListSecrets(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.SecretList, error)
 	ListServices(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.ServiceList, error)
 	Patch(nameSpace string, name string, pt types.PatchType, data []byte, subresources ...string) (result *api_v1.ServiceAccount, err error)
@@ -98,9 +100,8 @@ func (cluster *cluster) DeleteNamespace(name string, options *meta_v1.DeleteOpti
 	return cluster.GetClient().CoreV1().Namespaces().Delete(name, options)
 }
 
-func (cluster *cluster) ListPods() (*api_v1.PodList, error) {
-	//todo: ListPods is just to validate that API working, delete as appropriate
-	pods, err := cluster.client.CoreV1().Pods("").List(meta_v1.ListOptions{})
+func (cluster *cluster) ListPods(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.PodList, error) {
+	pods, err := cluster.client.CoreV1().Pods(nameSpace).List(listOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -129,6 +130,14 @@ func (cluster *cluster) CreateClusterRoleBinding(clusterRoleBinding *rbacv1beta1
 
 func (cluster *cluster) CreateSecret(nameSpace string, secret *api_v1.Secret) (*api_v1.Secret, error) {
 	return cluster.GetClient().CoreV1().Secrets(nameSpace).Create(secret)
+}
+
+func (cluster *cluster) UpdateSecret(nameSpace string, secret *api_v1.Secret) (*api_v1.Secret, error) {
+	return cluster.GetClient().CoreV1().Secrets(nameSpace).Update(secret)
+}
+
+func (cluster *cluster) GetSecret(nameSpace string, name string, getOptions meta_v1.GetOptions) (*api_v1.Secret, error) {
+	return cluster.GetClient().CoreV1().Secrets(nameSpace).Get(name, getOptions)
 }
 
 func (cluster *cluster) ListSecrets(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.SecretList, error) {

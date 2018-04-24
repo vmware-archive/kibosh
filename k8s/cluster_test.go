@@ -21,9 +21,9 @@ import (
 
 	"github.com/cf-platform-eng/kibosh/config"
 	. "github.com/cf-platform-eng/kibosh/k8s"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("Config", func() {
@@ -49,8 +49,8 @@ var _ = Describe("Config", func() {
 
 		Expect(err).To(BeNil())
 
-		cluster.ListPods()
+		cluster.ListPods("mynamespace", meta_v1.ListOptions{})
 
-		Expect(url).To(Equal("/api/v1/pods"))
+		Expect(url).To(Equal("/api/v1/namespaces/mynamespace/pods"))
 	})
 })

@@ -64,7 +64,7 @@ func main() {
 		brokerLogger.Fatal("Error creating service account", err)
 	}
 
-	helmInstaller := helm.NewInstaller(cluster, myHelmClient, brokerLogger)
+	helmInstaller := helm.NewInstaller(conf.RegistryConfig, cluster, myHelmClient, brokerLogger)
 	err = helmInstaller.Install()
 	if err != nil {
 		brokerLogger.Fatal("Error installing helm", err)

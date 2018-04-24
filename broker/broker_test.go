@@ -157,24 +157,6 @@ var _ = Describe("Broker", func() {
 		})
 
 		Context("registry secrets", func() {
-			It("creates a new docker registry secret when configured", func() {
-				_, err := broker.Provision(nil, "my-instance-guid", brokerapi.ProvisionDetails{}, true)
-
-				Expect(err).To(BeNil())
-
-				Expect(fakeCluster.CreateSecretCallCount()).To(Equal(1))
-
-				namespace, secret := fakeCluster.CreateSecretArgsForCall(0)
-				Expect(namespace).To(Equal("kibosh-my-instance-guid"))
-
-				Expect(secret.Type).To(Equal(api_v1.SecretTypeDockerConfigJson))
-
-				expectedConfig, _ := registryConfig.GetDockerConfigJson()
-				Expect(secret.Data).To(Equal(map[string][]byte{
-					".dockerconfigjson": expectedConfig,
-				}))
-			})
-
 			It("doesn't mess with secrets when not configured", func() {
 				registryConfig = &config.RegistryConfig{}
 				broker = NewPksServiceBroker("service-id", "spacebears", registryConfig, fakeCluster, fakeMyHelmClient, myChart, logger)
@@ -183,30 +165,8 @@ var _ = Describe("Broker", func() {
 
 				Expect(err).To(BeNil())
 
-				Expect(fakeCluster.CreateSecretCallCount()).To(Equal(0))
+				Expect(fakeCluster.UpdateSecretCallCount()).To(Equal(0))
 				Expect(fakeCluster.PatchCallCount()).To(Equal(0))
-			})
-
-			It("returns error on secret creation failure", func() {
-				fakeCluster.CreateSecretReturns(nil, errors.New("Nope"))
-
-				_, err := broker.Provision(nil, "my-instance-guid", brokerapi.ProvisionDetails{}, true)
-
-				Expect(fakeCluster.CreateSecretCallCount()).To(Equal(1))
-				Expect(err).NotTo(BeNil())
-			})
-
-			It("patches service account with image pull secrets", func() {
-				_, err := broker.Provision(nil, "my-instance-guid", brokerapi.ProvisionDetails{}, true)
-
-				Expect(err).To(BeNil())
-
-				Expect(fakeCluster.PatchCallCount()).To(Equal(1))
-				namespace, name, pathType, data, _ := fakeCluster.PatchArgsForCall(0)
-				Expect(namespace).To(Equal("kibosh-my-instance-guid"))
-				Expect(name).To(Equal("default"))
-				Expect(string(pathType)).To(Equal("application/merge-patch+json"))
-				Expect(data).To(Equal([]byte(`{"imagePullSecrets":[{"name":"registry-secret"}]}`)))
 			})
 		})
 
@@ -268,6 +228,11 @@ var _ = Describe("Broker", func() {
 				},
 			}
 			fakeCluster.ListServicesReturns(&serviceList, nil)
+			podList := api_v1.PodList{
+				Items: []api_v1.Pod{},
+			}
+			fakeCluster.ListPodsReturns(&podList, nil)
+
 		})
 
 		It("elevates error from helm", func() {
@@ -418,6 +383,58 @@ var _ = Describe("Broker", func() {
 			Expect(err).To(BeNil())
 			Expect(resp.Description).To(ContainSubstring("progress"))
 			Expect(resp.State).To(Equal(brokerapi.InProgress))
+		})
+
+		It("waits until pods are running", func() {
+			fakeMyHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
+				Info: &hapi_release.Info{
+					Status: &hapi_release.Status{
+						Code: hapi_release.Status_DEPLOYED,
+					},
+				},
+			}, nil)
+
+			podList := api_v1.PodList{
+				Items: []api_v1.Pod{
+					{
+						ObjectMeta: meta_v1.ObjectMeta{Name: "pod1"},
+						Spec:       api_v1.PodSpec{},
+						Status: api_v1.PodStatus{
+							Phase: "Pending",
+							Conditions: []api_v1.PodCondition{
+								{
+									Status:  "False",
+									Type:    "PodScheduled",
+									Reason:  "Unschedulable",
+									Message: "0/1 nodes are available: 1 Insufficient memory",
+								},
+							},
+						},
+					},
+				},
+			}
+			fakeCluster.ListPodsReturns(&podList, nil)
+
+			resp, err := broker.LastOperation(nil, "my-instance-guid", "provision")
+
+			Expect(err).To(BeNil())
+			Expect(resp.State).To(Equal(brokerapi.InProgress))
+			Expect(resp.Description).To(ContainSubstring("0/1 nodes are available: 1 Insufficient memory"))
+		})
+
+		It("returns error when unable to list pods", func() {
+			fakeMyHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
+				Info: &hapi_release.Info{
+					Status: &hapi_release.Status{
+						Code: hapi_release.Status_DEPLOYED,
+					},
+				},
+			}, nil)
+
+			fakeCluster.ListPodsReturns(nil, errors.New("nope"))
+
+			_, err := broker.LastOperation(nil, "my-instance-guid", "provision")
+			Expect(err).NotTo(BeNil())
 		})
 
 		It("bubbles up error on list service failure", func() {

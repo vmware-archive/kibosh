@@ -16,21 +16,26 @@
 package helm
 
 import (
+	"fmt"
 	"time"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/Masterminds/semver"
+	"github.com/cf-platform-eng/kibosh/config"
 	"github.com/cf-platform-eng/kibosh/k8s"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	helmstaller "k8s.io/helm/cmd/helm/installer"
+	"strings"
 )
 
 type installer struct {
-	maxWait time.Duration
-	cluster k8s.Cluster
-	client  MyHelmClient
-	logger  lager.Logger
+	maxWait        time.Duration
+	registryConfig *config.RegistryConfig
+	cluster        k8s.Cluster
+	client         MyHelmClient
+	logger         lager.Logger
 }
 
 type Installer interface {
@@ -40,27 +45,42 @@ type Installer interface {
 
 //todo: the image needs to somehow be increment-able + local, deferring to packaging stories
 const (
+	serviceAccount = "tiller"
+	tillerTag      = "v2.8.2"
 	nameSpace      = "kube-system"
-	image          = "gcr.io/kubernetes-helm/tiller:v2.8.0"
+	image          = "gcr.io/kubernetes-helm/tiller:" + tillerTag
 	deploymentName = "tiller-deploy"
 )
 
-func NewInstaller(cluster k8s.Cluster, client MyHelmClient, logger lager.Logger) Installer {
+func NewInstaller(registryConfig *config.RegistryConfig, cluster k8s.Cluster, client MyHelmClient, logger lager.Logger) Installer {
 	return &installer{
-		maxWait: 60 * time.Second,
-		cluster: cluster,
-		client:  client,
-		logger:  logger,
+		maxWait:        60 * time.Second,
+		registryConfig: registryConfig,
+		cluster:        cluster,
+		client:         client,
+		logger:         logger,
 	}
 }
 
 func (i *installer) Install() error {
+	i.logger.Debug("Installing helm")
+
+	tillerImage := image
+	if i.registryConfig.HasRegistryConfig() {
+		privateRegistrySetup := k8s.NewPrivateRegistrySetup("kube-system", serviceAccount, i.cluster, i.registryConfig)
+		err := privateRegistrySetup.Setup()
+		if err != nil {
+			return err
+		}
+
+		tillerImage = fmt.Sprintf("%s/tiller:%s", i.registryConfig.Server, tillerTag)
+	}
+
 	options := helmstaller.Options{
 		Namespace:      nameSpace,
-		ImageSpec:      image,
-		ServiceAccount: "tiller",
+		ImageSpec:      tillerImage,
+		ServiceAccount: serviceAccount,
 	}
-	i.logger.Debug("Installing helm")
 
 	err := i.client.Install(&options)
 	if err != nil {
@@ -73,10 +93,12 @@ func (i *installer) Install() error {
 			return err
 		}
 		existingImage := obj.Spec.Template.Spec.Containers[0].Image
-		if existingImage == image {
+		if existingImage == tillerImage {
 			return nil
 		}
-
+		if !i.isNewerVersion(existingImage, tillerImage) {
+			return nil
+		}
 		err = i.client.Upgrade(&options)
 		if err != nil {
 			return errors.Wrap(err, "Error upgrading helm")
@@ -106,4 +128,20 @@ func (i *installer) SetMaxWait(wait time.Duration) {
 func (i *installer) helmHealthy() bool {
 	_, err := i.client.ListReleases()
 	return err == nil
+}
+
+func (i *installer) isNewerVersion(existingImage string, newImage string) bool {
+	existingVersionSplit := strings.Split(existingImage, ":")
+	if len(existingVersionSplit) < 2 {
+		return true
+	}
+	existingVersion := existingVersionSplit[1]
+
+	newVersionSplit := strings.Split(newImage, ":")
+	if len(newVersionSplit) < 2 {
+		return true
+	}
+	newVersion := newVersionSplit[1]
+
+	return semver.MustParse(newVersion).GreaterThan(semver.MustParse(existingVersion))
 }
