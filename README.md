@@ -7,6 +7,8 @@ When deployed with a Helm chart and added to the marketplace,
 * `cf create-serive` calls to Kibosh will create the collection of Kubernetes resources described by the chart.
 * `cf bind-service` calls to Kibosh will expose back any services and secrets created by the chart
 
+For some in depth discussion, see this blog post: [Use Kubernetes Helm Packages to Build Pivotal Cloud Foundry tiles](https://content.pivotal.io/blog/use-kubernetes-helm-packages-to-build-pivotal-cloud-foundry-tiles-kibosh-a-new-service-broker-makes-it-simple)
+
 The consumer of this repo is
 [tile-generator](https://github.com/cf-platform-eng/tile-generator),
 which provides a packaging abstraction to produce a PCF tile from a helm chart: we BOSH so you don't have to.
