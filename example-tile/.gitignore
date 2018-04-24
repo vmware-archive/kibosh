@@ -1,0 +1,5 @@
+product/
+release/
+resources/docker*.tgz
+resources/example-chart*.tgz
+resources/kibosh-release*.tgz
