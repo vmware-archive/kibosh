@@ -11,6 +11,10 @@ properties:
 - name: service_name
   type: string
   value: spacebears
+- name: kibosh_broker_creds
+  type: simple_credentials
+  label: Kibosh Broker Creds
+  description: Username and Password for Kibosh Broker
 
 forms:
 - name: k8s_form
@@ -62,8 +66,8 @@ packages:
       release: example-chart
     properties:
       kibosh:
-        username: user
-        password: pass
+        username: (( .properties.kibosh_broker_creds.identity ))
+        password: (( .properties.kibosh_broker_creds.password ))
         service_id: (( .properties.service_id.value ))
         service_name: (( .properties.service_name.value ))
         helm_chart_dir: /var/vcap/packages/example-chart/example-chart
@@ -97,7 +101,7 @@ packages:
     lifecycle: errand
     post_deploy: true
     properties:
-      broker_name: spacebears
+      broker_name: (( .properties.service_name.value ))
       disable_ssl_cert_verification: (( ..cf.ha_proxy.skip_cert_verify.value ))
       cf:
         api_url: https://api.(( ..cf.cloud_controller.system_domain.value ))
@@ -111,7 +115,7 @@ packages:
     lifecycle: errand
     pre_delete: true
     properties:
-      broker_name: spacebears
+      broker_name: (( .properties.service_name.value ))
       disable_ssl_cert_verification: (( ..cf.ha_proxy.skip_cert_verify.value ))
       cf:
         api_url: https://api.(( ..cf.cloud_controller.system_domain.value ))
