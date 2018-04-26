@@ -43,12 +43,13 @@ type Installer interface {
 	SetMaxWait(duration time.Duration)
 }
 
-//todo: the image needs to somehow be increment-able + local, deferring to packaging stories
+var (
+	tillerTag string
+)
+
 const (
 	serviceAccount = "tiller"
-	tillerTag      = "v2.8.2"
 	nameSpace      = "kube-system"
-	image          = "gcr.io/kubernetes-helm/tiller:" + tillerTag
 	deploymentName = "tiller-deploy"
 )
 
@@ -63,9 +64,9 @@ func NewInstaller(registryConfig *config.RegistryConfig, cluster k8s.Cluster, cl
 }
 
 func (i *installer) Install() error {
-	i.logger.Debug("Installing helm")
+	i.logger.Debug(fmt.Sprintf("Installing helm with Tiller version %s", tillerTag))
 
-	tillerImage := image
+	tillerImage := "gcr.io/kubernetes-helm/tiller:" + tillerTag
 	if i.registryConfig.HasRegistryConfig() {
 		privateRegistrySetup := k8s.NewPrivateRegistrySetup("kube-system", serviceAccount, i.cluster, i.registryConfig)
 		err := privateRegistrySetup.Setup()

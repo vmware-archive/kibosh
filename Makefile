@@ -2,12 +2,15 @@ default: all
 
 GO_PACKAGES = $$(go list ./... ./cmd/loader | grep -v vendor)
 GO_FILES = $$(find . -name "*.go" | grep -v vendor | uniq)
+VERSION = $$(cat tiller-version)
+
+LDFLAGS="-X github.com/cf-platform-eng/kibosh/helm.tillerTag=$(VERSION)"
 
 linux:
-	GOOS=linux GOARCH=amd64 go build -o kibosh.linux ./main.go
+	GOOS=linux GOARCH=amd64 go build -o kibosh.linux -ldflags ${LDFLAGS} ./main.go
 
 mac:
-	GOOS=darwin GOARCH=amd64 go build -o kibosh.darwin ./main.go
+	GOOS=darwin GOARCH=amd64 go build -o kibosh.darwin -ldflags ${LDFLAGS} ./main.go
 
 build: linux mac
 
@@ -20,7 +23,7 @@ build-loader-mac:
 build-loader: build-loader-linux build-loader-mac
 
 unit-test:
-	@go test ${GO_PACKAGES}
+	@go test -ldflags ${LDFLAGS} ${GO_PACKAGES}
 
 fmt:
 	gofmt -s -l -w $(GO_FILES)
@@ -41,7 +44,7 @@ run:
 	SERVICE_ID=123 \
 	SECURITY_USER_NAME=admin \
 	SECURITY_USER_PASSWORD=pass \
-	go run main.go
+	go run -ldflags ${LDFLAGS} main.go
 
 cleandep:
 	rm -rf vendor
@@ -62,4 +65,3 @@ endif
 	scripts/setup-apimachinery.sh
 
 all: fmt test build build-loader
-

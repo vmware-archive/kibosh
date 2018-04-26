@@ -33,6 +33,8 @@ import (
 	"time"
 )
 
+const helmVersion = "v2.8.2"
+
 var _ = Describe("KubeConfig", func() {
 	var logger lager.Logger
 	var registryConfig config.RegistryConfig
@@ -62,7 +64,7 @@ var _ = Describe("KubeConfig", func() {
 
 		opts := client.InstallArgsForCall(0)
 		Expect(opts.Namespace).To(Equal("kube-system"))
-		Expect(opts.ImageSpec).To(Equal("gcr.io/kubernetes-helm/tiller:v2.8.2"))
+		Expect(opts.ImageSpec).To(Equal("gcr.io/kubernetes-helm/tiller:" + helmVersion))
 	})
 
 	It("upgrade required", func() {
@@ -95,7 +97,7 @@ var _ = Describe("KubeConfig", func() {
 					Template: v1.PodTemplateSpec{
 						Spec: v1.PodSpec{
 							Containers: []v1.Container{
-								{Image: "gcr.io/kubernetes-helm/tiller:v2.8.2"},
+								{Image: "gcr.io/kubernetes-helm/tiller:" + helmVersion},
 							}},
 					},
 				},
@@ -174,7 +176,7 @@ var _ = Describe("KubeConfig", func() {
 
 			opts := client.InstallArgsForCall(0)
 			Expect(opts.Namespace).To(Equal("kube-system"))
-			Expect(opts.ImageSpec).To(Equal("registry.example.com/tiller:v2.8.2"))
+			Expect(opts.ImageSpec).To(Equal("registry.example.com/tiller:" + helmVersion))
 		})
 
 		It("upgrade required", func() {
@@ -185,7 +187,7 @@ var _ = Describe("KubeConfig", func() {
 						Template: v1.PodTemplateSpec{
 							Spec: v1.PodSpec{
 								Containers: []v1.Container{
-									{Image: "gcr.io/kubernetes-helm/tiller:v2.8.2"},
+									{Image: "gcr.io/kubernetes-helm/tiller:" + helmVersion},
 								}},
 						},
 					},
