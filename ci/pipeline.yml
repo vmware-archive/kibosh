@@ -17,6 +17,12 @@ resources:
     username: cf-pe-bot
     password: {{github_token}}
 
+- name: tiller-image
+  type: docker-image
+  source:
+    repository: gcr.io/kubernetes-helm/tiller
+    tag: "v2.8.2"
+
 # reminder: how do we auto-consume production releases?
 # they're releases alpha tags, which we don't want to consume
 - name: on-demand-service-broker
@@ -249,10 +255,46 @@ jobs:
       file: output/delete_all_and_deregister.linux
 
 
+- name: tiller-version-check
+  plan:
+  - aggregate:
+    - get: tiller-image
+    - get: source-repo
+      trigger: true
+  - task: say-hello
+    config:
+      inputs:
+      - name: tiller-image
+      - name: source-repo
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: golang
+          tag: "1.10"
+      run:
+        path: bash
+        args:
+        - -exc
+        - |
+          set -e
+
+          if cmp tiller-image/tag source-repo/tiller-version; then
+            echo "Ok: $(cat tiller-image/tag) $(cat source-repo/tiller-version)"
+          else
+            echo "
+              CI is including tiller version: $(cat tiller-image/tag)
+              Build is using tiller version: $(cat source-repo/tiller-version)
+              Failing due to mismatch"
+            exit 1
+          fi
+
+
 - name: unit-tests
   plan:
   - aggregate:
     - get: source-repo
+      passed: [tiller-version-check]
       trigger: true
   - task: run-tests
     config:
@@ -507,6 +549,9 @@ jobs:
       passed: [push-image-errand]
     - get: version
       passed: [build-boshrelease]
+    - get: tiller-image
+      params:
+        save: true
   - task: publish-release
     config:
       inputs:
@@ -515,6 +560,7 @@ jobs:
       - name: kibosh-darwin
       - name: kibosh-release
       - name: version
+      - name: tiller-image
       outputs:
       - name: output
       platform: linux
@@ -533,12 +579,14 @@ jobs:
           mv kibosh-linux/kibosh.linux output/kibosh-${VERSION}.linux
           mv kibosh-darwin/kibosh.darwin output/kibosh-${VERSION}.darwin
           mv kibosh-release/kibosh*.tgz output/
+          mv tiller-image/image output/tiller-$(cat tiller-image/tag | tr -d '\n').tgz
   - put: release-repo
     params:
       name: version/version
       tag: version/version
       globs:
       - output/kibosh*.*
+      - output/tiller-*.tgz
   - put: version
     params:
       bump: patch
