@@ -7,8 +7,7 @@
 ---
 name: register-broker
 
-packages:
-  - cf-cli
+packages: []
 
 templates:
   errand.sh.erb: bin/run

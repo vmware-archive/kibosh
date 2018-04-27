@@ -17,6 +17,11 @@ resources:
     username: cf-pe-bot
     password: {{github_token}}
 
+- name: cf-cli
+  type: bosh-io-release
+  source:
+    repository: bosh-packages/cf-cli-release
+
 - name: tiller-image
   type: docker-image
   source:
@@ -405,6 +410,7 @@ jobs:
     - get: lite-stemcell
     - get: cf-deployment-concourse-tasks-docker
     - get: docker-bosh-release
+    - get: cf-cli
     - get: source-repo
       passed: [build-boshrelease]
       trigger: true
@@ -421,6 +427,7 @@ jobs:
       - name: kibosh-ci-state
       - name: lite-stemcell
       - name: docker-bosh-release
+      - name: cf-cli
       - name: source-repo
       - name: kibosh-release
       - name: spacebears-image
@@ -436,6 +443,7 @@ jobs:
           set -x
           popd
 
+          bosh upload-release cf-cli/release.tgz
           bosh upload-release docker-bosh-release/docker-*.tgz
           bosh upload-stemcell lite-stemcell/stemcell.tgz
           bosh upload-release kibosh-release/kibosh-release*

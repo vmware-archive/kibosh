@@ -15,24 +15,23 @@ else
     wget ${url} -O "${docker_bosh_pkg_path}"
 fi
 
-cf_cli_pkg_path=./${TMPDIR}/cf-cli.tgz
-if [ -f "${cf_cli_pkg_path}" ]; then
-    echo "cf cli package already exist, skipping download"
-else
-    echo "cf cli package doesn't exist, downloading"
-    url='https://packages.cloudfoundry.org/stable?release=linux64-binary&version=6.36.0&source=github-rel'
-    wget ${url} -O "${cf_cli_pkg_path}"
-fi
-
-
 bosh upload-release ${docker_bosh_pkg_path}
 
+cf_cli_bosh_pkg_path=./${TMPDIR}/cf-cli.tar.gz
+if [ -f "${cf_cli_bosh_pkg_path}" ]; then
+    echo "cf-cli-bosh package already exist, skipping download"
+else
+    echo "cf-cli-bosh package doesn't exist, downloading"
+    url=https://bosh.io/d/github.com/bosh-packages/cf-cli-release
+    wget ${url} -O "${cf_cli_bosh_pkg_path}"
+fi
+
+bosh upload-release ${cf_cli_bosh_pkg_path}
 
 echo "Adding blobs"
 
 bosh add-blob ./${TMPDIR}/kibosh.linux kibosh.linux
 bosh add-blob ./${TMPDIR}/loader.linux loader.linux
-bosh add-blob ${cf_cli_pkg_path} cf-cli.tgz
 bosh add-blob ./${TMPDIR}/delete_all_and_deregister.linux delete_all_and_deregister.linux
 
 bosh create-release --name=kibosh --force

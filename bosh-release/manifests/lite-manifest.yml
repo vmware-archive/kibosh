@@ -9,6 +9,8 @@ releases:
     version: latest
   - name: docker
     version: latest
+  - name: cf-cli
+    version: latest
 
 stemcells:
   - alias: ((stemcell))
@@ -51,6 +53,8 @@ instance_groups:
   jobs:
     - name: register-broker
       release: kibosh
+    - name: cf-cli-6-linux
+      release: cf-cli
   properties:
     broker_name: spacebears-broker
     disable_ssl_cert_verification: true

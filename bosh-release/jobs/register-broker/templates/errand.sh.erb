@@ -2,6 +2,8 @@
 
 set -e
 
+export PATH=$PATH:/var/vcap/packages/cf-cli-6-linux/bin/
+
 cf_service_broker_command() {
   broker_name=${1?"No service name provided, usage: cf_service_broker_command <service-name>"}
 
