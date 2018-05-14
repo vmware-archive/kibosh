@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 )
 
 type ClusterCredentials struct {
@@ -82,6 +83,8 @@ func Parse() (*config, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	c.ServiceName = strings.Replace(c.ServiceName, "_", "-", -1)
 
 	clusterCredentials := &ClusterCredentials{}
 	err = envconfig.Process("", clusterCredentials)
