@@ -56,6 +56,13 @@ var _ = Describe("Config", func() {
 			Expect(c.ClusterCredentials.Token).To(Equal("my-token"))
 		})
 
+		It("parses config from environment with underscore in service name", func() {
+			os.Setenv("SERVICE_NAME", "foo_bar")
+			c, err := Parse()
+			Expect(err).To(BeNil())
+			Expect(c.ServiceName).To(Equal("foo-bar"))
+		})
+
 		It("parses cluster credentials", func() {
 			c, err := Parse()
 			Expect(err).To(BeNil())
