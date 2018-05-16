@@ -151,20 +151,26 @@ More dep links:
 Inline-style: 
 ![](docs/SeqDiagram.png)
 
-Diagram source https://www.websequencediagrams.com/ + 
-```text
-title Kibosh
+<details>
+  <summary>Sequence diagram source</summary>
+  via https://www.websequencediagrams.com/ 
 
-operator->cf: deploy tile with kibosh and helm chart
-kibosh->cf: add offering to marketplaces via errand
-user->cf: cf create-service
-cf->kibosh: OSBAPI api provision call
-kibosh-> k8s: deploy chart
-user->cf: cf bind-service
-cf->kibosh: OSBAPI api bind call
-kibosh-> k8s: k8s api to get secrets & services
-k8s->kibosh: secrets and services
-kibosh->cf: secrets and services as credentials json
-cf->app: secrets and services as env vars
-```
+        title Kibosh
 
+        operator->cf: deploy tile with kibosh and helm chart
+        kibosh->cf: add offering to marketplaces via errand
+        user->cf: cf create-service
+        cf->kibosh: OSBAPI api provision call
+        kibosh-> k8s: deploy chart
+        user->cf: cf bind-service
+        cf->kibosh: OSBAPI api bind call
+        kibosh-> k8s: k8s api to get secrets & services
+        k8s->kibosh: secrets and services
+        kibosh->cf: secrets and services as credentials json
+        cf->app: secrets and services as env vars
+</details>
+
+###  MVP architecture
+Iincluding Kibosh being packages by [tile-generator](https://github.com/cf-platform-eng/tile-generator/)
+
+![](docs/mvp_architecture.jpg)
