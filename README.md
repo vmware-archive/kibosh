@@ -171,6 +171,6 @@ Inline-style:
 </details>
 
 ###  MVP architecture
-Iincluding Kibosh being packages by [tile-generator](https://github.com/cf-platform-eng/tile-generator/)
+MVP architecture, including Kibosh being packaged by [tile-generator](https://github.com/cf-platform-eng/tile-generator/)
 
 ![](docs/mvp_architecture.jpg)
