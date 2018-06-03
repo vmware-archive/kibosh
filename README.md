@@ -1,4 +1,4 @@
-# Kibosh ![](docs/kibosh_logo_100.png)
+# Kibosh
 
 An [open service broker](https://github.com/openservicebrokerapi/servicebroker)
 bridging the gap between Kubernetes deployments and CF marketplace.
@@ -14,6 +14,8 @@ The consumer of this repo is
 which provides a packaging abstraction to produce a PCF tile from a helm chart: we BOSH so you don't have to.
 
 We are still in early development, but do plan to provide migration for partners working directly with us.
+
+ ![](docs/kibosh_logo_100.png)
 
 ## Configuration
 ### Changes required in Chart
