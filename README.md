@@ -1,4 +1,4 @@
-# Kibosh
+# Kibosh ![](docs/kibosh_logo_100.png)
 
 An [open service broker](https://github.com/openservicebrokerapi/servicebroker)
 bridging the gap between Kubernetes deployments and CF marketplace.
