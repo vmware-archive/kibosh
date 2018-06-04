@@ -8,6 +8,7 @@ export SERVER='https://127.0.0.1:8443'
 export TOKEN=''
 
 export SERVICE_ID=abc123
+export SERVICE_NAME=abc123_name
 export SECURITY_USER_NAME=admin
 export SECURITY_USER_PASSWORD=pass
 
@@ -18,7 +19,9 @@ export REG_PASS='{
   "type": "service_account",
   ...
 }'
-'
+
 export REG_EMAIL='_json_key'
 
-go run main.go
+LDFLAGS="-X github.com/cf-platform-eng/kibosh/helm.tillerTag=$(cat tiller-version)"
+
+go run -ldflags "${LDFLAGS}" main.go
