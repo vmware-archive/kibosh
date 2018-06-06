@@ -4,7 +4,7 @@ An [open service broker](https://github.com/openservicebrokerapi/servicebroker)
 bridging the gap between Kubernetes deployments and CF marketplace.
 
 When deployed with a Helm chart and added to the marketplace,
-* `cf create-serive` calls to Kibosh will create the collection of Kubernetes resources described by the chart.
+* `cf create-service` calls to Kibosh will create the collection of Kubernetes resources described by the chart.
 * `cf bind-service` calls to Kibosh will expose back any services and secrets created by the chart
 
 For some in depth discussion, see this blog post: [Use Kubernetes Helm Packages to Build Pivotal Cloud Foundry tiles](https://content.pivotal.io/blog/use-kubernetes-helm-packages-to-build-pivotal-cloud-foundry-tiles-kibosh-a-new-service-broker-makes-it-simple)
