@@ -28,6 +28,13 @@ resources:
     repository: gcr.io/kubernetes-helm/tiller
     tag: "v2.8.2"
 
+- name: tiller-image-fixed
+  type: gcs-resource
+  source:
+    bucket: kibosh
+    json_key: {{gcp_service_account_key}}
+    regexp: images/tiller-image.tar
+
 # reminder: how do we auto-consume production releases?
 # they're releases alpha tags, which we don't want to consume
 - name: on-demand-service-broker
@@ -108,13 +115,15 @@ resources:
   type: git
   source:
     branch: master
-    tag_filter: v6.*
+    tag_filter: v6.11
     uri: https://github.com/cloudfoundry/cf-deployment-concourse-tasks.git
 
-- name: lite-stemcell
+- name: lite-stemcell-fixed
   type: bosh-io-stemcell
   source:
     name: bosh-google-kvm-ubuntu-trusty-go_agent
+    # 3586.18 (latest at time of this commit) is broken for gcp
+    version_family: '3586.16'
 
 - name: kibosh-ci-state
   type: git
@@ -131,7 +140,7 @@ resources:
 - name: cf-deployment-concourse-tasks-docker
   type: docker-image
   source:
-    tag: v5.8.0
+    tag: v5.11.0
     repository: relintdockerhubpushbot/cf-deployment-concourse-tasks
 
 - name: docker-bosh-release
@@ -155,7 +164,6 @@ jobs:
       BBL_IAAS: gcp
       BBL_GCP_SERVICE_ACCOUNT_KEY: {{gcp_service_account_key}}
       BBL_GCP_REGION: us-central1
-      BBL_GCP_ZONE: us-central1-a
       SKIP_LB_CREATION: true
     input_mapping:
       bbl-state: kibosh-ci-state
@@ -406,8 +414,8 @@ jobs:
   plan:
   - aggregate:
     - get: kibosh-ci-state
-      passed: [setup-infrastructure-lite]
-    - get: lite-stemcell
+      #passed: [setup-infrastructure-lite]
+    - get: lite-stemcell-fixed
     - get: cf-deployment-concourse-tasks-docker
     - get: docker-bosh-release
     - get: cf-cli
@@ -425,7 +433,7 @@ jobs:
       platform: linux
       inputs:
       - name: kibosh-ci-state
-      - name: lite-stemcell
+      - name: lite-stemcell-fixed
       - name: docker-bosh-release
       - name: cf-cli
       - name: source-repo
@@ -445,7 +453,7 @@ jobs:
 
           bosh upload-release cf-cli/release.tgz
           bosh upload-release docker-bosh-release/docker-*.tgz
-          bosh upload-stemcell lite-stemcell/stemcell.tgz
+          bosh upload-stemcell lite-stemcell-fixed/stemcell.tgz
           bosh upload-release kibosh-release/kibosh-release*
 
           mkdir source-repo/example-chart-bosh-release/images
@@ -545,6 +553,67 @@ jobs:
           yes | bosh -d kibosh run-errand loader
           popd
 
+- name: save-tiller-image
+  plan:
+  - aggregate:
+    - get: tiller-image
+      params:
+        save: true
+  - task: do-save
+    config:
+      inputs:
+      - name: tiller-image
+      outputs:
+      - name: out
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: cfplatformeng/tile-generator
+      params:
+        IMAGE_DIR: tiller-image
+        IMAGE_FILE_NAME: tiller-image.tar
+      run:
+        path: bash
+        args:
+        - -exc
+        - |
+          pushd ${IMAGE_DIR}
+          mkdir -p new-image out
+          pushd new-image
+          tar -xvf ../image
+          popd
+
+          cp new-image/manifest.json manifest.json.bk
+
+          echo '
+          import json
+
+          with open("repository") as repo_file:
+            repo = repo_file.read().strip()
+
+          with open("tag") as tag_file:
+            tag = tag_file.read().strip()
+
+          with open("new-image/manifest.json", "r+") as file:
+            manifest = json.load(file)
+            repo_tags = ["{}:{}".format(repo, tag)]
+            manifest[0]["RepoTags"] = repo_tags
+            new_manifest = json.dumps(manifest)
+
+            file.seek(0)
+            print("\n", new_manifest, "\n")
+            file.write(new_manifest)
+          ' > fix_manifest.py
+
+          python fix_manifest.py
+
+          tar -cvf ../out/${IMAGE_FILE_NAME} -C new-image $(ls new-image)
+  - put: tiller-image-fixed
+    params:
+      file: out/tiller-image.tar
+
+
 - name: publish-release
   plan:
   - aggregate:
@@ -558,6 +627,9 @@ jobs:
     - get: version
       passed: [build-boshrelease]
     - get: tiller-image
+      passed: [save-tiller-image]
+    - get: tiller-image-fixed
+      passed: [save-tiller-image]
       params:
         save: true
   - task: publish-release
@@ -569,6 +641,7 @@ jobs:
       - name: kibosh-release
       - name: version
       - name: tiller-image
+      - name: tiller-image-fixed
       outputs:
       - name: output
       platform: linux
@@ -587,7 +660,7 @@ jobs:
           mv kibosh-linux/kibosh.linux output/kibosh-${VERSION}.linux
           mv kibosh-darwin/kibosh.darwin output/kibosh-${VERSION}.darwin
           mv kibosh-release/kibosh*.tgz output/
-          mv tiller-image/image output/tiller-$(cat tiller-image/tag | tr -d '\n').tgz
+          mv tiller-image-fixed/tiller-image.tar output/tiller-$(cat tiller-image/tag | tr -d '\n').tgz
   - put: release-repo
     params:
       name: version/version
@@ -632,6 +705,3 @@ jobs:
       CLEAN_ALL: true
     input_mapping:
       bbl-state: kibosh-ci-state
-
-
-
