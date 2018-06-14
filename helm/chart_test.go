@@ -114,6 +114,43 @@ persistence:
 		Expect(err).NotTo(BeNil())
 	})
 
+	Context("ensure .helmignore", func() {
+		It("adds ignore file with images when not present", func() {
+			_, err := helm.NewChart(chartPath, "")
+			Expect(err).To(BeNil())
+
+			ignoreContents, err := ioutil.ReadFile(filepath.Join(chartPath, ".helmignore"))
+			Expect(err).To(BeNil())
+			Expect(ignoreContents).To(Equal([]byte("images")))
+		})
+
+		It("appends image to ignore when present", func() {
+			err := ioutil.WriteFile(filepath.Join(chartPath, ".helmignore"), []byte(`secrets`), 0666)
+			Expect(err).To(BeNil())
+
+			_, err = helm.NewChart(chartPath, "")
+			Expect(err).To(BeNil())
+
+			ignoreContents, err := ioutil.ReadFile(filepath.Join(chartPath, ".helmignore"))
+			Expect(err).To(BeNil())
+			Expect(string(ignoreContents)).To(Equal("secrets\nimages\n"))
+		})
+
+		It("appends image to ignore when present", func() {
+			err := ioutil.WriteFile(filepath.Join(chartPath, ".helmignore"), []byte(`secrets
+images
+foo`), 0666)
+			Expect(err).To(BeNil())
+
+			_, err = helm.NewChart(chartPath, "")
+			Expect(err).To(BeNil())
+
+			ignoreContents, err := ioutil.ReadFile(filepath.Join(chartPath, ".helmignore"))
+			Expect(err).To(BeNil())
+			Expect(string(ignoreContents)).To(Equal("secrets\nimages\nfoo"))
+		})
+	})
+
 	Context("override image sources", func() {
 		It("does nothing if no private repo configure", func() {
 			valuesYaml = []byte(`
@@ -265,6 +302,7 @@ images:
 
 			Expect(err).NotTo(BeNil())
 		})
+
 		It("returns error invalid underscore in name", func() {
 
 			err := ioutil.WriteFile(filepath.Join(chartPath, "plans.yaml"), []byte(`
@@ -278,10 +316,9 @@ images:
 
 			Expect(err).NotTo(BeNil())
 			Expect(err.Error()).To(ContainSubstring("invalid characters"))
-
 		})
-		It("returns error invalid spaces in name ", func() {
 
+		It("returns error invalid spaces in name ", func() {
 			err := ioutil.WriteFile(filepath.Join(chartPath, "plans.yaml"), []byte(`
 - name: small  plan
   description: invalid values plan
@@ -295,8 +332,8 @@ images:
 			Expect(err.Error()).To(ContainSubstring("invalid characters"))
 
 		})
-		It("returns error invalid uppercase letters in name ", func() {
 
+		It("returns error invalid uppercase letters in name ", func() {
 			err := ioutil.WriteFile(filepath.Join(chartPath, "plans.yaml"), []byte(`
 - name: smallPlans
   description: invalid values plan
@@ -308,7 +345,6 @@ images:
 
 			Expect(err).NotTo(BeNil())
 			Expect(err.Error()).To(ContainSubstring("invalid characters"))
-
 		})
 	})
 })

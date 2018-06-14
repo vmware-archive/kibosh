@@ -25,6 +25,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/helm/pkg/chartutil"
 	"k8s.io/helm/pkg/proto/hapi/chart"
+	"os"
 	"path/filepath"
 	"regexp"
 )
@@ -46,16 +47,21 @@ type Plan struct {
 }
 
 func NewChart(chartPath string, privateRegistryServer string) (*MyChart, error) {
+	myChart := &MyChart{
+		chartPath:             chartPath,
+		privateRegistryServer: privateRegistryServer,
+	}
+	err := myChart.EnsureIgnore()
+	if err != nil {
+		return nil, errors.Wrap(err, "Error fixing .helmignore")
+	}
+
 	loadedChart, err := chartutil.Load(chartPath)
 	if err != nil {
 		return nil, err
 	}
+	myChart.Chart = loadedChart
 
-	myChart := &MyChart{
-		Chart:                 loadedChart,
-		chartPath:             chartPath,
-		privateRegistryServer: privateRegistryServer,
-	}
 	err = myChart.LoadChartValues()
 	if err != nil {
 		return nil, err
@@ -181,4 +187,44 @@ func (c *MyChart) loadPlans() error {
 
 	return nil
 
+}
+
+func (c *MyChart) EnsureIgnore() error {
+	_, err := os.Stat(c.chartPath)
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("Error reading chart dir [%s]", c.chartPath))
+	}
+
+	ignoreFilePath := filepath.Join(c.chartPath, ".helmignore")
+	_, err = os.Stat(ignoreFilePath)
+	if err != nil {
+		file, err := os.Create(ignoreFilePath)
+		defer file.Close()
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf("Error creating .helmignore [%s]", c.chartPath))
+		} else {
+			file.Write([]byte("images"))
+		}
+	} else {
+		contents, err := ioutil.ReadFile(ignoreFilePath)
+		lines := strings.Split(string(contents), "\n")
+		for _, line := range lines {
+			if line == "images" {
+				return nil
+			}
+		}
+
+		file, err := os.OpenFile(ignoreFilePath, os.O_APPEND|os.O_WRONLY, 0666)
+		defer file.Close()
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf("Error opening .helmignore [%s]", c.chartPath))
+		} else {
+			_, err = file.Write([]byte("\nimages\n"))
+			if err != nil {
+				return errors.Wrap(err, fmt.Sprintf("Error appending to .helmignore [%s]", c.chartPath))
+			}
+		}
+	}
+
+	return nil
 }
