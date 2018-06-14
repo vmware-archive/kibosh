@@ -51,9 +51,7 @@ var _ = Describe("Config", func() {
 			Expect(c.ServiceName).To(Equal("foo"))
 			Expect(c.Port).To(Equal(9001))
 
-			Expect(c.ClusterCredentials.CAData).To(Equal("c29tZSByYW5kb20gc3R1ZmY="))
 			Expect(c.ClusterCredentials.Server).To(Equal("127.0.0.1/api"))
-			Expect(c.ClusterCredentials.Token).To(Equal("my-token"))
 		})
 
 		It("parses config from environment with underscore in service name", func() {
@@ -61,23 +59,6 @@ var _ = Describe("Config", func() {
 			c, err := Parse()
 			Expect(err).To(BeNil())
 			Expect(c.ServiceName).To(Equal("foo-bar"))
-		})
-
-		It("parses cluster credentials", func() {
-			c, err := Parse()
-			Expect(err).To(BeNil())
-
-			Expect(c.ClusterCredentials).NotTo(BeNil())
-			Expect(c.ClusterCredentials.CAData).To(Equal("c29tZSByYW5kb20gc3R1ZmY="))
-			Expect(c.ClusterCredentials.Server).To(Equal("127.0.0.1/api"))
-			Expect(c.ClusterCredentials.Token).To(Equal("my-token"))
-		})
-
-		It("fails to parse cluster credentials", func() {
-			os.Setenv("SERVICE_NAME", "foo bar")
-			_, err := Parse()
-			Expect(err).NotTo(BeNil())
-			Expect(err.Error()).To(ContainSubstring("invalid characters"))
 		})
 
 		It("has registry config", func() {
@@ -93,6 +74,57 @@ var _ = Describe("Config", func() {
 
 			_, err = c.RegistryConfig.GetDockerConfigJson()
 			Expect(err).NotTo(BeNil())
+		})
+
+		Context("credentials", func() {
+			BeforeEach(func() {
+				os.Setenv("CA_DATA", "c29tZSByYW5kb20gc3R1ZmY=")
+				os.Setenv("SERVER", "127.0.0.1/api")
+				os.Setenv("TOKEN", "my-token")
+			})
+
+			It("parses cluster credentials", func() {
+				c, err := Parse()
+				Expect(err).To(BeNil())
+
+				Expect(c.ClusterCredentials).NotTo(BeNil())
+				Expect(c.ClusterCredentials.Server).To(Equal("127.0.0.1/api"))
+				Expect(c.ClusterCredentials.Token).To(Equal("my-token"))
+			})
+
+			It("base 64 decodes ca data", func() {
+				c, err := Parse()
+				Expect(err).To(BeNil())
+
+				Expect(c.ClusterCredentials.CAData).To(Equal([]byte("some random stuff")))
+			})
+
+			It("leaves decoded certifcates alone", func() {
+				os.Setenv("CA_DATA", `  -----BEGIN CERTIFICATE-----
+my cert data
+-----END CERTIFICATE-----`)
+
+				c, err := Parse()
+				Expect(err).To(BeNil())
+
+				Expect(c.ClusterCredentials.CAData).To(Equal([]byte(`-----BEGIN CERTIFICATE-----
+my cert data
+-----END CERTIFICATE-----`)))
+			})
+
+			It("bubbles up error on bad cert", func() {
+				os.Setenv("CA_DATA", "666F6F")
+
+				_, err := Parse()
+				Expect(err).NotTo(BeNil())
+			})
+
+			It("fails to parse cluster credentials", func() {
+				os.Setenv("SERVICE_NAME", "foo bar")
+				_, err := Parse()
+				Expect(err).NotTo(BeNil())
+				Expect(err.Error()).To(ContainSubstring("invalid characters"))
+			})
 		})
 
 		Context("with registry config", func() {

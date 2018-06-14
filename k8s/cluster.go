@@ -78,7 +78,7 @@ func (cluster *cluster) GetClientConfig() *rest.Config {
 
 func buildClientConfig(credentials *config.ClusterCredentials) (*rest.Config, error) {
 	tlsClientConfig := rest.TLSClientConfig{
-		CAData: []byte(credentials.CAData),
+		CAData: credentials.CAData,
 	}
 
 	return &rest.Config{

@@ -31,7 +31,7 @@ var _ = Describe("Config", func() {
 
 	BeforeEach(func() {
 		creds = &config.ClusterCredentials{
-			CAData: "c29tZSByYW5kb20gc3R1ZmY=",
+			CAData: []byte("c29tZSByYW5kb20gc3R1ZmY="),
 			Server: "127.0.0.1/api",
 			Token:  "my-token",
 		}

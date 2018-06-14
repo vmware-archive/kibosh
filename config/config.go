@@ -18,6 +18,7 @@ package config
 import (
 	"github.com/kelseyhightower/envconfig"
 
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -26,9 +27,10 @@ import (
 )
 
 type ClusterCredentials struct {
-	CAData string `envconfig:"CA_DATA"`
-	Server string `envconfig:"SERVER"`
-	Token  string `envconfig:"TOKEN"`
+	CADataRaw string `envconfig:"CA_DATA"`
+	CAData    []byte
+	Server    string `envconfig:"SERVER"`
+	Token     string `envconfig:"TOKEN"`
 }
 
 type RegistryConfig struct {
@@ -84,15 +86,12 @@ func Parse() (*config, error) {
 		return nil, err
 	}
 
-	c.ServiceName = strings.Replace(c.ServiceName, "_", "-", -1)
-
-	clusterCredentials := &ClusterCredentials{}
-	err = envconfig.Process("", clusterCredentials)
+	err = c.ClusterCredentials.parseCAData()
 	if err != nil {
 		return nil, err
 	}
-	c.ClusterCredentials = clusterCredentials
 
+	c.ServiceName = strings.Replace(c.ServiceName, "_", "-", -1)
 	match, err := regexp.MatchString(`^[0-9a-z.\-]+$`, c.ServiceName)
 	if err != nil {
 		return nil, err
@@ -102,4 +101,20 @@ func Parse() (*config, error) {
 	}
 
 	return c, nil
+}
+
+func (c *ClusterCredentials) parseCAData() error {
+	c.CADataRaw = strings.TrimSpace(c.CADataRaw)
+	if strings.Index(c.CADataRaw, "-----BEGIN CERTIFICATE-----") == 0 {
+		c.CAData = []byte(c.CADataRaw)
+	} else {
+		data, err := base64.StdEncoding.DecodeString(c.CADataRaw)
+		if err != nil {
+			return err
+		} else {
+			c.CAData = data
+		}
+	}
+
+	return nil
 }
