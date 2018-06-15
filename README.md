@@ -117,6 +117,37 @@ make generate
 ### ci
 * https://concourse.cfplatformeng.com/teams/main/pipelines/kibosh
 
+The pipeline is backed by a cluster in the shared GKE account. The default admin
+user in GKE has a password while Kibosh is configured to use a token. To create a user
+in the cluster and fetch the token, do something like:
+
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kibosh-concourse-ci
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: kibosh-concourse-ci
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: kibosh-concourse-ci
+    namespace: kube-system
+```
+
+```bash
+kubectl create -f [above contents in file].yml
+kubectl get secrets --namespace=kube-system | grep "kibosh-concourse-ci"
+kubectl get secret --namespace=kube-system kibosh-concourse-ci-token-pfnqs -o yaml
+```
+
 #### Dependency vendoring
 
 To add a dependency:
