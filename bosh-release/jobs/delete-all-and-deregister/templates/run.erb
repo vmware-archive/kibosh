@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -e
+
+export LOG_DIR=/var/vcap/sys/log/delete-all-and-deregister
+
+mkdir -p "$LOG_DIR"
+
+/var/vcap/jobs/delete-all-and-deregister/bin/errand.sh \
+    > >(tee -a "$LOG_DIR/errand.stdout.log") \
+    2> >(tee -a "$LOG_DIR/errand.stderr.log" >&2)

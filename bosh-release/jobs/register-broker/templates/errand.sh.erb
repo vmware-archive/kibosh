@@ -14,18 +14,6 @@ cf_service_broker_command() {
   fi
 }
 
-LOG_DIR=/var/vcap/sys/log/register-broker
-mkdir -p $LOG_DIR
-
-STDOUT_LOG=$LOG_DIR/errand.stdout.log
-STDERR_LOG=$LOG_DIR/errand.stderr.log
-
-touch $STDOUT_LOG
-touch $STDERR_LOG
-exec 1> >(tee $STDOUT_LOG)
-exec 2> >(tee $STDERR_LOG >&2)
-
-
 <%
 def escape_shell(str)
   "'#{str.to_s.gsub(/'/, "'\\\\''")}'"

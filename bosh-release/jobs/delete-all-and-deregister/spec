@@ -11,7 +11,8 @@ packages:
   - delete-all-and-deregister
 
 templates:
-  errand.sh.erb: bin/run
+  run.erb: bin/run
+  errand.sh.erb: bin/errand.sh
   config.yml.erb: config/config.yml
 
 consumes:

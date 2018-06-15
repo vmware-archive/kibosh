@@ -59,7 +59,7 @@ instance_groups:
     broker_name: spacebears-broker
     disable_ssl_cert_verification: true
     cf:
-      api_url: https://api.local.pcfdev.io
+      api_url: https://api.v3.pcfdev.io
       admin_username: admin
       admin_password: admin
   vm_type: default
@@ -110,8 +110,8 @@ instance_groups:
     broker_name: spacebears-broker
     disable_ssl_cert_verification: true
     cf:
-      api_url: https://api.local.pcfdev.io
-      uaa_url: https://uaa.local.pcfdev.io
+      api_url: https://api.v3.pcfdev.io
+      uaa_url: https://uaa.v3.pcfdev.io
       admin_username: admin
       admin_password: admin
   vm_type: default

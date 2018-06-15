@@ -3,6 +3,7 @@ name: load-image
 
 templates:
   run.erb: bin/run
+  load_image.erb: bin/load_image.sh
 
 packages:
 - loader

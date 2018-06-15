@@ -10,7 +10,8 @@ name: register-broker
 packages: []
 
 templates:
-  errand.sh.erb: bin/run
+  errand.sh.erb: bin/errand.sh
+  run.erb: bin/run
 
 consumes:
   - name: kibosh_broker
