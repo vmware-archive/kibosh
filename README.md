@@ -7,11 +7,13 @@ When deployed with a Helm chart and added to the marketplace,
 * `cf create-service` calls to Kibosh will create the collection of Kubernetes resources described by the chart.
 * `cf bind-service` calls to Kibosh will expose back any services and secrets created by the chart
 
-For some in depth discussion, see this blog post: [Use Kubernetes Helm Packages to Build Pivotal Cloud Foundry tiles](https://content.pivotal.io/blog/use-kubernetes-helm-packages-to-build-pivotal-cloud-foundry-tiles-kibosh-a-new-service-broker-makes-it-simple)
+For some in depth discussion, see this blog post:
+[Use Kubernetes Helm Packages to Build Pivotal Cloud Foundry tiles](https://content.pivotal.io/blog/use-kubernetes-helm-packages-to-build-pivotal-cloud-foundry-tiles-kibosh-a-new-service-broker-makes-it-simple)
 
-The consumer of this repo is
+One consumer of this repo is
 [tile-generator](https://github.com/cf-platform-eng/tile-generator),
 which provides a packaging abstraction to produce a PCF tile from a helm chart: we BOSH so you don't have to.
+ISVs building out a tile should start there, rather than directly using this binary.
 
 We are still in early development, but do plan to provide migration for partners working directly with us.
 
@@ -204,6 +206,7 @@ Inline-style:
 </details>
 
 ###  MVP architecture
-MVP architecture, including Kibosh being packaged by [tile-generator](https://github.com/cf-platform-eng/tile-generator/)
+MVP architecture, including Kibosh packaged by
+[tile-generator](https://github.com/cf-platform-eng/tile-generator/)
 
 ![](docs/mvp_architecture.jpg)
