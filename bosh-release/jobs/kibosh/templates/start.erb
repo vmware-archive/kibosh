@@ -31,7 +31,7 @@ mkdir -p "$LOG_DIR" "$RUN_DIR"
 
 # If one of these directories is very large, chowning might take a very long time.
 # Consider only chowning if dir did not yet exist in the previous step
-chown -R vcap:vcap "$LOG_DIR" "$RUN_DIR"
+chown -R vcap:vcap "$LOG_DIR" "$RUN_DIR" "$HELM_CHART_DIR"
 
 # heed warnings from start-stop-daemon(8) about use of exec flag with interpreters
 /sbin/start-stop-daemon \

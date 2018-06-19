@@ -6,7 +6,7 @@ k8s-cluster-server: https://ip:8443
 k8s-cluster-token: token goes here
 
 stemcell: bosh-warden-boshlite-ubuntu-trusty-go_agent
-# optional
+
 registry-server: gcr.io/my-project
 registry-user: _json_key
 registry-pass: |
