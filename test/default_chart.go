@@ -2,8 +2,8 @@ package test
 
 import (
 	"io/ioutil"
-	"path/filepath"
 	"os"
+	"path/filepath"
 )
 
 type TestChart struct {
@@ -73,7 +73,7 @@ func (t *TestChart) WriteChart(chartPath string) error {
 		return err
 	}
 	for key, value := range t.PlanContents {
-		path := filepath.Join(chartPath, "plans", key + ".yaml")
+		path := filepath.Join(chartPath, "plans", key+".yaml")
 		err = ioutil.WriteFile(path, value, 0666)
 		if err != nil {
 			return err
