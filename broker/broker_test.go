@@ -74,7 +74,7 @@ var _ = Describe("Broker", func() {
 				"small": {
 					Name:        "tiny",
 					Description: "tiny data",
-					File:        "tinu.yaml",
+					File:        "tiny.yaml",
 				},
 				"medium": {
 					Name:        "big",
@@ -89,25 +89,25 @@ var _ = Describe("Broker", func() {
 
 	Context("catalog", func() {
 		It("Provides a catalog with correct service", func() {
-			serviceBroker := NewPksServiceBroker("service-id", "spacebears", registryConfig, nil, nil, charts, logger)
+			serviceBroker := NewPksServiceBroker("service-id", "foo-", registryConfig, nil, nil, charts, logger)
 			serviceCatalog := serviceBroker.Services(nil)
 
 			Expect(len(serviceCatalog)).To(Equal(2))
 
 			spacebearsService := serviceCatalog[0]
-			Expect(spacebearsService.ID).To(Equal("service-id")) //todo!
-			Expect(spacebearsService.Name).To(Equal("spacebears"))
+			Expect(spacebearsService.ID).To(Equal("6f504bb6-230b-5616-bc80-c8f1730a0cfd"))
+			Expect(spacebearsService.Name).To(Equal("foo-spacebears"))
 			Expect(spacebearsService.Description).To(Equal("spacebears service and spacebears broker helm chart"))
 			Expect(spacebearsService.Bindable).To(BeTrue())
 
 			mysqlService := serviceCatalog[1]
-			//todo:
-			//Expect(mysqlService.Name).To(Equal("mysql"))
+			Expect(mysqlService.ID).To(Equal("20c3212b-63df-5ce7-b934-f292ffeb7bde"))
+			Expect(mysqlService.Name).To(Equal("foo-mysql"))
 			Expect(mysqlService.Description).To(Equal("all your data are belong to us"))
 		})
 
 		It("Provides a catalog with correct plans", func() {
-			serviceBroker := NewPksServiceBroker("service-id", "spacebears", registryConfig, nil, nil, charts, logger)
+			serviceBroker := NewPksServiceBroker("service-id", "foo-", registryConfig, nil, nil, charts, logger)
 			serviceCatalog := serviceBroker.Services(nil)
 
 			expectedPlans := []brokerapi.ServicePlan{

@@ -24,6 +24,7 @@ import (
 	"github.com/cf-platform-eng/kibosh/config"
 	my_helm "github.com/cf-platform-eng/kibosh/helm"
 	"github.com/cf-platform-eng/kibosh/k8s"
+	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
 	api_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,22 +36,22 @@ const registrySecretName = "registry-secret"
 
 // PksServiceBroker contains values passed in from configuration necessary for broker's work.
 type PksServiceBroker struct {
-	Logger         lager.Logger
-	ServiceID      string
-	ServiceName    string
-	registryConfig *config.RegistryConfig
+	Logger            lager.Logger
+	ServiceID         string
+	ServiceNamePrefix string
+	registryConfig    *config.RegistryConfig
 
 	cluster      k8s.Cluster
 	myHelmClient my_helm.MyHelmClient
 	charts       []*my_helm.MyChart
 }
 
-func NewPksServiceBroker(serviceID string, serviceName string, registryConfig *config.RegistryConfig, cluster k8s.Cluster, myHelmClient my_helm.MyHelmClient, charts []*my_helm.MyChart, logger lager.Logger) *PksServiceBroker {
+func NewPksServiceBroker(serviceID string, serviceNamePrefix string, registryConfig *config.RegistryConfig, cluster k8s.Cluster, myHelmClient my_helm.MyHelmClient, charts []*my_helm.MyChart, logger lager.Logger) *PksServiceBroker {
 	return &PksServiceBroker{
-		Logger:         logger,
-		ServiceID:      serviceID,
-		ServiceName:    serviceName,
-		registryConfig: registryConfig,
+		Logger:            logger,
+		ServiceID:         serviceID,
+		ServiceNamePrefix: serviceNamePrefix,
+		registryConfig:    registryConfig,
 
 		cluster:      cluster,
 		myHelmClient: myHelmClient,
@@ -73,8 +74,8 @@ func (broker *PksServiceBroker) Services(ctx context.Context) []brokerapi.Servic
 		}
 
 		serviceCatalog = append(serviceCatalog, brokerapi.Service{
-			ID:          broker.ServiceID,   //todo!
-			Name:        broker.ServiceName, //todo!
+			ID:          broker.getServiceID(chart),
+			Name:        broker.getServiceName(chart),
 			Description: chart.Metadata.Description,
 			Bindable:    true,
 
@@ -324,4 +325,12 @@ func (broker *PksServiceBroker) podsReady(instanceID string) (string, bool, erro
 
 func (broker *PksServiceBroker) getNamespace(instanceID string) string {
 	return "kibosh-" + instanceID
+}
+
+func (broker *PksServiceBroker) getServiceName(chart *my_helm.MyChart) string {
+	return broker.ServiceNamePrefix + chart.Metadata.Name
+}
+
+func (broker *PksServiceBroker) getServiceID(chart *my_helm.MyChart) string {
+	return uuid.NewSHA1(uuid.NameSpace_OID, []byte(broker.getServiceName(chart))).String()
 }

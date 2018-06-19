@@ -41,10 +41,10 @@ type RegistryConfig struct {
 }
 
 type config struct {
-	AdminUsername string `envconfig:"SECURITY_USER_NAME" required:"true"`
-	AdminPassword string `envconfig:"SECURITY_USER_PASSWORD" required:"true"`
-	ServiceID     string `envconfig:"SERVICE_ID" required:"true"`
-	ServiceName   string `envconfig:"SERVICE_NAME" required:"true"`
+	AdminUsername     string `envconfig:"SECURITY_USER_NAME" required:"true"`
+	AdminPassword     string `envconfig:"SECURITY_USER_PASSWORD" required:"true"`
+	ServiceID         string `envconfig:"SERVICE_ID" required:"true"`
+	ServiceNamePrefix string `envconfig:"SERVICE_NAME_PREFIX"`
 
 	Port         int    `envconfig:"PORT" default:"8080"`
 	HelmChartDir string `envconfig:"HELM_CHART_DIR" default:"charts"`
@@ -91,13 +91,12 @@ func Parse() (*config, error) {
 		return nil, err
 	}
 
-	c.ServiceName = strings.Replace(c.ServiceName, "_", "-", -1)
-	match, err := regexp.MatchString(`^[0-9a-z.\-]+$`, c.ServiceName)
+	match, err := regexp.MatchString(`^[0-9a-z.\-]*$`, c.ServiceNamePrefix)
 	if err != nil {
 		return nil, err
 	}
 	if !match {
-		return nil, errors.New(fmt.Sprintf("Name [%s] contains invalid characters", c.ServiceName))
+		return nil, errors.New(fmt.Sprintf("Name [%s] contains invalid characters", c.ServiceNamePrefix))
 	}
 
 	return c, nil
