@@ -19,59 +19,26 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/cf-platform-eng/kibosh/helm"
+	"github.com/cf-platform-eng/kibosh/test"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"strings"
 )
 
 var _ = Describe("Broker", func() {
-	chartYaml := []byte(`
-name: spacebears
-description: spacebears service and spacebears broker helm chart
-version: 0.0.1
-`)
-
-	valuesYaml := []byte(`
-name: value
-`)
-	plansYaml := []byte(`
-- name: "small"
-  description: "default (small) plan for mysql"
-  file: "small.yaml"
-- name: "medium"
-  description: "medium sized plan for mysql"
-  file: "medium.yaml"	
-`)
-
-	smallYaml := []byte(``)
-	mediumYaml := []byte(`
-persistence:
-  size: 16Gi
-`)
-
 	var chartPath string
+	var testChart *test.TestChart
 
 	BeforeEach(func() {
 		var err error
 		chartPath, err = ioutil.TempDir("", "chart-")
 		Expect(err).To(BeNil())
-		err = os.Mkdir(filepath.Join(chartPath, "plans"), 0700)
-		Expect(err).To(BeNil())
 
-		err = ioutil.WriteFile(filepath.Join(chartPath, "Chart.yaml"), chartYaml, 0666)
+		testChart = test.DefaultChart()
+		err = testChart.WriteChart(chartPath)
 		Expect(err).To(BeNil())
-		err = ioutil.WriteFile(filepath.Join(chartPath, "values.yaml"), valuesYaml, 0666)
-		Expect(err).To(BeNil())
-		err = ioutil.WriteFile(filepath.Join(chartPath, "plans.yaml"), plansYaml, 0666)
-		Expect(err).To(BeNil())
-
-		err = ioutil.WriteFile(filepath.Join(chartPath, "plans", "small.yaml"), smallYaml, 0666)
-		Expect(err).To(BeNil())
-		err = ioutil.WriteFile(filepath.Join(chartPath, "plans", "medium.yaml"), mediumYaml, 0666)
-		Expect(err).To(BeNil())
-
 	})
 
 	AfterEach(func() {
@@ -96,13 +63,11 @@ persistence:
 	})
 
 	It("reading default vals should return parsed contents", func() {
-		err := ioutil.WriteFile(filepath.Join(chartPath, "values.yaml"), valuesYaml, 0666)
-		Expect(err).To(BeNil())
-
 		chart, err := helm.NewChart(chartPath, "")
 		Expect(err).To(BeNil())
 
-		Expect(chart.Values).To(Equal([]byte("name: value\n")))
+		Expect(strings.TrimSpace(string(chart.Values))).
+			To(Equal(strings.TrimSpace(string(testChart.ValuesYaml))))
 	})
 
 	It("returns error on bad base values yaml", func() {
@@ -153,11 +118,12 @@ foo`), 0666)
 
 	Context("override image sources", func() {
 		It("does nothing if no private repo configure", func() {
-			valuesYaml = []byte(`
+			testChart.ValuesYaml = []byte(`
 image: my-image
 foo: bar
 `)
-			err := ioutil.WriteFile(filepath.Join(chartPath, "values.yaml"), valuesYaml, 0666)
+
+			err := testChart.WriteChart(chartPath)
 			Expect(err).To(BeNil())
 
 			chart, err := helm.NewChart(chartPath, "")
@@ -170,11 +136,11 @@ image: my-image
 		})
 
 		It("adds prefix in single image case", func() {
-			valuesYaml = []byte(`
+			testChart.ValuesYaml = []byte(`
 image: my-image
 foo: bar
 `)
-			err := ioutil.WriteFile(filepath.Join(chartPath, "values.yaml"), valuesYaml, 0666)
+			err := testChart.WriteChart(chartPath)
 			Expect(err).To(BeNil())
 
 			chart, err := helm.NewChart(chartPath, "docker.example.com/some-scope")
@@ -187,11 +153,11 @@ image: docker.example.com/some-scope/my-image
 		})
 
 		It("replaces existing prefixes if present", func() {
-			valuesYaml = []byte(`
+			testChart.ValuesYaml = []byte(`
 image: quay.io/my-image
 foo: bar
 `)
-			err := ioutil.WriteFile(filepath.Join(chartPath, "values.yaml"), valuesYaml, 0666)
+			err := testChart.WriteChart(chartPath)
 			Expect(err).To(BeNil())
 
 			chart, err := helm.NewChart(chartPath, "docker.example.com/some-scope")
@@ -204,7 +170,7 @@ image: docker.example.com/some-scope/my-image
 		})
 
 		It("adds prefix in multiple image case", func() {
-			valuesYaml = []byte(`
+			testChart.ValuesYaml = []byte(`
 images:
   thing1:
     image: my-first-image
@@ -213,7 +179,7 @@ images:
     image: my-second-image
     tag: 1.2.3
 `)
-			err := ioutil.WriteFile(filepath.Join(chartPath, "values.yaml"), valuesYaml, 0666)
+			err := testChart.WriteChart(chartPath)
 			Expect(err).To(BeNil())
 
 			chart, err := helm.NewChart(chartPath, "docker.example.com")
@@ -231,11 +197,11 @@ images:
 		})
 
 		It("returns error on bad IMAGE format", func() {
-			valuesYaml = []byte(`
+			testChart.ValuesYaml = []byte(`
 image:
   foo: quay.io/my-image
 `)
-			err := ioutil.WriteFile(filepath.Join(chartPath, "values.yaml"), valuesYaml, 0666)
+			err := testChart.WriteChart(chartPath)
 			Expect(err).To(BeNil())
 
 			_, err = helm.NewChart(chartPath, "docker.example.com")
@@ -244,11 +210,11 @@ image:
 		})
 
 		It("returns error on bad IMAGES format", func() {
-			valuesYaml = []byte(`
+			testChart.ValuesYaml = []byte(`
 images:
   thing1: foo
 `)
-			err := ioutil.WriteFile(filepath.Join(chartPath, "values.yaml"), valuesYaml, 0666)
+			err := testChart.WriteChart(chartPath)
 			Expect(err).To(BeNil())
 
 			_, err = helm.NewChart(chartPath, "docker.example.com")
@@ -259,12 +225,12 @@ images:
 	})
 
 	It("returns error on bad IMAGES format, inner structure", func() {
-		valuesYaml = []byte(`
+		testChart.ValuesYaml = []byte(`
 images:
   thing1:
     image: true
 `)
-		err := ioutil.WriteFile(filepath.Join(chartPath, "values.yaml"), valuesYaml, 0666)
+		err := testChart.WriteChart(chartPath)
 		Expect(err).To(BeNil())
 
 		_, err = helm.NewChart(chartPath, "docker.example.com")
@@ -281,8 +247,8 @@ images:
 			Expect(myChart.Plans["small"].File).To(Equal("small.yaml"))
 			Expect(myChart.Plans["small"].Description).To(Equal("default (small) plan for mysql"))
 			Expect(len(myChart.Plans)).To(Equal(2))
-			Expect(myChart.Plans["small"].Values).To(Equal(smallYaml))
-			Expect(myChart.Plans["medium"].Values).To(Equal(mediumYaml))
+			Expect(myChart.Plans["small"].Values).To(Equal(testChart.PlanContents["small"]))
+			Expect(myChart.Plans["medium"].Values).To(Equal(testChart.PlanContents["medium"]))
 
 		})
 
