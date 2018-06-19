@@ -25,6 +25,7 @@ import (
 	"github.com/cf-platform-eng/kibosh/config"
 	"github.com/cf-platform-eng/kibosh/helm"
 	"github.com/cf-platform-eng/kibosh/k8s"
+	"github.com/cf-platform-eng/kibosh/repository"
 	"github.com/pivotal-cf/brokerapi"
 )
 
@@ -44,14 +45,15 @@ func main() {
 		brokerLogger.Fatal("Error setting up k8s cluster", err)
 	}
 
-	myChart, err := helm.NewChart(conf.HelmChartDir, conf.RegistryConfig.Server)
+	repo := repository.NewRepository(conf.HelmChartDir, conf.RegistryConfig.Server, brokerLogger)
+	charts, err := repo.LoadCharts()
 	if err != nil {
-		brokerLogger.Fatal("Helm chart failed to load", err)
+		brokerLogger.Fatal("Unable to load charts", err)
 	}
 
 	myHelmClient := helm.NewMyHelmClient(cluster, brokerLogger)
 	serviceBroker := broker.NewPksServiceBroker(
-		conf.ServiceID, conf.ServiceName, conf.RegistryConfig, cluster, myHelmClient, myChart, brokerLogger,
+		conf.ServiceID, conf.ServiceName, conf.RegistryConfig, cluster, myHelmClient, charts, brokerLogger,
 	)
 	brokerCredentials := brokerapi.BrokerCredentials{
 		Username: conf.AdminUsername,

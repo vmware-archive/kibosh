@@ -18,6 +18,7 @@ package broker
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/cf-platform-eng/kibosh/config"
@@ -28,7 +29,6 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/helm/pkg/helm"
 	hapi_release "k8s.io/helm/pkg/proto/hapi/release"
-	"strings"
 )
 
 const registrySecretName = "registry-secret"
@@ -42,10 +42,10 @@ type PksServiceBroker struct {
 
 	cluster      k8s.Cluster
 	myHelmClient my_helm.MyHelmClient
-	myChart      *my_helm.MyChart
+	charts       []*my_helm.MyChart
 }
 
-func NewPksServiceBroker(serviceID string, serviceName string, registryConfig *config.RegistryConfig, cluster k8s.Cluster, myHelmClient my_helm.MyHelmClient, myChart *my_helm.MyChart, logger lager.Logger) *PksServiceBroker {
+func NewPksServiceBroker(serviceID string, serviceName string, registryConfig *config.RegistryConfig, cluster k8s.Cluster, myHelmClient my_helm.MyHelmClient, charts []*my_helm.MyChart, logger lager.Logger) *PksServiceBroker {
 	return &PksServiceBroker{
 		Logger:         logger,
 		ServiceID:      serviceID,
@@ -54,31 +54,33 @@ func NewPksServiceBroker(serviceID string, serviceName string, registryConfig *c
 
 		cluster:      cluster,
 		myHelmClient: myHelmClient,
-		myChart:      myChart,
+		charts:       charts,
 	}
 }
 
 func (broker *PksServiceBroker) Services(ctx context.Context) []brokerapi.Service {
-	plans := []brokerapi.ServicePlan{}
+	serviceCatalog := []brokerapi.Service{}
 
-	for _, plan := range broker.myChart.Plans {
+	for _, chart := range broker.charts {
+		plans := []brokerapi.ServicePlan{}
+		for _, plan := range chart.Plans {
 
-		plans = append(plans, brokerapi.ServicePlan{
-			ID:          broker.ServiceID + "-" + plan.Name,
-			Name:        plan.Name,
-			Description: plan.Description,
+			plans = append(plans, brokerapi.ServicePlan{
+				ID:          broker.ServiceID + "-" + plan.Name,
+				Name:        plan.Name,
+				Description: plan.Description,
+			})
+		}
+
+		serviceCatalog = append(serviceCatalog, brokerapi.Service{
+			ID:          broker.ServiceID,   //todo!
+			Name:        broker.ServiceName, //todo!
+			Description: chart.Metadata.Description,
+			Bindable:    true,
+
+			Plans: plans,
 		})
-
 	}
-
-	serviceCatalog := []brokerapi.Service{{
-		ID:          broker.ServiceID,
-		Name:        broker.ServiceName,
-		Description: broker.myChart.Metadata.Description,
-		Bindable:    true,
-
-		Plans: plans,
-	}}
 
 	return serviceCatalog
 }
@@ -115,7 +117,11 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 	}
 
 	planName := strings.TrimPrefix(details.PlanID, details.ServiceID+"-")
-	_, err = broker.myHelmClient.InstallChart(broker.myChart, namespaceName, planName, helm.ReleaseName(namespaceName))
+
+	if true {
+		panic("foo")
+	}
+	_, err = broker.myHelmClient.InstallChart(broker.charts[0], namespaceName, planName, helm.ReleaseName(namespaceName))
 	if err != nil {
 		return brokerapi.ProvisionedServiceSpec{}, err
 	}
