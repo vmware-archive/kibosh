@@ -37,8 +37,6 @@ var _ = Describe("Config", func() {
 			os.Setenv("SECURITY_USER_PASSWORD", "abc123")
 			os.Setenv("PORT", "9001")
 			os.Setenv("HELM_CHART_DIR", "/home/somewhere")
-			os.Setenv("SERVICE_ID", "123")
-			os.Setenv("SERVICE_NAME", "foo")
 		})
 
 		It("parses config from environment", func() {
@@ -47,18 +45,9 @@ var _ = Describe("Config", func() {
 			Expect(c.AdminUsername).To(Equal("bob"))
 			Expect(c.AdminPassword).To(Equal("abc123"))
 			Expect(c.HelmChartDir).To(Equal("/home/somewhere"))
-			Expect(c.ServiceID).To(Equal("123"))
-			Expect(c.ServiceName).To(Equal("foo"))
 			Expect(c.Port).To(Equal(9001))
 
 			Expect(c.ClusterCredentials.Server).To(Equal("127.0.0.1/api"))
-		})
-
-		It("parses config from environment with underscore in service name", func() {
-			os.Setenv("SERVICE_NAME", "foo_bar")
-			c, err := Parse()
-			Expect(err).To(BeNil())
-			Expect(c.ServiceName).To(Equal("foo-bar"))
 		})
 
 		It("has registry config", func() {
@@ -119,12 +108,6 @@ my cert data
 				Expect(err).NotTo(BeNil())
 			})
 
-			It("fails to parse cluster credentials", func() {
-				os.Setenv("SERVICE_NAME", "foo bar")
-				_, err := Parse()
-				Expect(err).NotTo(BeNil())
-				Expect(err.Error()).To(ContainSubstring("invalid characters"))
-			})
 		})
 
 		Context("with registry config", func() {

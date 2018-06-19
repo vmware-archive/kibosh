@@ -36,9 +36,15 @@ import (
 )
 
 var _ = Describe("Broker", func() {
+	const spacebearsServiceGUID = "37b7acb6-6755-56fe-a17f-2307657023ef"
+	const mysqlServiceGUID = "c76ed0a4-9a04-5710-90c2-75e955697b08"
+
 	var logger lager.Logger
 
-	var myChart *my_helm.MyChart
+	var spacebearsChart *my_helm.MyChart
+	var mysqlChart *my_helm.MyChart
+	var charts []*my_helm.MyChart
+
 	var registryConfig *config.RegistryConfig
 
 	BeforeEach(func() {
@@ -49,7 +55,7 @@ var _ = Describe("Broker", func() {
 			Pass:   "monkey123",
 			Email:  "k8s@example.com",
 		}
-		myChart = &my_helm.MyChart{
+		spacebearsChart = &my_helm.MyChart{
 			Chart: &hapi_chart.Chart{
 				Metadata: &hapi_chart.Metadata{
 					Name:        "spacebears",
@@ -69,33 +75,61 @@ var _ = Describe("Broker", func() {
 				},
 			},
 		}
+		mysqlChart = &my_helm.MyChart{
+			Chart: &hapi_chart.Chart{
+				Metadata: &hapi_chart.Metadata{
+					Name:        "mysql",
+					Description: "all your data are belong to us",
+				},
+			},
+			Plans: map[string]my_helm.Plan{
+				"small": {
+					Name:        "tiny",
+					Description: "tiny data",
+					File:        "tiny.yaml",
+				},
+				"medium": {
+					Name:        "big",
+					Description: "big data",
+					File:        "big.yaml",
+				},
+			},
+		}
 
+		charts = []*my_helm.MyChart{spacebearsChart, mysqlChart}
 	})
 
 	Context("catalog", func() {
 		It("Provides a catalog with correct service", func() {
-			serviceBroker := NewPksServiceBroker("service-id", "spacebears", registryConfig, nil, nil, myChart, logger)
+			serviceBroker := NewPksServiceBroker(registryConfig, nil, nil, charts, logger)
 			serviceCatalog := serviceBroker.Services(nil)
 
-			Expect(len(serviceCatalog)).To(Equal(1))
-			Expect(serviceCatalog[0].ID).To(Equal("service-id"))
-			Expect(serviceCatalog[0].Name).To(Equal("spacebears"))
-			Expect(serviceCatalog[0].Description).To(Equal("spacebears service and spacebears broker helm chart"))
-			Expect(serviceCatalog[0].Bindable).To(BeTrue())
+			Expect(len(serviceCatalog)).To(Equal(2))
+
+			spacebearsService := serviceCatalog[0]
+			Expect(spacebearsService.ID).To(Equal(spacebearsServiceGUID))
+			Expect(spacebearsService.Name).To(Equal("spacebears"))
+			Expect(spacebearsService.Description).To(Equal("spacebears service and spacebears broker helm chart"))
+			Expect(spacebearsService.Bindable).To(BeTrue())
+
+			mysqlService := serviceCatalog[1]
+			Expect(mysqlService.ID).To(Equal(mysqlServiceGUID))
+			Expect(mysqlService.Name).To(Equal("mysql"))
+			Expect(mysqlService.Description).To(Equal("all your data are belong to us"))
 		})
 
 		It("Provides a catalog with correct plans", func() {
-			serviceBroker := NewPksServiceBroker("service-id", "spacebears", registryConfig, nil, nil, myChart, logger)
+			serviceBroker := NewPksServiceBroker(registryConfig, nil, nil, charts, logger)
 			serviceCatalog := serviceBroker.Services(nil)
 
 			expectedPlans := []brokerapi.ServicePlan{
 				{
-					ID:          "service-id-small",
+					ID:          "37b7acb6-6755-56fe-a17f-2307657023ef-small",
 					Name:        "small",
 					Description: "default (small) plan for spacebears",
 				},
 				{
-					ID:          "service-id-medium",
+					ID:          "37b7acb6-6755-56fe-a17f-2307657023ef-medium",
 					Name:        "medium",
 					Description: "medium plan for spacebears",
 				},
@@ -106,6 +140,7 @@ var _ = Describe("Broker", func() {
 	})
 
 	Context("provision", func() {
+		var details brokerapi.ProvisionDetails
 		var fakeMyHelmClient *helmfakes.FakeMyHelmClient
 		var fakeCluster *k8sfakes.FakeCluster
 		var broker *PksServiceBroker
@@ -113,12 +148,15 @@ var _ = Describe("Broker", func() {
 		BeforeEach(func() {
 			fakeMyHelmClient = &helmfakes.FakeMyHelmClient{}
 			fakeCluster = &k8sfakes.FakeCluster{}
+			details = brokerapi.ProvisionDetails{
+				ServiceID: spacebearsServiceGUID,
+			}
 
-			broker = NewPksServiceBroker("service-id", "spacebears", registryConfig, fakeCluster, fakeMyHelmClient, myChart, logger)
+			broker = NewPksServiceBroker(registryConfig, fakeCluster, fakeMyHelmClient, charts, logger)
 		})
 
 		It("requires async", func() {
-			_, err := broker.Provision(nil, "my-instance-guid", brokerapi.ProvisionDetails{}, false)
+			_, err := broker.Provision(nil, "my-instance-guid", details, false)
 
 			Expect(err).NotTo(BeNil())
 			Expect(err.Error()).To(ContainSubstring("async"))
@@ -126,7 +164,7 @@ var _ = Describe("Broker", func() {
 		})
 
 		It("responds correctly", func() {
-			resp, err := broker.Provision(nil, "my-instance-guid", brokerapi.ProvisionDetails{}, true)
+			resp, err := broker.Provision(nil, "my-instance-guid", details, true)
 
 			Expect(err).To(BeNil())
 			Expect(resp.IsAsync).To(BeTrue())
@@ -135,7 +173,7 @@ var _ = Describe("Broker", func() {
 
 		Context("namespace", func() {
 			It("creates a new namespace", func() {
-				_, err := broker.Provision(nil, "my-instance-guid", brokerapi.ProvisionDetails{}, true)
+				_, err := broker.Provision(nil, "my-instance-guid", details, true)
 
 				Expect(err).To(BeNil())
 
@@ -149,7 +187,7 @@ var _ = Describe("Broker", func() {
 				errorMessage := "namespace already taken or something"
 				fakeCluster.CreateNamespaceReturns(nil, errors.New(errorMessage))
 
-				_, err := broker.Provision(nil, "my-instance-guid", brokerapi.ProvisionDetails{}, true)
+				_, err := broker.Provision(nil, "my-instance-guid", details, true)
 
 				Expect(err).NotTo(BeNil())
 				Expect(err.Error()).To(ContainSubstring(errorMessage))
@@ -159,9 +197,9 @@ var _ = Describe("Broker", func() {
 		Context("registry secrets", func() {
 			It("doesn't mess with secrets when not configured", func() {
 				registryConfig = &config.RegistryConfig{}
-				broker = NewPksServiceBroker("service-id", "spacebears", registryConfig, fakeCluster, fakeMyHelmClient, myChart, logger)
+				broker = NewPksServiceBroker(registryConfig, fakeCluster, fakeMyHelmClient, charts, logger)
 
-				_, err := broker.Provision(nil, "my-instance-guid", brokerapi.ProvisionDetails{}, true)
+				_, err := broker.Provision(nil, "my-instance-guid", details, true)
 
 				Expect(err).To(BeNil())
 
@@ -172,18 +210,19 @@ var _ = Describe("Broker", func() {
 
 		Context("chart", func() {
 			It("creates helm chart", func() {
+				planID := spacebearsServiceGUID + "-small"
 				_, err := broker.Provision(nil, "my-instance-guid", brokerapi.ProvisionDetails{
-					ServiceID: "my-service",
-					PlanID:    "my-service-my-plan",
+					ServiceID: spacebearsServiceGUID,
+					PlanID:    planID,
 				}, true)
 
 				Expect(err).To(BeNil())
 
 				Expect(fakeMyHelmClient.InstallChartCallCount()).To(Equal(1))
 				chart, namespaceName, plan, opts := fakeMyHelmClient.InstallChartArgsForCall(0)
-				Expect(chart).To(Equal(chart))
+				Expect(chart).To(Equal(spacebearsChart))
 				Expect(namespaceName).To(Equal("kibosh-my-instance-guid"))
-				Expect(plan).To(Equal("my-plan"))
+				Expect(plan).To(Equal("small"))
 				Expect(opts).To(HaveLen(1))
 			})
 
@@ -191,10 +230,23 @@ var _ = Describe("Broker", func() {
 				errorMessage := "no helm for you"
 				fakeMyHelmClient.InstallChartReturns(nil, errors.New(errorMessage))
 
-				_, err := broker.Provision(nil, "my-instance-guid", brokerapi.ProvisionDetails{}, true)
+				_, err := broker.Provision(nil, "my-instance-guid", details, true)
 
 				Expect(err).NotTo(BeNil())
 				Expect(err.Error()).To(ContainSubstring(errorMessage))
+			})
+
+			It("provisions correct chart", func() {
+				_, err := broker.Provision(nil, "my-instance-guid", brokerapi.ProvisionDetails{
+					ServiceID: mysqlServiceGUID,
+					PlanID:    mysqlServiceGUID + "-tiny",
+				}, true)
+
+				Expect(err).To(BeNil())
+
+				Expect(fakeMyHelmClient.InstallChartCallCount()).To(Equal(1))
+				chart, _, _, _ := fakeMyHelmClient.InstallChartArgsForCall(0)
+				Expect(chart).To(Equal(mysqlChart))
 			})
 		})
 	})
@@ -208,7 +260,7 @@ var _ = Describe("Broker", func() {
 			fakeMyHelmClient = &helmfakes.FakeMyHelmClient{}
 			fakeCluster = &k8sfakes.FakeCluster{}
 
-			broker = NewPksServiceBroker("service-id", "spacebears", registryConfig, fakeCluster, fakeMyHelmClient, myChart, logger)
+			broker = NewPksServiceBroker(registryConfig, fakeCluster, fakeMyHelmClient, charts, logger)
 
 			serviceList := api_v1.ServiceList{
 				Items: []api_v1.Service{
@@ -464,7 +516,7 @@ var _ = Describe("Broker", func() {
 			fakeMyHelmClient = &helmfakes.FakeMyHelmClient{}
 			fakeCluster = &k8sfakes.FakeCluster{}
 
-			broker = NewPksServiceBroker("service-id", "spacebears", registryConfig, fakeCluster, fakeMyHelmClient, myChart, logger)
+			broker = NewPksServiceBroker(registryConfig, fakeCluster, fakeMyHelmClient, charts, logger)
 		})
 
 		It("bind returns cluster secrets", func() {
@@ -610,7 +662,7 @@ var _ = Describe("Broker", func() {
 			fakeMyHelmClient = &helmfakes.FakeMyHelmClient{}
 			fakeCluster = &k8sfakes.FakeCluster{}
 
-			broker = NewPksServiceBroker("service-id", "spacebears", registryConfig, fakeCluster, fakeMyHelmClient, myChart, logger)
+			broker = NewPksServiceBroker(registryConfig, fakeCluster, fakeMyHelmClient, charts, logger)
 		})
 
 		It("bubbles up delete chart errors", func() {

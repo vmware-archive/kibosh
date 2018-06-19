@@ -18,17 +18,19 @@ package broker
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/cf-platform-eng/kibosh/config"
 	my_helm "github.com/cf-platform-eng/kibosh/helm"
 	"github.com/cf-platform-eng/kibosh/k8s"
+	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
+	"github.com/pkg/errors"
 	api_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/helm/pkg/helm"
 	hapi_release "k8s.io/helm/pkg/proto/hapi/release"
-	"strings"
 )
 
 const registrySecretName = "registry-secret"
@@ -36,49 +38,54 @@ const registrySecretName = "registry-secret"
 // PksServiceBroker contains values passed in from configuration necessary for broker's work.
 type PksServiceBroker struct {
 	Logger         lager.Logger
-	ServiceID      string
-	ServiceName    string
 	registryConfig *config.RegistryConfig
 
 	cluster      k8s.Cluster
 	myHelmClient my_helm.MyHelmClient
-	myChart      *my_helm.MyChart
+	charts       []*my_helm.MyChart
+	chartsMap    map[string]*my_helm.MyChart
 }
 
-func NewPksServiceBroker(serviceID string, serviceName string, registryConfig *config.RegistryConfig, cluster k8s.Cluster, myHelmClient my_helm.MyHelmClient, myChart *my_helm.MyChart, logger lager.Logger) *PksServiceBroker {
-	return &PksServiceBroker{
+func NewPksServiceBroker(registryConfig *config.RegistryConfig, cluster k8s.Cluster, myHelmClient my_helm.MyHelmClient, charts []*my_helm.MyChart, logger lager.Logger) *PksServiceBroker {
+	broker := &PksServiceBroker{
 		Logger:         logger,
-		ServiceID:      serviceID,
-		ServiceName:    serviceName,
 		registryConfig: registryConfig,
 
 		cluster:      cluster,
 		myHelmClient: myHelmClient,
-		myChart:      myChart,
+		charts:       charts,
 	}
+	broker.chartsMap = map[string]*my_helm.MyChart{}
+	for _, chart := range charts {
+		broker.chartsMap[broker.getServiceID(chart)] = chart
+	}
+
+	return broker
 }
 
 func (broker *PksServiceBroker) Services(ctx context.Context) []brokerapi.Service {
-	plans := []brokerapi.ServicePlan{}
+	serviceCatalog := []brokerapi.Service{}
 
-	for _, plan := range broker.myChart.Plans {
+	for _, chart := range broker.charts {
+		plans := []brokerapi.ServicePlan{}
+		for _, plan := range chart.Plans {
 
-		plans = append(plans, brokerapi.ServicePlan{
-			ID:          broker.ServiceID + "-" + plan.Name,
-			Name:        plan.Name,
-			Description: plan.Description,
+			plans = append(plans, brokerapi.ServicePlan{
+				ID:          broker.getServiceID(chart) + "-" + plan.Name,
+				Name:        plan.Name,
+				Description: plan.Description,
+			})
+		}
+
+		serviceCatalog = append(serviceCatalog, brokerapi.Service{
+			ID:          broker.getServiceID(chart),
+			Name:        broker.getServiceName(chart),
+			Description: chart.Metadata.Description,
+			Bindable:    true,
+
+			Plans: plans,
 		})
-
 	}
-
-	serviceCatalog := []brokerapi.Service{{
-		ID:          broker.ServiceID,
-		Name:        broker.ServiceName,
-		Description: broker.myChart.Metadata.Description,
-		Bindable:    true,
-
-		Plans: plans,
-	}}
 
 	return serviceCatalog
 }
@@ -115,7 +122,12 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 	}
 
 	planName := strings.TrimPrefix(details.PlanID, details.ServiceID+"-")
-	_, err = broker.myHelmClient.InstallChart(broker.myChart, namespaceName, planName, helm.ReleaseName(namespaceName))
+
+	chart := broker.chartsMap[details.ServiceID]
+	if chart == nil {
+		return brokerapi.ProvisionedServiceSpec{}, errors.New(fmt.Sprintf("Chart not found for [%s]", details.ServiceID))
+	}
+	_, err = broker.myHelmClient.InstallChart(broker.chartsMap[details.ServiceID], namespaceName, planName, helm.ReleaseName(namespaceName))
 	if err != nil {
 		return brokerapi.ProvisionedServiceSpec{}, err
 	}
@@ -318,4 +330,12 @@ func (broker *PksServiceBroker) podsReady(instanceID string) (string, bool, erro
 
 func (broker *PksServiceBroker) getNamespace(instanceID string) string {
 	return "kibosh-" + instanceID
+}
+
+func (broker *PksServiceBroker) getServiceName(chart *my_helm.MyChart) string {
+	return chart.Metadata.Name
+}
+
+func (broker *PksServiceBroker) getServiceID(chart *my_helm.MyChart) string {
+	return uuid.NewSHA1(uuid.NameSpace_OID, []byte(broker.getServiceName(chart))).String()
 }
