@@ -21,8 +21,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"regexp"
 	"strings"
 )
 
@@ -41,10 +39,8 @@ type RegistryConfig struct {
 }
 
 type config struct {
-	AdminUsername     string `envconfig:"SECURITY_USER_NAME" required:"true"`
-	AdminPassword     string `envconfig:"SECURITY_USER_PASSWORD" required:"true"`
-	ServiceID         string `envconfig:"SERVICE_ID" required:"true"`
-	ServiceNamePrefix string `envconfig:"SERVICE_NAME_PREFIX"`
+	AdminUsername string `envconfig:"SECURITY_USER_NAME" required:"true"`
+	AdminPassword string `envconfig:"SECURITY_USER_PASSWORD" required:"true"`
 
 	Port         int    `envconfig:"PORT" default:"8080"`
 	HelmChartDir string `envconfig:"HELM_CHART_DIR" default:"charts"`
@@ -89,14 +85,6 @@ func Parse() (*config, error) {
 	err = c.ClusterCredentials.parseCAData()
 	if err != nil {
 		return nil, err
-	}
-
-	match, err := regexp.MatchString(`^[0-9a-z.\-]*$`, c.ServiceNamePrefix)
-	if err != nil {
-		return nil, err
-	}
-	if !match {
-		return nil, errors.New(fmt.Sprintf("Name [%s] contains invalid characters", c.ServiceNamePrefix))
 	}
 
 	return c, nil

@@ -52,9 +52,7 @@ func main() {
 	}
 
 	myHelmClient := helm.NewMyHelmClient(cluster, brokerLogger)
-	serviceBroker := broker.NewPksServiceBroker(
-		conf.ServiceID, conf.ServiceName, conf.RegistryConfig, cluster, myHelmClient, charts, brokerLogger,
-	)
+	serviceBroker := broker.NewPksServiceBroker(conf.RegistryConfig, cluster, myHelmClient, charts, brokerLogger)
 	brokerCredentials := brokerapi.BrokerCredentials{
 		Username: conf.AdminUsername,
 		Password: conf.AdminPassword,

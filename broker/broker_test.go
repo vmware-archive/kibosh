@@ -20,6 +20,8 @@ import (
 	. "github.com/cf-platform-eng/kibosh/broker"
 	"github.com/cf-platform-eng/kibosh/config"
 	my_helm "github.com/cf-platform-eng/kibosh/helm"
+	"github.com/cf-platform-eng/kibosh/helm/helmfakes"
+	"github.com/cf-platform-eng/kibosh/k8s/k8sfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
@@ -89,35 +91,35 @@ var _ = Describe("Broker", func() {
 
 	Context("catalog", func() {
 		It("Provides a catalog with correct service", func() {
-			serviceBroker := NewPksServiceBroker("service-id", "foo-", registryConfig, nil, nil, charts, logger)
+			serviceBroker := NewPksServiceBroker(registryConfig, nil, nil, charts, logger)
 			serviceCatalog := serviceBroker.Services(nil)
 
 			Expect(len(serviceCatalog)).To(Equal(2))
 
 			spacebearsService := serviceCatalog[0]
-			Expect(spacebearsService.ID).To(Equal("6f504bb6-230b-5616-bc80-c8f1730a0cfd"))
-			Expect(spacebearsService.Name).To(Equal("foo-spacebears"))
+			Expect(spacebearsService.ID).To(Equal("37b7acb6-6755-56fe-a17f-2307657023ef"))
+			Expect(spacebearsService.Name).To(Equal("spacebears"))
 			Expect(spacebearsService.Description).To(Equal("spacebears service and spacebears broker helm chart"))
 			Expect(spacebearsService.Bindable).To(BeTrue())
 
 			mysqlService := serviceCatalog[1]
-			Expect(mysqlService.ID).To(Equal("20c3212b-63df-5ce7-b934-f292ffeb7bde"))
-			Expect(mysqlService.Name).To(Equal("foo-mysql"))
+			Expect(mysqlService.ID).To(Equal("c76ed0a4-9a04-5710-90c2-75e955697b08"))
+			Expect(mysqlService.Name).To(Equal("mysql"))
 			Expect(mysqlService.Description).To(Equal("all your data are belong to us"))
 		})
 
 		It("Provides a catalog with correct plans", func() {
-			serviceBroker := NewPksServiceBroker("service-id", "foo-", registryConfig, nil, nil, charts, logger)
+			serviceBroker := NewPksServiceBroker(registryConfig, nil, nil, charts, logger)
 			serviceCatalog := serviceBroker.Services(nil)
 
 			expectedPlans := []brokerapi.ServicePlan{
 				{
-					ID:          "service-id-small",
+					ID:          "37b7acb6-6755-56fe-a17f-2307657023ef-small",
 					Name:        "small",
 					Description: "default (small) plan for spacebears",
 				},
 				{
-					ID:          "service-id-medium",
+					ID:          "37b7acb6-6755-56fe-a17f-2307657023ef-medium",
 					Name:        "medium",
 					Description: "medium plan for spacebears",
 				},
@@ -127,25 +129,26 @@ var _ = Describe("Broker", func() {
 		})
 	})
 
-	//Context("provision", func() {
-	//	var fakeMyHelmClient *helmfakes.FakeMyHelmClient
-	//	var fakeCluster *k8sfakes.FakeCluster
-	//	var broker *PksServiceBroker
-	//
-	//	BeforeEach(func() {
-	//		fakeMyHelmClient = &helmfakes.FakeMyHelmClient{}
-	//		fakeCluster = &k8sfakes.FakeCluster{}
-	//
-	//		broker = NewPksServiceBroker("service-id", "spacebears", registryConfig, fakeCluster, fakeMyHelmClient, myChart, logger)
-	//	})
-	//
-	//	It("requires async", func() {
-	//		_, err := broker.Provision(nil, "my-instance-guid", brokerapi.ProvisionDetails{}, false)
-	//
-	//		Expect(err).NotTo(BeNil())
-	//		Expect(err.Error()).To(ContainSubstring("async"))
-	//
-	//	})
+	Context("provision", func() {
+		var fakeMyHelmClient *helmfakes.FakeMyHelmClient
+		var fakeCluster *k8sfakes.FakeCluster
+		var broker *PksServiceBroker
+
+		BeforeEach(func() {
+			fakeMyHelmClient = &helmfakes.FakeMyHelmClient{}
+			fakeCluster = &k8sfakes.FakeCluster{}
+
+			broker = NewPksServiceBroker(registryConfig, fakeCluster, fakeMyHelmClient, charts, logger)
+		})
+
+		It("requires async", func() {
+			_, err := broker.Provision(nil, "my-instance-guid", brokerapi.ProvisionDetails{}, false)
+
+			Expect(err).NotTo(BeNil())
+			Expect(err.Error()).To(ContainSubstring("async"))
+
+		})
+	})
 	//
 	//	It("responds correctly", func() {
 	//		resp, err := broker.Provision(nil, "my-instance-guid", brokerapi.ProvisionDetails{}, true)

@@ -36,30 +36,33 @@ const registrySecretName = "registry-secret"
 
 // PksServiceBroker contains values passed in from configuration necessary for broker's work.
 type PksServiceBroker struct {
-	Logger            lager.Logger
-	ServiceID         string
-	ServiceNamePrefix string
-	registryConfig    *config.RegistryConfig
+	Logger         lager.Logger
+	registryConfig *config.RegistryConfig
 
 	cluster      k8s.Cluster
 	myHelmClient my_helm.MyHelmClient
 	charts       []*my_helm.MyChart
 }
 
-func NewPksServiceBroker(serviceID string, serviceNamePrefix string, registryConfig *config.RegistryConfig, cluster k8s.Cluster, myHelmClient my_helm.MyHelmClient, charts []*my_helm.MyChart, logger lager.Logger) *PksServiceBroker {
-	return &PksServiceBroker{
-		Logger:            logger,
-		ServiceID:         serviceID,
-		ServiceNamePrefix: serviceNamePrefix,
-		registryConfig:    registryConfig,
+func NewPksServiceBroker(registryConfig *config.RegistryConfig, cluster k8s.Cluster, myHelmClient my_helm.MyHelmClient, charts []*my_helm.MyChart, logger lager.Logger) *PksServiceBroker {
+	broker := &PksServiceBroker{
+		Logger:         logger,
+		registryConfig: registryConfig,
 
 		cluster:      cluster,
 		myHelmClient: myHelmClient,
 		charts:       charts,
 	}
+
+	chartsMap := map[string]*my_helm.MyChart{}
+	for _, chart := range charts {
+		chartsMap[broker.getServiceID(chart)] = chart
+	}
+	return broker
 }
 
 func (broker *PksServiceBroker) Services(ctx context.Context) []brokerapi.Service {
+
 	serviceCatalog := []brokerapi.Service{}
 
 	for _, chart := range broker.charts {
@@ -67,7 +70,7 @@ func (broker *PksServiceBroker) Services(ctx context.Context) []brokerapi.Servic
 		for _, plan := range chart.Plans {
 
 			plans = append(plans, brokerapi.ServicePlan{
-				ID:          broker.ServiceID + "-" + plan.Name,
+				ID:          broker.getServiceID(chart) + "-" + plan.Name,
 				Name:        plan.Name,
 				Description: plan.Description,
 			})
@@ -328,7 +331,7 @@ func (broker *PksServiceBroker) getNamespace(instanceID string) string {
 }
 
 func (broker *PksServiceBroker) getServiceName(chart *my_helm.MyChart) string {
-	return broker.ServiceNamePrefix + chart.Metadata.Name
+	return chart.Metadata.Name
 }
 
 func (broker *PksServiceBroker) getServiceID(chart *my_helm.MyChart) string {
