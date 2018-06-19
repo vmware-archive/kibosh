@@ -411,6 +411,7 @@ jobs:
       file: output/kibosh-release-*.tgz
 
 - name: upload-stemcell-and-release
+  serial_groups: [bosh]
   plan:
   - aggregate:
     - get: kibosh-ci-state
@@ -464,6 +465,7 @@ jobs:
           popd
 
 - name: deploy
+  serial_groups: [bosh]
   plan:
   - aggregate:
     - get: kibosh-ci-state
@@ -509,6 +511,7 @@ jobs:
           popd
 
 - name: push-image-errand
+  serial_groups: [bosh]
   plan:
   - aggregate:
     - get: kibosh-ci-state
@@ -673,6 +676,7 @@ jobs:
       bump: patch
 
 - name: delete-deployment
+  serial_groups: [bosh]
   plan:
   - aggregate:
     - get: kibosh-ci-state
@@ -690,6 +694,7 @@ jobs:
       bbl-state: kibosh-ci-state
 
 - name: clean-up
+  serial_groups: [bosh]
   plan:
   - aggregate:
     - get: kibosh-ci-state
