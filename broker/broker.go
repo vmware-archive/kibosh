@@ -26,6 +26,7 @@ import (
 	"github.com/cf-platform-eng/kibosh/k8s"
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
+	"github.com/pkg/errors"
 	api_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/helm/pkg/helm"
@@ -42,6 +43,7 @@ type PksServiceBroker struct {
 	cluster      k8s.Cluster
 	myHelmClient my_helm.MyHelmClient
 	charts       []*my_helm.MyChart
+	chartsMap    map[string]*my_helm.MyChart
 }
 
 func NewPksServiceBroker(registryConfig *config.RegistryConfig, cluster k8s.Cluster, myHelmClient my_helm.MyHelmClient, charts []*my_helm.MyChart, logger lager.Logger) *PksServiceBroker {
@@ -53,16 +55,15 @@ func NewPksServiceBroker(registryConfig *config.RegistryConfig, cluster k8s.Clus
 		myHelmClient: myHelmClient,
 		charts:       charts,
 	}
-
-	chartsMap := map[string]*my_helm.MyChart{}
+	broker.chartsMap = map[string]*my_helm.MyChart{}
 	for _, chart := range charts {
-		chartsMap[broker.getServiceID(chart)] = chart
+		broker.chartsMap[broker.getServiceID(chart)] = chart
 	}
+
 	return broker
 }
 
 func (broker *PksServiceBroker) Services(ctx context.Context) []brokerapi.Service {
-
 	serviceCatalog := []brokerapi.Service{}
 
 	for _, chart := range broker.charts {
@@ -122,10 +123,11 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 
 	planName := strings.TrimPrefix(details.PlanID, details.ServiceID+"-")
 
-	if true {
-		panic("foo")
+	chart := broker.chartsMap[details.ServiceID]
+	if chart == nil {
+		return brokerapi.ProvisionedServiceSpec{}, errors.New(fmt.Sprintf("Chart not found for [%s]", details.ServiceID))
 	}
-	_, err = broker.myHelmClient.InstallChart(broker.charts[0], namespaceName, planName, helm.ReleaseName(namespaceName))
+	_, err = broker.myHelmClient.InstallChart(broker.chartsMap[details.ServiceID], namespaceName, planName, helm.ReleaseName(namespaceName))
 	if err != nil {
 		return brokerapi.ProvisionedServiceSpec{}, err
 	}
