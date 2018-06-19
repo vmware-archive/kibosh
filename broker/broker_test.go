@@ -180,7 +180,8 @@ var _ = Describe("Broker", func() {
 				Expect(err).To(BeNil())
 
 				Expect(fakeMyHelmClient.InstallChartCallCount()).To(Equal(1))
-				namespaceName, plan, opts := fakeMyHelmClient.InstallChartArgsForCall(0)
+				chart, namespaceName, plan, opts := fakeMyHelmClient.InstallChartArgsForCall(0)
+				Expect(chart).To(Equal(chart))
 				Expect(namespaceName).To(Equal("kibosh-my-instance-guid"))
 				Expect(plan).To(Equal("my-plan"))
 				Expect(opts).To(HaveLen(1))

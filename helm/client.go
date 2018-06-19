@@ -33,7 +33,6 @@ type myHelmClient struct {
 	privateRegistryServer string
 	cluster               k8s.Cluster
 	logger                lager.Logger
-	chart                 *MyChart
 }
 
 //- go:generate counterfeiter ./ MyHelmClient
@@ -42,13 +41,12 @@ type MyHelmClient interface {
 	helm.Interface
 	Install(*helmstaller.Options) error
 	Upgrade(*helmstaller.Options) error
-	InstallChart(namespace string, planName string, options ...helm.InstallOption) (*rls.InstallReleaseResponse, error)
+	InstallChart(chart *MyChart, namespace string, planName string, options ...helm.InstallOption) (*rls.InstallReleaseResponse, error)
 	MergeValueBytes(base []byte, override []byte) ([]byte, error)
 }
 
-func NewMyHelmClient(chart *MyChart, cluster k8s.Cluster, logger lager.Logger) MyHelmClient {
+func NewMyHelmClient(cluster k8s.Cluster, logger lager.Logger) MyHelmClient {
 	return &myHelmClient{
-		chart:   chart,
 		cluster: cluster,
 		logger:  logger,
 	}
@@ -98,13 +96,13 @@ func (c myHelmClient) InstallReleaseFromChart(myChart *chart.Chart, namespace st
 	return client.InstallReleaseFromChart(myChart, namespace, opts...)
 }
 
-func (c myHelmClient) InstallChart(namespace string, planName string, opts ...helm.InstallOption) (*rls.InstallReleaseResponse, error) {
-	overrideValues, err := c.MergeValueBytes(c.chart.Values, c.chart.Plans[planName].Values)
+func (c myHelmClient) InstallChart(chart *MyChart, namespace string, planName string, opts ...helm.InstallOption) (*rls.InstallReleaseResponse, error) {
+	overrideValues, err := c.MergeValueBytes(chart.Values, chart.Plans[planName].Values)
 	if err != nil {
 		return nil, err
 	}
 	newOpts := append(opts, helm.ValueOverrides(overrideValues))
-	return c.InstallReleaseFromChart(c.chart.Chart, namespace, newOpts...)
+	return c.InstallReleaseFromChart(chart.Chart, namespace, newOpts...)
 }
 
 func (c myHelmClient) DeleteRelease(rlsName string, opts ...helm.DeleteOption) (*rls.UninstallReleaseResponse, error) {

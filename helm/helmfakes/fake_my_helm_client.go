@@ -213,9 +213,10 @@ type FakeMyHelmClient struct {
 	upgradeReturnsOnCall map[int]struct {
 		result1 error
 	}
-	InstallChartStub        func(namespace string, planName string, options ...helmpkg.InstallOption) (*rls.InstallReleaseResponse, error)
+	InstallChartStub        func(chart *helm.MyChart, namespace string, planName string, options ...helmpkg.InstallOption) (*rls.InstallReleaseResponse, error)
 	installChartMutex       sync.RWMutex
 	installChartArgsForCall []struct {
+		chart     *helm.MyChart
 		namespace string
 		planName  string
 		options   []helmpkg.InstallOption
@@ -978,18 +979,19 @@ func (fake *FakeMyHelmClient) UpgradeReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeMyHelmClient) InstallChart(namespace string, planName string, options ...helmpkg.InstallOption) (*rls.InstallReleaseResponse, error) {
+func (fake *FakeMyHelmClient) InstallChart(chart *helm.MyChart, namespace string, planName string, options ...helmpkg.InstallOption) (*rls.InstallReleaseResponse, error) {
 	fake.installChartMutex.Lock()
 	ret, specificReturn := fake.installChartReturnsOnCall[len(fake.installChartArgsForCall)]
 	fake.installChartArgsForCall = append(fake.installChartArgsForCall, struct {
+		chart     *helm.MyChart
 		namespace string
 		planName  string
 		options   []helmpkg.InstallOption
-	}{namespace, planName, options})
-	fake.recordInvocation("InstallChart", []interface{}{namespace, planName, options})
+	}{chart, namespace, planName, options})
+	fake.recordInvocation("InstallChart", []interface{}{chart, namespace, planName, options})
 	fake.installChartMutex.Unlock()
 	if fake.InstallChartStub != nil {
-		return fake.InstallChartStub(namespace, planName, options...)
+		return fake.InstallChartStub(chart, namespace, planName, options...)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -1003,10 +1005,10 @@ func (fake *FakeMyHelmClient) InstallChartCallCount() int {
 	return len(fake.installChartArgsForCall)
 }
 
-func (fake *FakeMyHelmClient) InstallChartArgsForCall(i int) (string, string, []helmpkg.InstallOption) {
+func (fake *FakeMyHelmClient) InstallChartArgsForCall(i int) (*helm.MyChart, string, string, []helmpkg.InstallOption) {
 	fake.installChartMutex.RLock()
 	defer fake.installChartMutex.RUnlock()
-	return fake.installChartArgsForCall[i].namespace, fake.installChartArgsForCall[i].planName, fake.installChartArgsForCall[i].options
+	return fake.installChartArgsForCall[i].chart, fake.installChartArgsForCall[i].namespace, fake.installChartArgsForCall[i].planName, fake.installChartArgsForCall[i].options
 }
 
 func (fake *FakeMyHelmClient) InstallChartReturns(result1 *rls.InstallReleaseResponse, result2 error) {

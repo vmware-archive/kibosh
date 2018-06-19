@@ -30,11 +30,9 @@ import (
 var _ = Describe("Client", func() {
 	var myHelmClient MyHelmClient
 	var chartPath string
-	var myChart *MyChart
 
 	BeforeEach(func() {
-		myChart = &MyChart{}
-		myHelmClient = NewMyHelmClient(myChart, nil, nil)
+		myHelmClient = NewMyHelmClient(nil, nil)
 
 		var err error
 		chartPath, err = ioutil.TempDir("", "chart-")

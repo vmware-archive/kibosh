@@ -115,7 +115,7 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 	}
 
 	planName := strings.TrimPrefix(details.PlanID, details.ServiceID+"-")
-	_, err = broker.myHelmClient.InstallChart(namespaceName, planName, helm.ReleaseName(namespaceName))
+	_, err = broker.myHelmClient.InstallChart(broker.myChart, namespaceName, planName, helm.ReleaseName(namespaceName))
 	if err != nil {
 		return brokerapi.ProvisionedServiceSpec{}, err
 	}
@@ -187,7 +187,6 @@ func (broker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID 
 	}, nil
 }
 
-// Unbind reverses bind
 func (broker *PksServiceBroker) Unbind(ctx context.Context, instanceID, bindingID string, details brokerapi.UnbindDetails) error {
 	// noop
 

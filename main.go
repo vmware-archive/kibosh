@@ -49,7 +49,7 @@ func main() {
 		brokerLogger.Fatal("Helm chart failed to load", err)
 	}
 
-	myHelmClient := helm.NewMyHelmClient(myChart, cluster, brokerLogger)
+	myHelmClient := helm.NewMyHelmClient(cluster, brokerLogger)
 	serviceBroker := broker.NewPksServiceBroker(
 		conf.ServiceID, conf.ServiceName, conf.RegistryConfig, cluster, myHelmClient, myChart, brokerLogger,
 	)
