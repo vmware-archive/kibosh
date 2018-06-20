@@ -53,12 +53,22 @@ func NewPksServiceBroker(registryConfig *config.RegistryConfig, cluster k8s.Clus
 		cluster:      cluster,
 		myHelmClient: myHelmClient,
 	}
-	broker.chartsMap = map[string]*my_helm.MyChart{}
-	for _, chart := range charts {
-		broker.chartsMap[broker.getServiceID(chart)] = chart
-	}
+	broker.SetCharts(charts)
 
 	return broker
+}
+
+func (broker *PksServiceBroker) SetCharts(charts []*my_helm.MyChart) {
+	chartsMap := map[string]*my_helm.MyChart{}
+	for _, chart := range charts {
+		chartsMap[broker.getServiceID(chart)] = chart
+	}
+	broker.chartsMap = chartsMap
+}
+
+func (broker *PksServiceBroker) GetCharts() map[string]*my_helm.MyChart {
+	//only really exposed for testing
+	return broker.chartsMap
 }
 
 func (broker *PksServiceBroker) Services(ctx context.Context) []brokerapi.Service {

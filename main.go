@@ -72,8 +72,13 @@ func main() {
 	}
 
 	brokerAPI := brokerapi.New(serviceBroker, brokerLogger, brokerCredentials)
-
 	http.Handle("/", brokerAPI)
+
+	repositoryAPI := repository.NewAPI(serviceBroker, repo, brokerLogger)
+	authFilter := repository.NewAuthFilter(conf.AdminUsername, conf.AdminPassword)
+	http.Handle("/reload_charts", authFilter.Filter(
+		repositoryAPI.ReloadCharts(),
+	))
 
 	brokerLogger.Info(fmt.Sprintf("Listening on %v", conf.Port))
 	err = http.ListenAndServe(fmt.Sprintf(":%v", conf.Port), nil)

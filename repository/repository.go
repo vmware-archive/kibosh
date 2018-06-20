@@ -25,6 +25,7 @@ import (
 	"io/ioutil"
 )
 
+//go:generate counterfeiter ./ Repository
 type Repository interface {
 	LoadCharts() ([]*helm.MyChart, error)
 }
