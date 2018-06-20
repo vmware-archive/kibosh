@@ -14,6 +14,8 @@ One consumer of this repo is
 [tile-generator](https://github.com/cf-platform-eng/tile-generator),
 which provides a packaging abstraction to produce a PCF tile from a helm chart: we BOSH so you don't have to.
 ISVs building out a tile should start there, rather than directly using this binary.
+For documentation using Kibosh to build a tile, use the
+[tile-generator documentation](https://docs.pivotal.io/tiledev/tile-generator.html#-helm-charts-with-kibosh)
 
 We are still in early development, but do plan to provide migration for partners working directly with us.
 
@@ -22,7 +24,7 @@ We are still in early development, but do plan to provide migration for partners
 ## Configuration
 ### Changes required in Chart
 * Plans (cf marketplace)
-    Kibosh requires that helm chart has additional file that describes plan in plans.yaml at root level
+    Kibosh requires that helm chart has additional file that describes plan in `plans.yaml` at root level
     ```yaml
     - name: "small"
       description: "default (small) plan for mysql"
@@ -104,6 +106,28 @@ for a working cluster (minikube instructions below). Then run:
 
 ```bash
 ./local_dev.sh
+```
+
+#### Charts
+The Kibosh code loads charts from the `HELM_CHART_DIR`, which defaults to `charts`.
+This directory can either be a single chart (with all the changes described in the
+configuration, eg `plans.yaml` and `./plans`), or, directory where each
+subdirectory is a chart. The multiple charts feature isn't yet supported by tile-generator.
+```
+charts
+├── mariadb
+│   ├── Chart.yaml
+    ├── plans
+    │   ├── medium.yaml
+    │   └── small.yaml
+    ├── plans.yaml
+    ├── templates
+...
+└── mysql
+    ├── Chart.yaml
+    ├── plans
+    │   └── default.yaml
+...
 ```
 
 #### Test
