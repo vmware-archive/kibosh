@@ -50,6 +50,7 @@ func main() {
 	if err != nil {
 		brokerLogger.Fatal("Unable to load charts", err)
 	}
+	brokerLogger.Info(fmt.Sprintf("Brokering charts %s", charts))
 
 	myHelmClient := helm.NewMyHelmClient(cluster, brokerLogger)
 	serviceBroker := broker.NewPksServiceBroker(conf.RegistryConfig, cluster, myHelmClient, charts, brokerLogger)

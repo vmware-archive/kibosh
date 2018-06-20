@@ -42,7 +42,6 @@ type PksServiceBroker struct {
 
 	cluster      k8s.Cluster
 	myHelmClient my_helm.MyHelmClient
-	charts       []*my_helm.MyChart
 	chartsMap    map[string]*my_helm.MyChart
 }
 
@@ -53,7 +52,6 @@ func NewPksServiceBroker(registryConfig *config.RegistryConfig, cluster k8s.Clus
 
 		cluster:      cluster,
 		myHelmClient: myHelmClient,
-		charts:       charts,
 	}
 	broker.chartsMap = map[string]*my_helm.MyChart{}
 	for _, chart := range charts {
@@ -66,7 +64,7 @@ func NewPksServiceBroker(registryConfig *config.RegistryConfig, cluster k8s.Clus
 func (broker *PksServiceBroker) Services(ctx context.Context) []brokerapi.Service {
 	serviceCatalog := []brokerapi.Service{}
 
-	for _, chart := range broker.charts {
+	for _, chart := range broker.chartsMap {
 		plans := []brokerapi.ServicePlan{}
 		for _, plan := range chart.Plans {
 
@@ -127,7 +125,7 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 	if chart == nil {
 		return brokerapi.ProvisionedServiceSpec{}, errors.New(fmt.Sprintf("Chart not found for [%s]", details.ServiceID))
 	}
-	_, err = broker.myHelmClient.InstallChart(broker.chartsMap[details.ServiceID], namespaceName, planName, helm.ReleaseName(namespaceName))
+	_, err = broker.myHelmClient.InstallChart(chart, namespaceName, planName, helm.ReleaseName(namespaceName))
 	if err != nil {
 		return brokerapi.ProvisionedServiceSpec{}, err
 	}

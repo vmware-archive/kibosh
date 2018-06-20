@@ -228,3 +228,7 @@ func (c *MyChart) EnsureIgnore() error {
 
 	return nil
 }
+
+func (c *MyChart) String() string {
+	return c.Metadata.Name
+}
