@@ -135,7 +135,14 @@ var _ = Describe("Broker", func() {
 				},
 			}
 
-			Expect(serviceCatalog[0].Plans).Should(ConsistOf(expectedPlans))
+			service1 := serviceCatalog[0]
+			service2 := serviceCatalog[1]
+			if service1.Name == "spacebears" {
+				Expect(service1.Plans).Should(ConsistOf(expectedPlans))
+			} else {
+				Expect(service2.Plans).Should(ConsistOf(expectedPlans))
+			}
+
 		})
 	})
 
