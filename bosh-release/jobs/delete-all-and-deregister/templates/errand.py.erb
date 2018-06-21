@@ -1,0 +1,44 @@
+import json
+import os
+import base64
+import urllib.request
+import subprocess
+
+creds = base64.b64encode("{}:{}".format(
+    '<%= link('kibosh_broker').p('kibosh.username') %>',
+    '<%= link('kibosh_broker').p('kibosh.password') %>',
+).encode('utf-8'))
+auth = "Basic {}".format(creds.decode())
+url = 'http://<%= link('kibosh_broker').instances[0].address %>:<%= link('kibosh_broker').p('kibosh.port') %>/v2/catalog'
+request = urllib.request.Request(url)
+request.add_header("Authorization", auth)
+
+with urllib.request.urlopen(request) as response:
+    services_json = response.read().decode()
+    services = json.loads(services_json)["services"]
+    for service in services:
+        service_name = service["name"]
+        contents = '''
+---
+polling_interval: <%=p ("polling_interval_seconds") %>
+polling_initial_offset: <%=p ("polling_initial_offset_seconds") %>
+disable_ssl_cert_verification: <%= p("disable_ssl_cert_verification") %>
+service_catalog:
+  id: {}
+cf:
+  url: <%= p("cf.api_url") %>
+  authentication:
+    uaa:
+      url: <%= p("cf.uaa_url") %>
+      user_credentials:
+        username: <%= p("cf.admin_username") %>
+        password: <%= p("cf.admin_password") %>
+'''.format(service["id"])
+
+        config_file_name = "/var/vcap/jobs/delete-all-and-deregister/config_{}.yml".format(service_name)
+        with open(config_file_name, "w+") as file:
+            file.write(contents)
+        binary_path = "/var/vcap/packages/delete-all-and-deregister/delete_all_and_deregister.linux"
+        status = subprocess.call("{} -configFilePath {} -brokerName <%= p('broker_name') %>".format(binary_path, config_file_name), shell=True,  stdout=subprocess.PIPE)
+        if status:
+            os.exit(status)

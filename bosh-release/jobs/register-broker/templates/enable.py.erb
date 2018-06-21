@@ -1,0 +1,22 @@
+import json
+import os
+import base64
+import urllib.request
+import subprocess
+
+creds = base64.b64encode("{}:{}".format(
+    '<%= link('kibosh_broker').p('kibosh.username') %>',
+    '<%= link('kibosh_broker').p('kibosh.password') %>',
+).encode('utf-8'))
+auth = "Basic {}".format(creds.decode())
+url = 'http://<%= link('kibosh_broker').instances[0].address %>:<%= link('kibosh_broker').p('kibosh.port') %>/v2/catalog'
+request = urllib.request.Request(url)
+request.add_header("Authorization", auth)
+
+with urllib.request.urlopen(request) as response:
+    services_json = response.read().decode()
+    services = json.loads(services_json)["services"]
+    for service in services:
+        code = subprocess.call("cf enable-service-access {}".format(service["name"]), shell=True)
+        if code:
+            os._exit(code)

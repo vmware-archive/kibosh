@@ -10,8 +10,6 @@ PIDFILE="$RUN_DIR/kibosh.pid"
 export SECURITY_USER_NAME=<%= p("kibosh.username", "admin") %>
 export SECURITY_USER_PASSWORD=<%= p("kibosh.password") %>
 export PORT=<%= p("kibosh.port", "8080") %>
-export SERVICE_ID=<%= p("kibosh.service_id", "f448fdea-25b8-41aa-aed4-539d8ace5f32") %>
-export SERVICE_NAME=<%= p("kibosh.service_name") %>
 export HELM_CHART_DIR=<%= p("kibosh.helm_chart_dir", "charts") %>
 export CA_DATA=<%= Shellwords.escape p("kibosh.ca_data") %>
 export SERVER=<%= p("kibosh.server", "https://127.0.0.1") %>
