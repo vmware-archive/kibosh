@@ -22,6 +22,14 @@ build-loader-mac:
 
 build-loader: build-loader-linux build-loader-mac
 
+build-bazaar-mac:
+	GOOS=darwin GOARCH=amd64 go build -o loader.mac ./bazaar/cmd/main.go
+
+build-bazaar-linux:
+	GOOS=linux GOARCH=amd64 go build -o loader.mac ./bazaar/cmd/main.go
+
+build-bazaar: build-bazaar-linux build-bazaar-mac
+
 unit-test:
 	@go test -ldflags ${LDFLAGS} ${GO_PACKAGES}
 
@@ -41,7 +49,6 @@ generate:
 
 run:
 	VCAP_SERVICES='{"kubo-odb":[{"credentials":{"kubeconfig":{"apiVersion":"v1","clusters":[{"cluster":{"certificate-authority-data":"bXktZmFrZWNlcnQ="}}],"users":[{"user":{"token":"bXktZmFrZWNlcnQ="}}]}}}]}' \
-	SERVICE_ID=123 \
 	SECURITY_USER_NAME=admin \
 	SECURITY_USER_PASSWORD=pass \
 	go run -ldflags ${LDFLAGS} main.go
@@ -64,4 +71,4 @@ endif
 	dep ensure -v
 	scripts/setup-apimachinery.sh
 
-all: fmt test build build-loader
+all: fmt test build build-loader build-bazaar

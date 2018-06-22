@@ -13,14 +13,14 @@
 // express or implied. See the License for the specific language governing permissions and
 // limitations under the License.
 
-package repository_test
+package auth_test
 
 import (
 	"encoding/base64"
 	"fmt"
 	"net/http/httptest"
 
-	"github.com/cf-platform-eng/kibosh/repository"
+	"github.com/cf-platform-eng/kibosh/auth"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -28,7 +28,7 @@ import (
 var _ = Describe("Filter", func() {
 	Context("CheckAuth", func() {
 		It("false on no auth header", func() {
-			filter := repository.NewAuthFilter("bobtheadmin", "monkey123")
+			filter := auth.NewAuthFilter("bobtheadmin", "monkey123")
 
 			req := httptest.NewRequest("GET", "https://www.example.com/admin", nil)
 
@@ -36,7 +36,7 @@ var _ = Describe("Filter", func() {
 		})
 
 		It("false on bad auth header", func() {
-			filter := repository.NewAuthFilter("bobtheadmin", "monkey123")
+			filter := auth.NewAuthFilter("bobtheadmin", "monkey123")
 
 			req := httptest.NewRequest("GET", "https://www.example.com/admin", nil)
 			auth := base64.StdEncoding.EncodeToString(
@@ -48,7 +48,7 @@ var _ = Describe("Filter", func() {
 		})
 
 		It("true on correct auth header", func() {
-			filter := repository.NewAuthFilter("bobtheadmin", "monkey123")
+			filter := auth.NewAuthFilter("bobtheadmin", "monkey123")
 
 			req := httptest.NewRequest("GET", "https://www.example.com/admin", nil)
 			auth := base64.StdEncoding.EncodeToString(

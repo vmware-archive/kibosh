@@ -16,13 +16,13 @@
 package repository
 
 import (
+	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"code.cloudfoundry.org/lager"
-	"fmt"
 	"github.com/cf-platform-eng/kibosh/helm"
-	"io/ioutil"
 )
 
 //go:generate counterfeiter ./ Repository
