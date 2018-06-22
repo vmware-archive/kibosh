@@ -20,14 +20,15 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-
 	"code.cloudfoundry.org/lager"
 	"github.com/cf-platform-eng/kibosh/helm"
+	"k8s.io/helm/pkg/chartutil"
 )
 
 //go:generate counterfeiter ./ Repository
 type Repository interface {
 	LoadCharts() ([]*helm.MyChart, error)
+	SaveChart(path string) error
 }
 
 type repository struct {
@@ -84,6 +85,24 @@ func (r *repository) LoadCharts() ([]*helm.MyChart, error) {
 	}
 
 	return charts, nil
+}
+
+func (r *repository) SaveChart(path string) error {
+	// untar
+	// validate chart if helm has anything like that
+	// swap existing one with new one
+	chartPath, err := ioutil.TempDir("", "")
+	if err != nil {
+		return err
+	}
+
+	err = chartutil.ExpandFile(chartPath, path)
+	if err != nil {
+		return err
+	}
+
+
+	return nil
 }
 
 func fileExists(path string) (bool, error) {

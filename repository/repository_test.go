@@ -24,6 +24,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"k8s.io/helm/pkg/chartutil"
+	"github.com/cf-platform-eng/kibosh/helm"
 )
 
 var _ = Describe("Repository", func() {
@@ -126,6 +128,26 @@ version: 0.0.1
 
 			_, err = myRepository.LoadCharts()
 			Expect(err).NotTo(BeNil())
+		})
+	})
+	Context("save chart", func() {
+
+		It("save chart untars file", func() {
+
+			tarDir, err := ioutil.TempDir("", "")
+
+			err = testChart.WriteChart(tarDir)
+			Expect(err).To(BeNil())
+
+			chart, err := helm.NewChart(tarDir, "docker.example.com")
+
+			tarfile, err := chartutil.Save(chart.Chart, tarDir)
+			myRepository := repository.NewRepository(tarfile, "", logger)
+			err = myRepository.SaveChart(tarfile)
+			Expect(err).To(BeNil())
+
+
+
 		})
 	})
 })

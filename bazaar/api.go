@@ -31,7 +31,7 @@ func NewAPI(repo repository.Repository, l lager.Logger) API {
 type displayChart struct {
 	Name      string   `json:"name"`
 	Plans     []string `json:"plans"`
-	ChartPath string   `json:"chartpath"`
+	Chartpath string   `json:"chartpath"`
 }
 
 func (api *api) ListCharts() http.Handler {
@@ -51,7 +51,7 @@ func (api *api) ListCharts() http.Handler {
 				displayCharts = append(displayCharts, displayChart{
 					Name:      chart.Metadata.Name,
 					Plans:     plans,
-					ChartPath: chart.Chartpath,
+					Chartpath: chart.Chartpath,
 				})
 			}
 			serialized, _ := json.Marshal(displayCharts)
@@ -85,7 +85,14 @@ func (api *api) CreateChart() http.Handler {
 			defer f.Close()
 			buffer := make([]byte, 1000000)
 			io.CopyBuffer(f, file, buffer)
-			//todo: send `f` off to repository to be saved
+
+			err = api.repo.SaveChart(filepath.Join(chartPath, handler.Filename))
+			if err != nil {
+				api.logger.Error("CreateChart: Couldn't save the chart", err)
+				api.ServerError(500, "Unable to save charts", w)
+				return
+			}
+			//todo: kibosh update charts
 		} else {
 			w.WriteHeader(405)
 			w.Header().Set("Allow", "POST")
@@ -94,13 +101,6 @@ func (api *api) CreateChart() http.Handler {
 }
 
 func (api *api) ServerError(code int, message string, w http.ResponseWriter) {
-	w.WriteHeader(code)
-	w.Write([]byte(message))
-}
-
-//left off here. Maybe?
-func (api *api) ServerError2(code int, message string, w http.ResponseWriter, err error) {
-	api.logger.Error(message, err)
 	w.WriteHeader(code)
 	w.Write([]byte(message))
 }
