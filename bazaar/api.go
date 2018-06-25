@@ -13,7 +13,7 @@ import (
 
 type API interface {
 	ListCharts() http.Handler
-	CreateChart() http.Handler
+	SaveChart() http.Handler
 }
 
 type api struct {
@@ -64,13 +64,13 @@ func (api *api) ListCharts() http.Handler {
 
 }
 
-func (api *api) CreateChart() http.Handler {
+func (api *api) SaveChart() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
 			r.ParseMultipartForm(1000000)
 			file, handler, err := r.FormFile("chart")
 			if err != nil {
-				api.logger.Error("CreateChart: Couldn't read request POST form data", err)
+				api.logger.Error("SaveChart: Couldn't read request POST form data", err)
 				api.ServerError(500, "Unable to save charts", w)
 				return
 			}
@@ -78,7 +78,7 @@ func (api *api) CreateChart() http.Handler {
 			chartPath, err := ioutil.TempDir("", "chart-")
 			f, err := os.OpenFile(filepath.Join(chartPath, handler.Filename), os.O_WRONLY|os.O_CREATE, 0666)
 			if err != nil {
-				api.logger.Error("CreateChart: Couldn't write on disk ", err)
+				api.logger.Error("SaveChart: Couldn't write on disk ", err)
 				api.ServerError(500, "Unable to save charts", w)
 				return
 			}
@@ -88,11 +88,11 @@ func (api *api) CreateChart() http.Handler {
 
 			err = api.repo.SaveChart(filepath.Join(chartPath, handler.Filename))
 			if err != nil {
-				api.logger.Error("CreateChart: Couldn't save the chart", err)
+				api.logger.Error("SaveChart: Couldn't save the chart", err)
 				api.ServerError(500, "Unable to save charts", w)
 				return
 			}
-			//todo: kibosh update charts
+			//todo: call kibosh update charts
 		} else {
 			w.WriteHeader(405)
 			w.Header().Set("Allow", "POST")

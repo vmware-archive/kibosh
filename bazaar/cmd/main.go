@@ -29,8 +29,8 @@ func main() {
 		bazaarAPI.ListCharts(),
 	))
 
-	http.Handle("/charts/create", authFilter.Filter(
-		bazaarAPI.CreateChart(),
+	http.Handle("/charts/save", authFilter.Filter(
+		bazaarAPI.SaveChart(),
 	))
 	bazaarLogger.Info(fmt.Sprintf("Listening on %v", conf.Port))
 	err = http.ListenAndServe(fmt.Sprintf(":%v", conf.Port), nil)

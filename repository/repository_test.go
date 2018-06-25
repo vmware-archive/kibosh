@@ -16,16 +16,18 @@
 package repository_test
 
 import (
-	"code.cloudfoundry.org/lager"
-	"github.com/cf-platform-eng/kibosh/repository"
-	"github.com/cf-platform-eng/kibosh/test"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"k8s.io/helm/pkg/chartutil"
+
+	"code.cloudfoundry.org/lager"
 	"github.com/cf-platform-eng/kibosh/helm"
+	"github.com/cf-platform-eng/kibosh/repository"
+	"github.com/cf-platform-eng/kibosh/test"
+	"github.com/ghodss/yaml"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"k8s.io/helm/pkg/chartutil"
 )
 
 var _ = Describe("Repository", func() {
@@ -130,24 +132,111 @@ version: 0.0.1
 			Expect(err).NotTo(BeNil())
 		})
 	})
+
 	Context("save chart", func() {
+		var repoDir string
+		var tarDir string
 
-		It("save chart untars file", func() {
+		BeforeEach(func() {
+			testChart = test.DefaultChart()
 
-			tarDir, err := ioutil.TempDir("", "")
+			var err error
+			repoDir, err = ioutil.TempDir("", "")
+			Expect(err).To(BeNil())
 
-			err = testChart.WriteChart(tarDir)
+			tarDir, err = ioutil.TempDir("", "")
+			Expect(err).To(BeNil())
+		})
+
+		AfterEach(func() {
+			os.RemoveAll(repoDir)
+			os.RemoveAll(tarDir)
+		})
+
+		It("save chart adds to repository", func() {
+			err := testChart.WriteChart(tarDir)
 			Expect(err).To(BeNil())
 
 			chart, err := helm.NewChart(tarDir, "docker.example.com")
+			tarFile, err := chartutil.Save(chart.Chart, tarDir)
 
-			tarfile, err := chartutil.Save(chart.Chart, tarDir)
-			myRepository := repository.NewRepository(tarfile, "", logger)
-			err = myRepository.SaveChart(tarfile)
+			myRepository := repository.NewRepository(repoDir, "", logger)
+			files, err := ioutil.ReadDir(repoDir)
+			Expect(err).To(BeNil())
+			Expect(files).To(HaveLen(0))
+
+			err = myRepository.SaveChart(tarFile)
 			Expect(err).To(BeNil())
 
+			contents, err := ioutil.ReadFile(filepath.Join(repoDir, "spacebears", "Chart.yaml"))
+			Expect(err).To(BeNil())
 
+			testChartParsed := map[string]interface{}{}
+			yaml.Unmarshal(testChart.ChartYaml, &testChartParsed)
+			savedChartParsed := map[string]interface{}{}
+			yaml.Unmarshal(contents, &savedChartParsed)
 
+			Expect(testChartParsed).To(Equal(savedChartParsed))
+
+			mediumFileInfo, err := os.Stat(filepath.Join(repoDir, "spacebears", "plans", "medium.yaml"))
+			Expect(err).To(BeNil())
+			Expect(mediumFileInfo.Size()).NotTo(BeZero())
+		})
+
+		It("errors on bad archive", func() {
+			notChartFilePath := filepath.Join(tarDir, "foo")
+			err := ioutil.WriteFile(notChartFilePath, []byte("foo"), 0666)
+			Expect(err).To(BeNil())
+
+			myRepository := repository.NewRepository(repoDir, "", logger)
+
+			err = myRepository.SaveChart(notChartFilePath)
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("overrides existing chart", func() {
+			err := testChart.WriteChart(tarDir)
+			Expect(err).To(BeNil())
+
+			chart, err := helm.NewChart(tarDir, "docker.example.com")
+			tarFile, err := chartutil.Save(chart.Chart, tarDir)
+
+			myRepository := repository.NewRepository(repoDir, "", logger)
+			files, err := ioutil.ReadDir(repoDir)
+			Expect(err).To(BeNil())
+			Expect(files).To(HaveLen(0))
+
+			err = myRepository.SaveChart(tarFile)
+			Expect(err).To(BeNil())
+
+			testChart2 := test.DefaultChart()
+			testChart2.ChartYaml = []byte(`
+name: spacebears
+description: spacebears service and spacebears broker helm chart
+version: 0.0.2
+`)
+
+			tarDir2, err := ioutil.TempDir("", "")
+			defer func() {os.RemoveAll(tarDir)}()
+
+			err = testChart2.WriteChart(tarDir2)
+			Expect(err).To(BeNil())
+			chart2, err := helm.NewChart(tarDir2, "docker.example.com")
+			Expect(err).To(BeNil())
+
+			tarFile2, err := chartutil.Save(chart2.Chart, tarDir2)
+			Expect(err).To(BeNil())
+
+			err = myRepository.SaveChart(tarFile2)
+			Expect(err).To(BeNil())
+
+			contents, err := ioutil.ReadFile(filepath.Join(repoDir, "spacebears", "Chart.yaml"))
+			Expect(err).To(BeNil())
+
+			savedChartParsed := map[string]interface{}{}
+			yaml.Unmarshal(contents, &savedChartParsed)
+
+			Expect(savedChartParsed["version"]).To(Equal("0.0.2"))
 		})
 	})
 })

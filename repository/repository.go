@@ -23,6 +23,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/cf-platform-eng/kibosh/helm"
 	"k8s.io/helm/pkg/chartutil"
+	"github.com/pkg/errors"
 )
 
 //go:generate counterfeiter ./ Repository
@@ -88,19 +89,47 @@ func (r *repository) LoadCharts() ([]*helm.MyChart, error) {
 }
 
 func (r *repository) SaveChart(path string) error {
-	// untar
-	// validate chart if helm has anything like that
-	// swap existing one with new one
-	chartPath, err := ioutil.TempDir("", "")
+	expandedTarPath, err := ioutil.TempDir("", "")
 	if err != nil {
 		return err
 	}
 
-	err = chartutil.ExpandFile(chartPath, path)
+	err = chartutil.ExpandFile(expandedTarPath, path)
 	if err != nil {
 		return err
 	}
 
+	files, err := ioutil.ReadDir(expandedTarPath)
+	var chartPathInfo os.FileInfo
+	if err != nil {
+		return err
+	}
+	for _, file := range files {
+		if file.IsDir() {
+			if chartPathInfo != nil {
+				return errors.New("Multiple directories found in uploaded archive")
+			} else {
+				chartPathInfo = file
+			}
+		}
+	}
+
+	chartPath := filepath.Join(expandedTarPath, chartPathInfo.Name())
+	_, err = helm.NewChart(chartPath, r.privateRegistryServer)
+	if err != nil {
+		return err
+	}
+
+	destinationPath := filepath.Join(r.helmChartDir, chartPathInfo.Name())
+	info, _ := os.Stat(destinationPath)
+	if info != nil {
+		os.RemoveAll(destinationPath)
+	}
+
+	err = os.Rename(chartPath, filepath.Join(r.helmChartDir, chartPathInfo.Name()))
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
