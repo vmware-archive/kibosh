@@ -16,14 +16,14 @@
 package repository
 
 import (
+	"code.cloudfoundry.org/lager"
 	"fmt"
+	"github.com/cf-platform-eng/kibosh/helm"
+	"github.com/pkg/errors"
 	"io/ioutil"
+	"k8s.io/helm/pkg/chartutil"
 	"os"
 	"path/filepath"
-	"code.cloudfoundry.org/lager"
-	"github.com/cf-platform-eng/kibosh/helm"
-	"k8s.io/helm/pkg/chartutil"
-	"github.com/pkg/errors"
 )
 
 //go:generate counterfeiter ./ Repository
@@ -115,7 +115,7 @@ func (r *repository) SaveChart(path string) error {
 	}
 
 	chartPath := filepath.Join(expandedTarPath, chartPathInfo.Name())
-	_, err = helm.NewChart(chartPath, r.privateRegistryServer)
+	chart, err := helm.NewChart(chartPath, r.privateRegistryServer)
 	if err != nil {
 		return err
 	}
@@ -125,6 +125,9 @@ func (r *repository) SaveChart(path string) error {
 	if info != nil {
 		os.RemoveAll(destinationPath)
 	}
+
+	///todo: validate that chartPathInfo.Name() == chart.Name()
+	print(chart.Metadata.Name)
 
 	err = os.Rename(chartPath, filepath.Join(r.helmChartDir, chartPathInfo.Name()))
 	if err != nil {

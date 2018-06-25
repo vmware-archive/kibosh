@@ -23,7 +23,7 @@ func main() {
 	}
 
 	repo := repository.NewRepository(conf.HelmChartDir, conf.RegistryConfig.Server, bazaarLogger)
-	bazaarAPI := bazaar.NewAPI(repo, bazaarLogger)
+	bazaarAPI := bazaar.NewAPI(repo, conf.KiboshConfig, bazaarLogger)
 	authFilter := auth.NewAuthFilter(conf.AdminUsername, conf.AdminPassword)
 	http.Handle("/charts/", authFilter.Filter(
 		bazaarAPI.ListCharts(),

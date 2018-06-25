@@ -13,6 +13,14 @@ type bazaarConfig struct {
 	HelmChartDir string `envconfig:"HELM_CHART_DIR" default:"charts"`
 
 	RegistryConfig *config.RegistryConfig
+	KiboshConfig   *KiboshConfig
+}
+
+type KiboshConfig struct {
+	Server string `envconfig:"KIBOSH_SERVER" required:"true"`
+	User   string `envconfig:"KIBOSH_USER_NAME" required:"true"`
+	Pass   string `envconfig:"KIBOSH_USER_PASSWORD" required:"true"`
+
 }
 
 func ParseConfig() (*bazaarConfig, error) {

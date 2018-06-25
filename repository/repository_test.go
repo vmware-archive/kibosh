@@ -217,7 +217,7 @@ version: 0.0.2
 `)
 
 			tarDir2, err := ioutil.TempDir("", "")
-			defer func() {os.RemoveAll(tarDir)}()
+			defer func() { os.RemoveAll(tarDir) }()
 
 			err = testChart2.WriteChart(tarDir2)
 			Expect(err).To(BeNil())

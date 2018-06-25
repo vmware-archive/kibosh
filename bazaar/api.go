@@ -2,8 +2,11 @@ package bazaar
 
 import (
 	"code.cloudfoundry.org/lager"
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"github.com/cf-platform-eng/kibosh/repository"
+	"github.com/pkg/errors"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -17,14 +20,16 @@ type API interface {
 }
 
 type api struct {
-	repo   repository.Repository
-	logger lager.Logger
+	repo         repository.Repository
+	kiboshConfig *KiboshConfig
+	logger       lager.Logger
 }
 
-func NewAPI(repo repository.Repository, l lager.Logger) API {
+func NewAPI(repo repository.Repository, kiboshConfig *KiboshConfig, l lager.Logger) API {
 	return &api{
-		repo:   repo,
-		logger: l,
+		repo:         repo,
+		kiboshConfig: kiboshConfig,
+		logger:       l,
 	}
 }
 
@@ -93,6 +98,30 @@ func (api *api) SaveChart() http.Handler {
 				return
 			}
 			//todo: call kibosh update charts
+			client := &http.Client{}
+			kiboshUrl := fmt.Sprintf("%v/reload_charts", api.kiboshConfig.Server)
+			req, err := http.NewRequest("GET", kiboshUrl, nil)
+			if err != nil {
+				api.logger.Error("SaveChart:reload_charts failed", err)
+				api.ServerError(500, "Unable to save charts", w)
+				return
+			}
+
+			auth := base64.StdEncoding.EncodeToString(
+				[]byte(fmt.Sprintf("%s:%s", api.kiboshConfig.User, api.kiboshConfig.Pass)),
+			)
+			req.Header.Set("Authorization", fmt.Sprintf("Basic %s", auth))
+			res, err := client.Do(req)
+			if err != nil {
+				api.logger.Error("SaveChart: Couldn't call kibosh to update", err)
+				api.ServerError(500, "Unable to save charts", w)
+				return
+			}
+			if res.StatusCode != 200 {
+				api.logger.Error("kibosh return non 200 status code", errors.Errorf("kibosh return non 200 status code [%s]", res.StatusCode))
+
+			}
+
 		} else {
 			w.WriteHeader(405)
 			w.Header().Set("Allow", "POST")

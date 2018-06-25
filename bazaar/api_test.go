@@ -45,12 +45,22 @@ var _ = Describe("Api", func() {
 	var bro broker.PksServiceBroker
 	var logger lager.Logger
 	var api bazaar.API
+	var kiboshConfig *bazaar.KiboshConfig
 
 	BeforeEach(func() {
+
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
+		testserver := httptest.NewServer(handler)
+
 		repo = repositoryfakes.FakeRepository{}
 		bro = broker.PksServiceBroker{}
 		logger = lager.NewLogger("APITest")
-		api = bazaar.NewAPI(&repo, logger)
+		kiboshConfig = &bazaar.KiboshConfig{
+			Server: testserver.URL,
+			User:   "bob",
+			Pass:   "monkey123",
+		}
+		api = bazaar.NewAPI(&repo, kiboshConfig, logger)
 
 	})
 
@@ -109,20 +119,44 @@ var _ = Describe("Api", func() {
 		})
 	})
 
-	Context("Create chart", func() {
+	Context("Save chart", func() {
 		It("passes file to repository", func() {
 
 			req, err := createRequestWithFile()
 			Expect(err).To(BeNil())
 			recorder := httptest.NewRecorder()
 
-			apiHandler := api.CreateChart()
+			apiHandler := api.SaveChart()
 			apiHandler.ServeHTTP(recorder, req)
 
 			path := repo.SaveChartArgsForCall(0)
 			saved, err := ioutil.ReadFile(path)
 			Expect(err).To(BeNil())
 			Expect(string(saved)).To(Equal("hello upload"))
+		})
+		It("calls kibosh reload charts", func() {
+			var req *http.Request
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				req = r
+
+			})
+			testserver := httptest.NewServer(handler)
+			kiboshConfig = &bazaar.KiboshConfig{
+				Server: testserver.URL,
+				User:   "bob",
+				Pass:   "monkey123",
+			}
+			api = bazaar.NewAPI(&repo, kiboshConfig, logger)
+
+			req, err := createRequestWithFile()
+			Expect(err).To(BeNil())
+			recorder := httptest.NewRecorder()
+
+			apiHandler := api.SaveChart()
+			apiHandler.ServeHTTP(recorder, req)
+			Expect(req.URL.Path).To(Equal("/reload_charts"))
+			Expect(req.Header.Get("Authorization")).To(Equal("Basic"))
+
 		})
 
 		It("save to repo fails", func() {
@@ -131,7 +165,7 @@ var _ = Describe("Api", func() {
 			Expect(err).To(BeNil())
 			recorder := httptest.NewRecorder()
 
-			apiHandler := api.CreateChart()
+			apiHandler := api.SaveChart()
 			apiHandler.ServeHTTP(recorder, req)
 
 			Expect(recorder.Code).To(Equal(500))
@@ -145,7 +179,7 @@ var _ = Describe("Api", func() {
 
 			recorder := httptest.NewRecorder()
 
-			apiHandler := api.CreateChart()
+			apiHandler := api.SaveChart()
 			apiHandler.ServeHTTP(recorder, req)
 			Expect(recorder.Code).To(Equal(405))
 		})
