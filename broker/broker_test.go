@@ -106,13 +106,22 @@ var _ = Describe("Broker", func() {
 
 			Expect(len(serviceCatalog)).To(Equal(2))
 
-			spacebearsService := serviceCatalog[0]
-			Expect(spacebearsService.ID).To(Equal(spacebearsServiceGUID))
+			var spacebearsService brokerapi.Service
+			var mysqlService brokerapi.Service
+			if serviceCatalog[0].ID == spacebearsServiceGUID {
+				spacebearsService = serviceCatalog[0]
+				mysqlService = serviceCatalog[1]
+			} else if serviceCatalog[1].ID == spacebearsServiceGUID {
+				spacebearsService = serviceCatalog[1]
+				mysqlService = serviceCatalog[0]
+			} else {
+				panic("Spacebears service not found")
+			}
+
 			Expect(spacebearsService.Name).To(Equal("spacebears"))
 			Expect(spacebearsService.Description).To(Equal("spacebears service and spacebears broker helm chart"))
 			Expect(spacebearsService.Bindable).To(BeTrue())
 
-			mysqlService := serviceCatalog[1]
 			Expect(mysqlService.ID).To(Equal(mysqlServiceGUID))
 			Expect(mysqlService.Name).To(Equal("mysql"))
 			Expect(mysqlService.Description).To(Equal("all your data are belong to us"))

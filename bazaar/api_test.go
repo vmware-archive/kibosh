@@ -151,11 +151,18 @@ var _ = Describe("Api", func() {
 		})
 
 		It("writes error on reload chart failure", func() {
+			kiboshAPITestServer.Close()
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(401)
 			})
-			go func() { kiboshAPITestServer.Close() }()
 			kiboshAPITestServer = httptest.NewServer(handler)
+			kiboshConfig = &bazaar.KiboshConfig{
+				Server: kiboshAPITestServer.URL,
+				User:   "bob",
+				Pass:   "monkey123",
+			}
+
+			api = bazaar.NewAPI(&repo, kiboshConfig, logger)
 
 			req, err := createRequestWithFile()
 			Expect(err).To(BeNil())
