@@ -20,7 +20,6 @@ type KiboshConfig struct {
 	Server string `envconfig:"KIBOSH_SERVER" required:"true"`
 	User   string `envconfig:"KIBOSH_USER_NAME" required:"true"`
 	Pass   string `envconfig:"KIBOSH_USER_PASSWORD" required:"true"`
-
 }
 
 func ParseConfig() (*bazaarConfig, error) {

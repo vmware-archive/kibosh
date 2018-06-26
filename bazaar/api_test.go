@@ -16,56 +16,59 @@
 package bazaar_test
 
 import (
-	"code.cloudfoundry.org/lager"
-	"errors"
-	"github.com/cf-platform-eng/kibosh/bazaar"
-	"github.com/cf-platform-eng/kibosh/broker"
-	"github.com/cf-platform-eng/kibosh/helm"
-	"github.com/cf-platform-eng/kibosh/repository/repositoryfakes"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
-	hapi_chart "k8s.io/helm/pkg/proto/hapi/chart"
-	"net/http"
-	"net/http/httptest"
-
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
+	"net/http"
+	"net/http/httptest"
 	"strings"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
+	"code.cloudfoundry.org/lager"
+	"github.com/cf-platform-eng/kibosh/bazaar"
+	"github.com/cf-platform-eng/kibosh/helm"
+	"github.com/cf-platform-eng/kibosh/repository/repositoryfakes"
+	hapi_chart "k8s.io/helm/pkg/proto/hapi/chart"
 )
 
 var _ = Describe("Api", func() {
 	const spacebearsServiceGUID = "37b7acb6-6755-56fe-a17f-2307657023ef"
 
 	var repo repositoryfakes.FakeRepository
-	var bro broker.PksServiceBroker
 	var logger lager.Logger
 	var api bazaar.API
 	var kiboshConfig *bazaar.KiboshConfig
 
-	BeforeEach(func() {
+	var kiboshAPIRequest *http.Request
+	var kiboshAPITestServer *httptest.Server
 
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-		testserver := httptest.NewServer(handler)
+	BeforeEach(func() {
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			kiboshAPIRequest = r
+		})
+		kiboshAPITestServer = httptest.NewServer(handler)
 
 		repo = repositoryfakes.FakeRepository{}
-		bro = broker.PksServiceBroker{}
 		logger = lager.NewLogger("APITest")
 		kiboshConfig = &bazaar.KiboshConfig{
-			Server: testserver.URL,
+			Server: kiboshAPITestServer.URL,
 			User:   "bob",
 			Pass:   "monkey123",
 		}
 		api = bazaar.NewAPI(&repo, kiboshConfig, logger)
+	})
 
+	AfterEach(func() {
+		kiboshAPITestServer.Close()
 	})
 
 	Context("List charts", func() {
-
 		It("List charts on bazaar", func() {
 			spacebearsChart := &helm.MyChart{
 				Chartpath: "/foo/bar",
@@ -121,7 +124,6 @@ var _ = Describe("Api", func() {
 
 	Context("Save chart", func() {
 		It("passes file to repository", func() {
-
 			req, err := createRequestWithFile()
 			Expect(err).To(BeNil())
 			recorder := httptest.NewRecorder()
@@ -134,19 +136,26 @@ var _ = Describe("Api", func() {
 			Expect(err).To(BeNil())
 			Expect(string(saved)).To(Equal("hello upload"))
 		})
-		It("calls kibosh reload charts", func() {
-			var req *http.Request
-			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				req = r
 
+		It("calls kibosh reload charts", func() {
+			req, err := createRequestWithFile()
+			Expect(err).To(BeNil())
+			recorder := httptest.NewRecorder()
+
+			apiHandler := api.SaveChart()
+			apiHandler.ServeHTTP(recorder, req)
+			Expect(kiboshAPIRequest.URL.Path).To(Equal("/reload_charts"))
+			Expect(kiboshAPIRequest.Header.Get("Authorization")).To(
+				Equal("Basic Ym9iOm1vbmtleTEyMw=="),
+			)
+		})
+
+		It("writes error on reload chart failure", func() {
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(401)
 			})
-			testserver := httptest.NewServer(handler)
-			kiboshConfig = &bazaar.KiboshConfig{
-				Server: testserver.URL,
-				User:   "bob",
-				Pass:   "monkey123",
-			}
-			api = bazaar.NewAPI(&repo, kiboshConfig, logger)
+			go func() { kiboshAPITestServer.Close() }()
+			kiboshAPITestServer = httptest.NewServer(handler)
 
 			req, err := createRequestWithFile()
 			Expect(err).To(BeNil())
@@ -154,12 +163,10 @@ var _ = Describe("Api", func() {
 
 			apiHandler := api.SaveChart()
 			apiHandler.ServeHTTP(recorder, req)
-			Expect(req.URL.Path).To(Equal("/reload_charts"))
-			Expect(req.Header.Get("Authorization")).To(Equal("Basic"))
-
+			Expect(recorder.Code).To(Equal(500))
 		})
 
-		It("save to repo fails", func() {
+		It("writes error when save to repo fails", func() {
 			repo.SaveChartReturns(errors.New("failed to save charts"))
 			req, err := createRequestWithFile()
 			Expect(err).To(BeNil())
@@ -173,7 +180,6 @@ var _ = Describe("Api", func() {
 		})
 
 		It("set correct failure on get request", func() {
-
 			req, err := http.NewRequest("GET", "/charts/create", nil)
 			Expect(err).To(BeNil())
 
@@ -183,9 +189,7 @@ var _ = Describe("Api", func() {
 			apiHandler.ServeHTTP(recorder, req)
 			Expect(recorder.Code).To(Equal(405))
 		})
-
 	})
-
 })
 
 func createRequestWithFile() (*http.Request, error) {
@@ -209,5 +213,4 @@ func createRequestWithFile() (*http.Request, error) {
 	req.Header.Add("Content-Type", "multipart/form-data; boundary="+boundary)
 
 	return req, nil
-
 }

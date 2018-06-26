@@ -1,17 +1,17 @@
 package main
 
 import (
-	"code.cloudfoundry.org/lager"
 	"fmt"
+	"net/http"
+	"os"
+
+	"code.cloudfoundry.org/lager"
 	"github.com/cf-platform-eng/kibosh/auth"
 	"github.com/cf-platform-eng/kibosh/bazaar"
 	"github.com/cf-platform-eng/kibosh/repository"
-	"net/http"
-	"os"
 )
 
 func main() {
-
 	bazaarLogger := lager.NewLogger("bazaar")
 	bazaarLogger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
 	bazaarLogger.RegisterSink(lager.NewWriterSink(os.Stderr, lager.ERROR))
