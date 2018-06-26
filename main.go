@@ -33,7 +33,6 @@ import (
 func main() {
 	brokerLogger := lager.NewLogger("kibosh")
 	brokerLogger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
-	brokerLogger.RegisterSink(lager.NewWriterSink(os.Stderr, lager.ERROR))
 	brokerLogger.Info("Starting PKS Generic Broker")
 
 	conf, err := config.Parse()

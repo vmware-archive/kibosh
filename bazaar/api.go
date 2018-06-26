@@ -17,9 +17,10 @@ import (
 )
 
 type API interface {
-	ListCharts() http.Handler
-	SaveChart() http.Handler
-	DeleteChart() http.Handler
+	Charts() http.Handler
+	ListCharts(w http.ResponseWriter, r *http.Request) error
+	SaveChart(w http.ResponseWriter, r *http.Request) error
+	DeleteChart(w http.ResponseWriter, r *http.Request) error
 }
 
 type api struct {
@@ -42,30 +43,90 @@ type displayChart struct {
 	Chartpath string   `json:"chartpath"`
 }
 
-func (api *api) ListCharts() http.Handler {
+func (api *api) Charts() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		charts, err := api.repo.LoadCharts()
-		if err != nil {
-			api.logger.Error("Unable to load charts", err)
-			api.ServerError(500, "Unable to load charts", w)
-		} else {
-			var displayCharts []displayChart
-			for _, chart := range charts {
-				var plans []string
-				for _, plan := range chart.Plans {
-					plans = append(plans, plan.Name)
-				}
-				displayCharts = append(displayCharts, displayChart{
-					Name:      chart.Metadata.Name,
-					Plans:     plans,
-					Chartpath: chart.Chartpath,
-				})
-			}
-			err = api.WriteJSONResponse(w, displayCharts)
-			if err != nil {
-				api.logger.Error("Error writing list response", err)
-			}
+		var err error
+		switch r.Method {
+		case "GET":
+			err = api.ListCharts(w, r)
+			break
+		case "POST":
+			err = api.SaveChart(w, r)
+			break
+		case "DELETE":
+			err = api.DeleteChart(w, r)
+			break
+		default:
+			w.WriteHeader(405)
+			w.Header().Set("Allow", "GET, POST, DELETE")
 		}
+
+		if err != nil {
+			api.logger.Error("Error writing response", err)
+		}
+	})
+}
+
+func (api *api) ListCharts(w http.ResponseWriter, r *http.Request) error {
+	charts, err := api.repo.LoadCharts()
+	if err != nil {
+		api.logger.Error("Unable to load charts", err)
+		api.ServerError(500, "Unable to load charts", w)
+	} else {
+		var displayCharts []displayChart
+		for _, chart := range charts {
+			var plans []string
+			for _, plan := range chart.Plans {
+				plans = append(plans, plan.Name)
+			}
+			displayCharts = append(displayCharts, displayChart{
+				Name:      chart.Metadata.Name,
+				Plans:     plans,
+				Chartpath: chart.Chartpath,
+			})
+		}
+		return api.WriteJSONResponse(w, displayCharts)
+	}
+	return nil
+}
+
+func (api *api) SaveChart(w http.ResponseWriter, r *http.Request) error {
+	err := api.saveChartToRepository(r)
+	if err != nil {
+		api.ServerError(500, "Unable to save charts", w)
+		return nil
+	}
+
+	err = api.triggerKiboshReload()
+	if err != nil {
+		//todo: retry? rollback? what's on disk now doesn't match Kibosh
+		api.ServerError(500, "Chart persisted, but Kibosh reload failed", w)
+		return nil
+	}
+	return api.WriteJSONResponse(w, map[string]interface{}{"message": "Chart saved"})
+}
+
+func (api *api) DeleteChart(w http.ResponseWriter, r *http.Request) error {
+	chartName, err := getUrlPart(1, r)
+	if err != nil {
+		api.ServerError(500, "Unable to parse url path parameters", w)
+		return nil
+	}
+
+	err = api.repo.DeleteChart(chartName)
+	if err != nil {
+		api.ServerError(500, "Unable to delete chart", w)
+		return nil
+	}
+
+	err = api.triggerKiboshReload()
+	if err != nil {
+		//todo: retry? rollback? what's on disk now doesn't match Kibosh
+		api.ServerError(500, "Chart deleted, but Kibosh reload failed", w)
+		return nil
+	}
+	return api.WriteJSONResponse(w, map[string]interface{}{
+		"message": fmt.Sprintf("Chart [%v] deleted", chartName),
 	})
 }
 
@@ -79,59 +140,6 @@ func (api *api) WriteJSONResponse(w http.ResponseWriter, body interface{}) error
 	_, err = w.Write([]byte(serialized))
 
 	return err
-}
-
-func (api *api) SaveChart() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" {
-			w.WriteHeader(405)
-			w.Header().Set("Allow", "POST")
-			return
-		}
-
-		err := api.saveChartToRepository(r)
-		if err != nil {
-			api.ServerError(500, "Unable to save charts", w)
-			return
-		}
-
-		err = api.triggerKiboshReload()
-		if err != nil {
-			//todo: retry? rollback? what's on disk now doesn't match Kibosh
-			api.ServerError(500, "Chart persisted, but Kibosh reload failed", w)
-			return
-		}
-		api.WriteJSONResponse(w, map[string]interface{}{"message": "Chart saved"})
-	})
-}
-
-func (api *api) DeleteChart() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "DELETE" {
-			w.WriteHeader(405)
-			w.Header().Set("Allow", "DELETE")
-			return
-		}
-		chartName, err := getUrlPart(1, r)
-		if err != nil {
-			api.ServerError(500, "Unable to parse url path parameters", w)
-			return
-		}
-
-		err = api.repo.DeleteChart(chartName)
-		if err != nil {
-			api.ServerError(500, "Unable to delete chart", w)
-			return
-		}
-
-		err = api.triggerKiboshReload()
-		if err != nil {
-			//todo: retry? rollback? what's on disk now doesn't match Kibosh
-			api.ServerError(500, "Chart deleted, but Kibosh reload failed", w)
-			return
-		}
-		api.WriteJSONResponse(w, map[string]interface{}{"message": "Chart deleted"})
-	})
 }
 
 func getUrlPart(position int, r *http.Request) (string, error) {

@@ -68,6 +68,18 @@ var _ = Describe("Api", func() {
 		kiboshAPITestServer.Close()
 	})
 
+	It("set correct failure on non-allowed request", func() {
+		req, err := http.NewRequest("PUT", "/charts/update", nil)
+		Expect(err).To(BeNil())
+
+		recorder := httptest.NewRecorder()
+
+		apiHandler := api.Charts()
+		apiHandler.ServeHTTP(recorder, req)
+		Expect(recorder.Code).To(Equal(405))
+		Expect(recorder.Header().Get("Allow")).To(Equal("GET, POST, DELETE"))
+	})
+
 	Context("List charts", func() {
 		It("List charts on bazaar", func() {
 			spacebearsChart := &helm.MyChart{
@@ -95,7 +107,7 @@ var _ = Describe("Api", func() {
 
 			recorder := httptest.NewRecorder()
 
-			apiHandler := api.ListCharts()
+			apiHandler := api.Charts()
 			apiHandler.ServeHTTP(recorder, req)
 
 			Expect(recorder.Code).To(Equal(200))
@@ -116,7 +128,7 @@ var _ = Describe("Api", func() {
 
 			recorder := httptest.NewRecorder()
 
-			apiHandler := api.ListCharts()
+			apiHandler := api.Charts()
 			apiHandler.ServeHTTP(recorder, req)
 			Expect(recorder.Code).To(Equal(500))
 		})
@@ -128,7 +140,7 @@ var _ = Describe("Api", func() {
 			Expect(err).To(BeNil())
 			recorder := httptest.NewRecorder()
 
-			apiHandler := api.SaveChart()
+			apiHandler := api.Charts()
 			apiHandler.ServeHTTP(recorder, req)
 
 			path := repo.SaveChartArgsForCall(0)
@@ -142,7 +154,7 @@ var _ = Describe("Api", func() {
 			Expect(err).To(BeNil())
 			recorder := httptest.NewRecorder()
 
-			apiHandler := api.SaveChart()
+			apiHandler := api.Charts()
 			apiHandler.ServeHTTP(recorder, req)
 			Expect(kiboshAPIRequest.URL.Path).To(Equal("/reload_charts"))
 			Expect(kiboshAPIRequest.Header.Get("Authorization")).To(
@@ -168,7 +180,7 @@ var _ = Describe("Api", func() {
 			Expect(err).To(BeNil())
 			recorder := httptest.NewRecorder()
 
-			apiHandler := api.SaveChart()
+			apiHandler := api.Charts()
 			apiHandler.ServeHTTP(recorder, req)
 			Expect(recorder.Code).To(Equal(500))
 		})
@@ -179,44 +191,22 @@ var _ = Describe("Api", func() {
 			Expect(err).To(BeNil())
 			recorder := httptest.NewRecorder()
 
-			apiHandler := api.SaveChart()
+			apiHandler := api.Charts()
 			apiHandler.ServeHTTP(recorder, req)
 
 			Expect(recorder.Code).To(Equal(500))
 			Expect(repo.SaveChartCallCount()).To(Equal(1))
 		})
-
-		It("set correct failure on non-POST request", func() {
-			req, err := http.NewRequest("GET", "/charts/create", nil)
-			Expect(err).To(BeNil())
-
-			recorder := httptest.NewRecorder()
-
-			apiHandler := api.SaveChart()
-			apiHandler.ServeHTTP(recorder, req)
-			Expect(recorder.Code).To(Equal(405))
-		})
 	})
 
 	Context("Delete chart", func() {
-		It("set correct failure on non-DELETE request", func() {
-			req, err := http.NewRequest("GET", "/charts/mysql/", nil)
-			Expect(err).To(BeNil())
-
-			recorder := httptest.NewRecorder()
-
-			apiHandler := api.DeleteChart()
-			apiHandler.ServeHTTP(recorder, req)
-			Expect(recorder.Code).To(Equal(405))
-		})
-
 		It("url parsing fails", func() {
 			req, err := http.NewRequest("DELETE", "/charts", nil)
 			Expect(err).To(BeNil())
 
 			recorder := httptest.NewRecorder()
 
-			apiHandler := api.DeleteChart()
+			apiHandler := api.Charts()
 			apiHandler.ServeHTTP(recorder, req)
 			Expect(recorder.Code).To(Equal(500))
 		})
@@ -228,7 +218,7 @@ var _ = Describe("Api", func() {
 
 			recorder := httptest.NewRecorder()
 
-			apiHandler := api.DeleteChart()
+			apiHandler := api.Charts()
 			apiHandler.ServeHTTP(recorder, req)
 			Expect(recorder.Code).To(Equal(500))
 			Expect(recorder.Body).To(ContainSubstring("delete"))
@@ -249,7 +239,7 @@ var _ = Describe("Api", func() {
 
 			recorder := httptest.NewRecorder()
 
-			apiHandler := api.DeleteChart()
+			apiHandler := api.Charts()
 			apiHandler.ServeHTTP(recorder, req)
 			Expect(recorder.Code).To(Equal(500))
 			Expect(recorder.Body).To(ContainSubstring("Kibosh"))
@@ -262,7 +252,7 @@ var _ = Describe("Api", func() {
 
 			recorder := httptest.NewRecorder()
 
-			apiHandler := api.DeleteChart()
+			apiHandler := api.Charts()
 			apiHandler.ServeHTTP(recorder, req)
 
 			chartDeleted := repo.DeleteChartArgsForCall(0)
