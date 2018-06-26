@@ -23,12 +23,21 @@ build-loader-mac:
 build-loader: build-loader-linux build-loader-mac
 
 build-bazaar-mac:
-	GOOS=darwin GOARCH=amd64 go build -o loader.mac ./bazaar/cmd/main.go
+	GOOS=darwin GOARCH=amd64 go build -o bazaar.mac ./bazaar/cmd/api/main.go
 
 build-bazaar-linux:
-	GOOS=linux GOARCH=amd64 go build -o loader.mac ./bazaar/cmd/main.go
+	GOOS=linux GOARCH=amd64 go build -o bazaar.linux ./bazaar/cmd/api/main.go
 
 build-bazaar: build-bazaar-linux build-bazaar-mac
+
+build-bazaar-cli-mac:
+	GOOS=darwin GOARCH=amd64 go build -o bazaarcli.mac ./bazaar/cmd/cli/main.go
+
+build-bazaar-cli-linux:
+	GOOS=linux GOARCH=amd64 go build -o bazaarcli.linux ./bazaar/cmd/cli/main.go
+
+build-bazaar-cli: build-bazaar-cli-mac build-bazaar-cli-linux
+
 
 unit-test:
 	@go test -ldflags ${LDFLAGS} ${GO_PACKAGES}
@@ -71,4 +80,4 @@ endif
 	dep ensure -v
 	scripts/setup-apimachinery.sh
 
-all: fmt test build build-loader build-bazaar
+all: fmt test build build-loader build-bazaar build-bazaar-cli
