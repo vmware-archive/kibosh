@@ -148,7 +148,7 @@ func (api *api) triggerKiboshReload() error {
 		return err
 	}
 	if res.StatusCode != 200 {
-		err = errors.Errorf("kibosh return non 200 status code [%s]", res.StatusCode)
+		err = errors.Errorf("kibosh return non 200 status code [%v]", res.StatusCode)
 		api.logger.Error("Error triggering Kibosh reload", err)
 		return err
 	}
