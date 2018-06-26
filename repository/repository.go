@@ -30,6 +30,7 @@ import (
 type Repository interface {
 	LoadCharts() ([]*helm.MyChart, error)
 	SaveChart(path string) error
+	DeleteChart(name string) error
 }
 
 type repository struct {
@@ -79,7 +80,7 @@ func (r *repository) LoadCharts() ([]*helm.MyChart, error) {
 					}
 					charts = append(charts, myChart)
 				} else {
-					r.logger.Info(fmt.Sprintf("[%s] does not containt Chart.yml, skipping", subChartPath))
+					r.logger.Info(fmt.Sprintf("[%s] does not contain Chart.yml, skipping", subChartPath))
 				}
 			}
 		}
@@ -126,8 +127,9 @@ func (r *repository) SaveChart(path string) error {
 		os.RemoveAll(destinationPath)
 	}
 
-	///todo: validate that chartPathInfo.Name() == chart.Name()
-	print(chart.Metadata.Name)
+	if chartPathInfo.Name() != chart.Metadata.Name {
+		return errors.New("Chart metadata name and top level directory in archive for chart does not match")
+	}
 
 	err = os.Rename(chartPath, filepath.Join(r.helmChartDir, chartPathInfo.Name()))
 	if err != nil {
@@ -135,6 +137,25 @@ func (r *repository) SaveChart(path string) error {
 	}
 
 	return nil
+}
+
+func (r *repository) DeleteChart(name string) error {
+
+	deletePath := filepath.Join(r.helmChartDir, name)
+
+	_, err := os.Stat(deletePath)
+
+	if os.IsNotExist(err) {
+		r.logger.Info(fmt.Sprintf("[%s] does not exist, skipping", deletePath))
+		return nil
+	} else if err != nil {
+		r.logger.Info(fmt.Sprintf("[%s] error reading at path, skipping", deletePath))
+		return err
+	}
+	os.RemoveAll(deletePath)
+
+	return nil
+
 }
 
 func fileExists(path string) (bool, error) {

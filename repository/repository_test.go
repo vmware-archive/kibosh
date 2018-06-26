@@ -239,4 +239,74 @@ version: 0.0.2
 			Expect(savedChartParsed["version"]).To(Equal("0.0.2"))
 		})
 	})
+
+	Context("delete chart", func() {
+
+		BeforeEach(func() {
+			testChart = test.DefaultChart()
+		})
+
+		It("successfully deletes chart", func() {
+
+			chartPath, err := ioutil.TempDir("", "chart-")
+			Expect(err).To(BeNil())
+			deletePath := filepath.Join(chartPath, "spacebears")
+			err = os.Mkdir(deletePath, 0700)
+			Expect(err).To(BeNil())
+
+			err = testChart.WriteChart(deletePath)
+			Expect(err).To(BeNil())
+			logger = lager.NewLogger("test")
+			myRepository := repository.NewRepository(chartPath, "", logger)
+
+			err = myRepository.DeleteChart("spacebears")
+			Expect(err).To(BeNil())
+
+			_, err = os.Stat(deletePath)
+			Expect(os.IsNotExist(err)).To(BeTrue())
+		})
+
+		It("successfully deletes chart with multiple charts", func() {
+
+			chartPath, err := ioutil.TempDir("", "chart-")
+			Expect(err).To(BeNil())
+			deletePath := filepath.Join(chartPath, "spacebears")
+			err = os.Mkdir(deletePath, 0700)
+			Expect(err).To(BeNil())
+			err = testChart.WriteChart(deletePath)
+			Expect(err).To(BeNil())
+
+			mysqlPath := filepath.Join(chartPath, "mysql")
+			err = os.Mkdir(mysqlPath, 0700)
+			Expect(err).To(BeNil())
+			err = testChart.WriteChart(mysqlPath)
+			Expect(err).To(BeNil())
+
+			logger = lager.NewLogger("test")
+			myRepository := repository.NewRepository(chartPath, "", logger)
+
+			err = myRepository.DeleteChart("spacebears")
+			Expect(err).To(BeNil())
+
+			_, err = os.Stat(deletePath)
+			Expect(os.IsNotExist(err)).To(BeTrue())
+			_, err = os.Stat(mysqlPath)
+			Expect(err).To(BeNil())
+
+		})
+
+		It("fails to find chart on chart path", func() {
+
+			chartPath, err := ioutil.TempDir("", "chart-")
+			Expect(err).To(BeNil())
+
+			logger = lager.NewLogger("test")
+			myRepository := repository.NewRepository(chartPath, "", logger)
+
+			err = myRepository.DeleteChart("spacebears")
+			Expect(err).To(BeNil())
+
+		})
+
+	})
 })
