@@ -20,6 +20,17 @@ type FakeRepository struct {
 		result1 []*helm.MyChart
 		result2 error
 	}
+	SaveChartStub        func(path string) error
+	saveChartMutex       sync.RWMutex
+	saveChartArgsForCall []struct {
+		path string
+	}
+	saveChartReturns struct {
+		result1 error
+	}
+	saveChartReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -67,11 +78,61 @@ func (fake *FakeRepository) LoadChartsReturnsOnCall(i int, result1 []*helm.MyCha
 	}{result1, result2}
 }
 
+func (fake *FakeRepository) SaveChart(path string) error {
+	fake.saveChartMutex.Lock()
+	ret, specificReturn := fake.saveChartReturnsOnCall[len(fake.saveChartArgsForCall)]
+	fake.saveChartArgsForCall = append(fake.saveChartArgsForCall, struct {
+		path string
+	}{path})
+	fake.recordInvocation("SaveChart", []interface{}{path})
+	fake.saveChartMutex.Unlock()
+	if fake.SaveChartStub != nil {
+		return fake.SaveChartStub(path)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.saveChartReturns.result1
+}
+
+func (fake *FakeRepository) SaveChartCallCount() int {
+	fake.saveChartMutex.RLock()
+	defer fake.saveChartMutex.RUnlock()
+	return len(fake.saveChartArgsForCall)
+}
+
+func (fake *FakeRepository) SaveChartArgsForCall(i int) string {
+	fake.saveChartMutex.RLock()
+	defer fake.saveChartMutex.RUnlock()
+	return fake.saveChartArgsForCall[i].path
+}
+
+func (fake *FakeRepository) SaveChartReturns(result1 error) {
+	fake.SaveChartStub = nil
+	fake.saveChartReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeRepository) SaveChartReturnsOnCall(i int, result1 error) {
+	fake.SaveChartStub = nil
+	if fake.saveChartReturnsOnCall == nil {
+		fake.saveChartReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.saveChartReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeRepository) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.loadChartsMutex.RLock()
 	defer fake.loadChartsMutex.RUnlock()
+	fake.saveChartMutex.RLock()
+	defer fake.saveChartMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

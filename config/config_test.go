@@ -145,7 +145,6 @@ my cert data
 							"username": "k8s",
 							"password": "xyz789",
 							"email":    "k8s@example.com",
-							//"auth": "?????? maybe....",
 						},
 					},
 				}))

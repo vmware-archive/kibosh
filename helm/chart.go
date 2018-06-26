@@ -33,7 +33,7 @@ import (
 type MyChart struct {
 	*chart.Chart
 
-	chartPath             string
+	Chartpath             string
 	privateRegistryServer string
 	Values                []byte
 	Plans                 map[string]Plan
@@ -48,7 +48,7 @@ type Plan struct {
 
 func NewChart(chartPath string, privateRegistryServer string) (*MyChart, error) {
 	myChart := &MyChart{
-		chartPath:             chartPath,
+		Chartpath:             chartPath,
 		privateRegistryServer: privateRegistryServer,
 	}
 	err := myChart.EnsureIgnore()
@@ -76,7 +76,7 @@ func NewChart(chartPath string, privateRegistryServer string) (*MyChart, error) 
 }
 
 func (c *MyChart) LoadChartValues() error {
-	raw, err := c.ReadDefaultVals(c.chartPath)
+	raw, err := c.ReadDefaultVals(c.Chartpath)
 	if err != nil {
 		return err
 	}
@@ -152,7 +152,7 @@ func (c *MyChart) OverrideImageSources(rawVals map[string]interface{}) (map[stri
 }
 
 func (c *MyChart) loadPlans() error {
-	plansPath := path.Join(c.chartPath, "plans.yaml")
+	plansPath := path.Join(c.Chartpath, "plans.yaml")
 	bytes, err := ioutil.ReadFile(plansPath)
 	if err != nil {
 		return err
@@ -175,7 +175,7 @@ func (c *MyChart) loadPlans() error {
 			return errors.New(fmt.Sprintf("Name [%s] contains invalid characters", p.Name))
 		}
 
-		planValues, err := ioutil.ReadFile(filepath.Join(c.chartPath, "plans", p.File))
+		planValues, err := ioutil.ReadFile(filepath.Join(c.Chartpath, "plans", p.File))
 		if err != nil {
 			return err
 		}
@@ -190,18 +190,18 @@ func (c *MyChart) loadPlans() error {
 }
 
 func (c *MyChart) EnsureIgnore() error {
-	_, err := os.Stat(c.chartPath)
+	_, err := os.Stat(c.Chartpath)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("Error reading chart dir [%s]", c.chartPath))
+		return errors.Wrap(err, fmt.Sprintf("Error reading chart dir [%s]", c.Chartpath))
 	}
 
-	ignoreFilePath := filepath.Join(c.chartPath, ".helmignore")
+	ignoreFilePath := filepath.Join(c.Chartpath, ".helmignore")
 	_, err = os.Stat(ignoreFilePath)
 	if err != nil {
 		file, err := os.Create(ignoreFilePath)
 		defer file.Close()
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("Error creating .helmignore [%s]", c.chartPath))
+			return errors.Wrap(err, fmt.Sprintf("Error creating .helmignore [%s]", c.Chartpath))
 		} else {
 			file.Write([]byte("images"))
 		}
@@ -217,11 +217,11 @@ func (c *MyChart) EnsureIgnore() error {
 		file, err := os.OpenFile(ignoreFilePath, os.O_APPEND|os.O_WRONLY, 0666)
 		defer file.Close()
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("Error opening .helmignore [%s]", c.chartPath))
+			return errors.Wrap(err, fmt.Sprintf("Error opening .helmignore [%s]", c.Chartpath))
 		} else {
 			_, err = file.Write([]byte("\nimages\n"))
 			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("Error appending to .helmignore [%s]", c.chartPath))
+				return errors.Wrap(err, fmt.Sprintf("Error appending to .helmignore [%s]", c.Chartpath))
 			}
 		}
 	}
