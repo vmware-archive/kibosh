@@ -13,11 +13,13 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/cf-platform-eng/kibosh/repository"
 	"github.com/pkg/errors"
+	"strings"
 )
 
 type API interface {
 	ListCharts() http.Handler
 	SaveChart() http.Handler
+	DeleteChart() http.Handler
 }
 
 type api struct {
@@ -103,6 +105,50 @@ func (api *api) SaveChart() http.Handler {
 	})
 }
 
+func (api *api) DeleteChart() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "DELETE" {
+			w.WriteHeader(405)
+			w.Header().Set("Allow", "DELETE")
+			return
+		}
+		chartName, err := getUrlPart(1, r)
+		if err != nil {
+			api.ServerError(500, "Unable to parse url path parameters", w)
+			return
+		}
+
+		err = api.repo.DeleteChart(chartName)
+		if err != nil {
+			api.ServerError(500, "Unable to delete chart", w)
+			return
+		}
+
+		err = api.triggerKiboshReload()
+		if err != nil {
+			//todo: retry? rollback? what's on disk now doesn't match Kibosh
+			api.ServerError(500, "Chart deleted, but Kibosh reload failed", w)
+			return
+		}
+		api.WriteJSONResponse(w, map[string]interface{}{"message": "Chart deleted"})
+	})
+}
+
+func getUrlPart(position int, r *http.Request) (string, error) {
+	parts := strings.Split(r.URL.Path, "/")
+	print()
+	if parts[0] == "" {
+		parts = parts[1:]
+	}
+	if parts[len(parts)-1] == "" {
+		parts = parts[:len(parts)-1]
+	}
+	if len(parts)-1 < position {
+		return "", errors.New("url didn't have required param")
+	}
+	return parts[position], nil
+}
+
 func (api *api) saveChartToRepository(r *http.Request) error {
 	r.ParseMultipartForm(1000000)
 	file, handler, err := r.FormFile("chart")
@@ -134,7 +180,7 @@ func (api *api) triggerKiboshReload() error {
 	kiboshURL := fmt.Sprintf("%v/reload_charts", api.kiboshConfig.Server)
 	req, err := http.NewRequest("GET", kiboshURL, nil)
 	if err != nil {
-		api.logger.Error("SaveChart: reload_charts failed", err)
+		api.logger.Error("reload_charts failed", err)
 		return err
 	}
 
@@ -144,11 +190,11 @@ func (api *api) triggerKiboshReload() error {
 	req.Header.Set("Authorization", fmt.Sprintf("Basic %s", auth))
 	res, err := client.Do(req)
 	if err != nil {
-		api.logger.Error("SaveChart: Couldn't call kibosh to update", err)
+		api.logger.Error("Couldn't call kibosh to update", err)
 		return err
 	}
 	if res.StatusCode != 200 {
-		err = errors.Errorf("kibosh return non 200 status code [%s]", res.StatusCode)
+		err = errors.Errorf("kibosh return non 200 status code [%v]", res.StatusCode)
 		api.logger.Error("Error triggering Kibosh reload", err)
 		return err
 	}

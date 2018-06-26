@@ -30,6 +30,7 @@ import (
 type Repository interface {
 	LoadCharts() ([]*helm.MyChart, error)
 	SaveChart(path string) error
+	DeleteChart(name string) error
 }
 
 type repository struct {
@@ -135,6 +136,11 @@ func (r *repository) SaveChart(path string) error {
 	}
 
 	return nil
+}
+
+func (r *repository) DeleteChart(name string) error {
+	return nil
+
 }
 
 func fileExists(path string) (bool, error) {

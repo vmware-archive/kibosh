@@ -186,7 +186,7 @@ var _ = Describe("Api", func() {
 			Expect(repo.SaveChartCallCount()).To(Equal(1))
 		})
 
-		It("set correct failure on get request", func() {
+		It("set correct failure on non-POST request", func() {
 			req, err := http.NewRequest("GET", "/charts/create", nil)
 			Expect(err).To(BeNil())
 
@@ -196,6 +196,82 @@ var _ = Describe("Api", func() {
 			apiHandler.ServeHTTP(recorder, req)
 			Expect(recorder.Code).To(Equal(405))
 		})
+	})
+
+	Context("Delete chart", func() {
+		It("set correct failure on non-DELETE request", func() {
+			req, err := http.NewRequest("GET", "/charts/mysql/", nil)
+			Expect(err).To(BeNil())
+
+			recorder := httptest.NewRecorder()
+
+			apiHandler := api.DeleteChart()
+			apiHandler.ServeHTTP(recorder, req)
+			Expect(recorder.Code).To(Equal(405))
+		})
+
+		It("url parsing fails", func() {
+			req, err := http.NewRequest("DELETE", "/charts", nil)
+			Expect(err).To(BeNil())
+
+			recorder := httptest.NewRecorder()
+
+			apiHandler := api.DeleteChart()
+			apiHandler.ServeHTTP(recorder, req)
+			Expect(recorder.Code).To(Equal(500))
+		})
+		It("delete chart fails in repo", func() {
+			repo.DeleteChartReturns(errors.New("Nope. Keeping the chart."))
+
+			req, err := http.NewRequest("DELETE", "/charts/mysql", nil)
+			Expect(err).To(BeNil())
+
+			recorder := httptest.NewRecorder()
+
+			apiHandler := api.DeleteChart()
+			apiHandler.ServeHTTP(recorder, req)
+			Expect(recorder.Code).To(Equal(500))
+			Expect(recorder.Body).To(ContainSubstring("delete"))
+		})
+
+		It("delete chart fails in updating kibosh", func() {
+
+			kiboshAPITestServer.Close()
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(505)
+			})
+			kiboshAPITestServer = httptest.NewServer(handler)
+
+			api = bazaar.NewAPI(&repo, kiboshConfig, logger)
+
+			req, err := http.NewRequest("DELETE", "/charts/mysql", nil)
+			Expect(err).To(BeNil())
+
+			recorder := httptest.NewRecorder()
+
+			apiHandler := api.DeleteChart()
+			apiHandler.ServeHTTP(recorder, req)
+			Expect(recorder.Code).To(Equal(500))
+			Expect(recorder.Body).To(ContainSubstring("Kibosh"))
+		})
+
+		It("successfully deleted chart", func() {
+
+			req, err := http.NewRequest("DELETE", "/charts/mysql", nil)
+			Expect(err).To(BeNil())
+
+			recorder := httptest.NewRecorder()
+
+			apiHandler := api.DeleteChart()
+			apiHandler.ServeHTTP(recorder, req)
+
+			chartDeleted := repo.DeleteChartArgsForCall(0)
+			Expect(chartDeleted).To(Equal("mysql"))
+
+			Expect(recorder.Code).To(Equal(200))
+			Expect(recorder.Body).To(ContainSubstring("deleted"))
+		})
+
 	})
 })
 

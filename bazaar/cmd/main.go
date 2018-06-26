@@ -28,10 +28,20 @@ func main() {
 	http.Handle("/charts/", authFilter.Filter(
 		bazaarAPI.ListCharts(),
 	))
+	if true {
+		panic("foo")
+	}
 
-	http.Handle("/charts/save", authFilter.Filter(
-		bazaarAPI.SaveChart(),
-	))
+	//todo: broken
+	//post request type
+	//http.Handle("/charts/", authFilter.Filter(
+	//	bazaarAPI.SaveChart(),
+	//))
+	//todo: broken
+	//delete request type
+	//http.Handle("/charts/", authFilter.Filter(
+	//	bazaarAPI.DeleteChart(),
+	//))
 	bazaarLogger.Info(fmt.Sprintf("Listening on %v", conf.Port))
 	err = http.ListenAndServe(fmt.Sprintf(":%v", conf.Port), nil)
 	bazaarLogger.Fatal("http-listen", err)
