@@ -403,10 +403,10 @@ jobs:
 
           pushd source-repo/bosh/bosh-release
 
-          bosh add-blob ../../kibosh-linux/kibosh-*.linux kibosh.linux
-          bosh add-blob ../../loader-linux/loader-*.linux loader.linux
-          bosh add-blob ../../delete-all-and-deregister/delete_all_and_deregister.linux delete_all_and_deregister.linux
-          bosh add-blob ../../cf-cli-binary/cf-cli.tgz cf-cli.tgz
+          bosh add-blob ../../../kibosh-linux/kibosh-*.linux kibosh.linux
+          bosh add-blob ../../../loader-linux/loader-*.linux loader.linux
+          bosh add-blob ../../../delete-all-and-deregister/delete_all_and_deregister.linux delete_all_and_deregister.linux
+          bosh add-blob ../../../cf-cli-binary/cf-cli.tgz cf-cli.tgz
 
           bosh create-release --name=kibosh --version=${VERSION} \
             --tarball=kibosh-release-${VERSION}.tgz --force
