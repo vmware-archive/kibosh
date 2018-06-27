@@ -41,7 +41,8 @@ type MyHelmClient interface {
 	helm.Interface
 	Install(*helmstaller.Options) error
 	Upgrade(*helmstaller.Options) error
-	InstallChart(chart *MyChart, namespace string, planName string, options ...helm.InstallOption) (*rls.InstallReleaseResponse, error)
+	InstallChart(chart *MyChart, namespace string, planName string, installValues []byte) (*rls.InstallReleaseResponse, error)
+	UpdateChart(chart *MyChart, rlsName string, planName string, updateValues []byte) (*rls.UpdateReleaseResponse, error)
 	MergeValueBytes(base []byte, override []byte) ([]byte, error)
 }
 
@@ -96,13 +97,31 @@ func (c myHelmClient) InstallReleaseFromChart(myChart *chart.Chart, namespace st
 	return client.InstallReleaseFromChart(myChart, namespace, opts...)
 }
 
-func (c myHelmClient) InstallChart(chart *MyChart, namespace string, planName string, opts ...helm.InstallOption) (*rls.InstallReleaseResponse, error) {
+func (c myHelmClient) InstallChart(chart *MyChart, namespace string, planName string, installValues []byte) (*rls.InstallReleaseResponse, error) {
 	overrideValues, err := c.MergeValueBytes(chart.Values, chart.Plans[planName].Values)
 	if err != nil {
 		return nil, err
 	}
-	newOpts := append(opts, helm.ValueOverrides(overrideValues))
-	return c.InstallReleaseFromChart(chart.Chart, namespace, newOpts...)
+	mergedValues, _ := c.MergeValueBytes(overrideValues, installValues)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.InstallReleaseFromChart(chart.Chart, namespace, helm.ReleaseName(namespace), helm.ValueOverrides(mergedValues))
+}
+
+func (c myHelmClient) UpdateChart(chart *MyChart, rlsName string, planName string, updateValues []byte) (*rls.UpdateReleaseResponse, error) {
+	existingChartValues, err := c.MergeValueBytes(chart.Values, chart.Plans[planName].Values)
+	if err != nil {
+		return nil, err
+	}
+
+	mergedValues, err := c.MergeValueBytes(existingChartValues, updateValues)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.UpdateReleaseFromChart(rlsName, chart.Chart, helm.UpdateValueOverrides(mergedValues))
 }
 
 func (c myHelmClient) DeleteRelease(rlsName string, opts ...helm.DeleteOption) (*rls.UninstallReleaseResponse, error) {
@@ -130,7 +149,13 @@ func (c myHelmClient) UpdateRelease(rlsName, chStr string, opts ...helm.UpdateOp
 }
 
 func (c myHelmClient) UpdateReleaseFromChart(rlsName string, chart *chart.Chart, opts ...helm.UpdateOption) (*rls.UpdateReleaseResponse, error) {
-	panic("Not yet implemented")
+	tunnel, client, err := c.open()
+	if err != nil {
+		return nil, err
+	}
+	defer tunnel.Close()
+
+	return client.UpdateReleaseFromChart(rlsName, chart, opts...)
 }
 
 func (c myHelmClient) RollbackRelease(rlsName string, opts ...helm.RollbackOption) (*rls.RollbackReleaseResponse, error) {

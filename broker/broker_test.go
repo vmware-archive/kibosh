@@ -223,7 +223,7 @@ var _ = Describe("Broker", func() {
 				Expect(chart).To(Equal(spacebearsChart))
 				Expect(namespaceName).To(Equal("kibosh-my-instance-guid"))
 				Expect(plan).To(Equal("small"))
-				Expect(opts).To(HaveLen(1))
+				Expect(opts).To(BeNil())
 			})
 
 			It("returns error on helm chart creation failure", func() {
@@ -247,6 +247,26 @@ var _ = Describe("Broker", func() {
 				Expect(fakeMyHelmClient.InstallChartCallCount()).To(Equal(1))
 				chart, _, _, _ := fakeMyHelmClient.InstallChartArgsForCall(0)
 				Expect(chart).To(Equal(mysqlChart))
+			})
+
+			It("creates helm chart with values", func() {
+				planID := spacebearsServiceGUID + "-small"
+				raw := json.RawMessage(`{"foo":"bar"}`)
+
+				_, err := broker.Provision(nil, "my-instance-guid", brokerapi.ProvisionDetails{
+					ServiceID:     spacebearsServiceGUID,
+					PlanID:        planID,
+					RawParameters: raw,
+				}, true)
+
+				Expect(err).To(BeNil())
+
+				Expect(fakeMyHelmClient.InstallChartCallCount()).To(Equal(1))
+				chart, namespaceName, plan, opts := fakeMyHelmClient.InstallChartArgsForCall(0)
+				Expect(chart).To(Equal(spacebearsChart))
+				Expect(namespaceName).To(Equal("kibosh-my-instance-guid"))
+				Expect(plan).To(Equal("small"))
+				Expect(opts).To(HaveLen(9))
 			})
 		})
 	})
@@ -328,6 +348,22 @@ var _ = Describe("Broker", func() {
 			Expect(err).To(BeNil())
 			Expect(resp.Description).To(ContainSubstring("in progress"))
 			Expect(resp.State).To(Equal(brokerapi.InProgress))
+		})
+
+		It("returns success if updated", func() {
+			fakeMyHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
+				Info: &hapi_release.Info{
+					Status: &hapi_release.Status{
+						Code: hapi_release.Status_DEPLOYED,
+					},
+				},
+			}, nil)
+
+			resp, err := broker.LastOperation(nil, "my-instance-guid", "update")
+
+			Expect(err).To(BeNil())
+			Expect(resp.Description).To(ContainSubstring("updated"))
+			Expect(resp.State).To(Equal(brokerapi.Succeeded))
 		})
 
 		It("returns pending upgrade", func() {
@@ -709,6 +745,47 @@ var _ = Describe("Broker", func() {
 			Expect(err).To(BeNil())
 			Expect(response.IsAsync).To(BeTrue())
 			Expect(response.OperationData).To(Equal("deprovision"))
+		})
+	})
+
+	Context("update", func() {
+		var details brokerapi.ProvisionDetails
+		var fakeMyHelmClient *helmfakes.FakeMyHelmClient
+		var fakeCluster *k8sfakes.FakeCluster
+		var broker *PksServiceBroker
+
+		BeforeEach(func() {
+			fakeMyHelmClient = &helmfakes.FakeMyHelmClient{}
+			fakeCluster = &k8sfakes.FakeCluster{}
+			details = brokerapi.ProvisionDetails{
+				ServiceID: spacebearsServiceGUID,
+			}
+
+			broker = NewPksServiceBroker(registryConfig, fakeCluster, fakeMyHelmClient, charts, logger)
+		})
+
+		It("requires async", func() {
+			resp, err := broker.Update(nil, "my-instance-guid", brokerapi.UpdateDetails{}, true)
+
+			Expect(err).To(BeNil())
+			Expect(resp.IsAsync).To(BeTrue())
+			Expect(resp.OperationData).To(Equal("update"))
+		})
+
+		It("responds correctly", func() {
+			raw := json.RawMessage(`{"foo":"bar"}`)
+
+			details := brokerapi.UpdateDetails{
+				PlanID:        "my-plan-id",
+				ServiceID:     spacebearsServiceGUID,
+				RawParameters: raw,
+			}
+
+			resp, err := broker.Update(nil, "my-instance-guid", details, true)
+
+			Expect(err).To(BeNil())
+			Expect(resp.IsAsync).To(BeTrue())
+			Expect(resp.OperationData).To(Equal("update"))
 		})
 	})
 })

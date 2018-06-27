@@ -24,12 +24,12 @@ import (
 	"github.com/cf-platform-eng/kibosh/config"
 	my_helm "github.com/cf-platform-eng/kibosh/helm"
 	"github.com/cf-platform-eng/kibosh/k8s"
+	"github.com/ghodss/yaml"
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pkg/errors"
 	api_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/helm/pkg/helm"
 	hapi_release "k8s.io/helm/pkg/proto/hapi/release"
 )
 
@@ -130,12 +130,20 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 	}
 
 	planName := strings.TrimPrefix(details.PlanID, details.ServiceID+"-")
+	var installValues []byte // = nil
+	if details.GetRawParameters() != nil {
+		installValues, err = yaml.JSONToYAML(details.GetRawParameters())
+		if err != nil {
+			return brokerapi.ProvisionedServiceSpec{}, err
+		}
+	}
 
 	chart := broker.chartsMap[details.ServiceID]
 	if chart == nil {
 		return brokerapi.ProvisionedServiceSpec{}, errors.New(fmt.Sprintf("Chart not found for [%s]", details.ServiceID))
 	}
-	_, err = broker.myHelmClient.InstallChart(chart, namespaceName, planName, helm.ReleaseName(namespaceName))
+
+	_, err = broker.myHelmClient.InstallChart(chart, namespaceName, planName, installValues)
 	if err != nil {
 		return brokerapi.ProvisionedServiceSpec{}, err
 	}
@@ -217,7 +225,40 @@ func (broker *PksServiceBroker) Unbind(ctx context.Context, instanceID, bindingI
 // Its purpose may be for changing plans, so if we only have a single default plan
 // it is out of scope.
 func (broker *PksServiceBroker) Update(ctx context.Context, instanceID string, details brokerapi.UpdateDetails, asyncAllowed bool) (brokerapi.UpdateServiceSpec, error) {
-	return brokerapi.UpdateServiceSpec{}, nil
+	var updateValues []byte = nil
+	var err error
+
+	if details.GetRawParameters() == nil {
+		return brokerapi.UpdateServiceSpec{
+			IsAsync:       true,
+			OperationData: "update",
+		}, nil
+	}
+
+	if details.GetRawParameters() != nil {
+		updateValues, err = yaml.JSONToYAML(details.GetRawParameters())
+		if err != nil {
+			return brokerapi.UpdateServiceSpec{}, err
+		}
+	}
+
+	chart := broker.chartsMap[details.ServiceID]
+	if chart == nil {
+		return brokerapi.UpdateServiceSpec{}, errors.New(fmt.Sprintf("Chart not found for [%s]", details.ServiceID))
+	}
+
+	planName := strings.TrimPrefix(details.PlanID, details.ServiceID+"-")
+
+	_, err = broker.myHelmClient.UpdateChart(chart, broker.getNamespace(instanceID), planName, updateValues)
+	if err != nil {
+		broker.Logger.Debug(fmt.Sprintf("Update failed on update release= %v", err))
+		return brokerapi.UpdateServiceSpec{}, err
+	}
+
+	return brokerapi.UpdateServiceSpec{
+		IsAsync:       true,
+		OperationData: "update",
+	}, nil
 }
 
 // LastOperation is for async
@@ -258,6 +299,15 @@ func (broker *PksServiceBroker) LastOperation(ctx context.Context, instanceID, o
 		default:
 			brokerStatus = brokerapi.Failed
 			description = fmt.Sprintf("deprovision failed %v", code)
+		}
+	} else if operationData == "update" {
+		switch code {
+		case hapi_release.Status_DEPLOYED:
+			brokerStatus = brokerapi.Succeeded
+			description = "updated"
+		default:
+			brokerStatus = brokerapi.Failed
+			description = fmt.Sprintf("update failed %v", code)
 		}
 	}
 
