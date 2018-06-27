@@ -1,3 +1,0 @@
-- name: "default"
-  description: "default plan for spacebears"
-  file: "default.yaml"

@@ -1,0 +1,20 @@
+---
+name: load-image
+
+templates:
+  run.erb: bin/run
+  load_image.erb: bin/load_image.sh
+
+packages:
+- loader
+
+properties:
+  registry.server:
+    description: Private registry server to push images to. Optional, errand is no-op when missing
+  registry.username:
+    description: Private registry username
+  registry.password:
+    description: Private registry password
+  chart_path:
+    description: Path to chart directory
+    default: /var/vcap/pacakges/kibosh-chart

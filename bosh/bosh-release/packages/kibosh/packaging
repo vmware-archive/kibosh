@@ -1,0 +1,4 @@
+set -ex
+
+chmod +x kibosh.linux
+cp kibosh.linux ${BOSH_INSTALL_TARGET}/

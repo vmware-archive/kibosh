@@ -1,7 +1,0 @@
----
-name: delete-all-and-deregister
-
-dependencies: []
-
-files:
-- delete_all_and_deregister.linux

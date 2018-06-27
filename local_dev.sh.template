@@ -20,6 +20,6 @@ export REG_PASS='{
 
 export REG_EMAIL='_json_key'
 
-LDFLAGS="-X github.com/cf-platform-eng/kibosh/helm.tillerTag=$(cat tiller-version)"
+LDFLAGS="-X github.com/cf-platform-eng/kibosh/pkg/helm.tillerTag=$(cat tiller-version)"
 
-go run -ldflags "${LDFLAGS}" main.go
+go run -ldflags "${LDFLAGS}" cmd/kibosh/main.go

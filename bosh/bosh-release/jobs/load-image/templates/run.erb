@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -e
+
+export LOG_DIR="/var/vcap/sys/log/load-image"
+
+mkdir -p "$LOG_DIR"
+
+/var/vcap/jobs/load-image/bin/load_image.sh \
+    > >(tee -a "$LOG_DIR/load-image.out.log") \
+    2> >(tee -a "$LOG_DIR/load-image.err.log" >&2)

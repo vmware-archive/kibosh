@@ -1,3 +1,0 @@
-set -ex
-
-tar -xvf helm_chart_src.tgz -C ${BOSH_INSTALL_TARGET}

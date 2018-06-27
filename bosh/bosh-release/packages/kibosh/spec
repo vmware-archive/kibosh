@@ -1,0 +1,7 @@
+---
+name: kibosh_pkg
+
+dependencies: []
+
+files:
+- kibosh.linux

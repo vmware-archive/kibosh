@@ -4,13 +4,13 @@ GO_PACKAGES = $$(go list ./... ./cmd/loader | grep -v vendor)
 GO_FILES = $$(find . -name "*.go" | grep -v vendor | uniq)
 VERSION = $$(cat tiller-version)
 
-LDFLAGS="-X github.com/cf-platform-eng/kibosh/helm.tillerTag=$(VERSION)"
+LDFLAGS="-X github.com/cf-platform-eng/kibosh/pkg/helm.tillerTag=$(VERSION)"
 
 linux:
-	GOOS=linux GOARCH=amd64 go build -o kibosh.linux -ldflags ${LDFLAGS} ./main.go
+	GOOS=linux GOARCH=amd64 go build -o kibosh.linux -ldflags ${LDFLAGS} ./cmd/kibosh/main.go
 
 mac:
-	GOOS=darwin GOARCH=amd64 go build -o kibosh.darwin -ldflags ${LDFLAGS} ./main.go
+	GOOS=darwin GOARCH=amd64 go build -o kibosh.darwin -ldflags ${LDFLAGS} ./cmd/kibosh/main.go
 
 build: linux mac
 
@@ -23,18 +23,18 @@ build-loader-mac:
 build-loader: build-loader-linux build-loader-mac
 
 build-bazaar-mac:
-	GOOS=darwin GOARCH=amd64 go build -o bazaar.mac ./bazaar/cmd/api/main.go
+	GOOS=darwin GOARCH=amd64 go build -o bazaar.mac ./cmd/bazaar-api/main.go
 
 build-bazaar-linux:
-	GOOS=linux GOARCH=amd64 go build -o bazaar.linux ./bazaar/cmd/api/main.go
+	GOOS=linux GOARCH=amd64 go build -o bazaar.linux ./cmd/bazaar-api/main.go
 
 build-bazaar: build-bazaar-linux build-bazaar-mac
 
 build-bazaar-cli-mac:
-	GOOS=darwin GOARCH=amd64 go build -o bazaarcli.mac ./bazaar/cmd/cli/main.go
+	GOOS=darwin GOARCH=amd64 go build -o bazaarcli.mac ./cmd/bazaar-cli/main.go
 
 build-bazaar-cli-linux:
-	GOOS=linux GOARCH=amd64 go build -o bazaarcli.linux ./bazaar/cmd/cli/main.go
+	GOOS=linux GOARCH=amd64 go build -o bazaarcli.linux ./cmd/bazaar-cli/main.go
 
 build-bazaar-cli: build-bazaar-cli-mac build-bazaar-cli-linux
 

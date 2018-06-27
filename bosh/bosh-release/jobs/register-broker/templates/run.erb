@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -e
+
+export LOG_DIR="/var/vcap/sys/log/register-broker"
+
+mkdir -p "$LOG_DIR"
+
+/var/vcap/jobs/register-broker/bin/errand.sh \
+    > >(tee -a "$LOG_DIR/errand.stdout.log") \
+    2> >(tee -a "$LOG_DIR/errand.stderr.log" >&2)

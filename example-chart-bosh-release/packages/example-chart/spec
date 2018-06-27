@@ -1,5 +1,0 @@
----
-name: example-chart
-
-files:
-- helm_chart_src.tgz

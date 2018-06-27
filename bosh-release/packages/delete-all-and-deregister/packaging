@@ -1,4 +1,0 @@
-set -ex
-
-chmod +x delete_all_and_deregister.linux
-cp delete_all_and_deregister.linux ${BOSH_INSTALL_TARGET}/
