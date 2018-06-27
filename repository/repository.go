@@ -16,18 +16,21 @@
 package repository
 
 import (
-	"os"
-	"path/filepath"
-
 	"code.cloudfoundry.org/lager"
 	"fmt"
 	"github.com/cf-platform-eng/kibosh/helm"
+	"github.com/pkg/errors"
 	"io/ioutil"
+	"k8s.io/helm/pkg/chartutil"
+	"os"
+	"path/filepath"
 )
 
 //go:generate counterfeiter ./ Repository
 type Repository interface {
 	LoadCharts() ([]*helm.MyChart, error)
+	SaveChart(path string) error
+	DeleteChart(name string) error
 }
 
 type repository struct {
@@ -77,13 +80,82 @@ func (r *repository) LoadCharts() ([]*helm.MyChart, error) {
 					}
 					charts = append(charts, myChart)
 				} else {
-					r.logger.Info(fmt.Sprintf("[%s] does not containt Chart.yml, skipping", subChartPath))
+					r.logger.Info(fmt.Sprintf("[%s] does not contain Chart.yml, skipping", subChartPath))
 				}
 			}
 		}
 	}
 
 	return charts, nil
+}
+
+func (r *repository) SaveChart(path string) error {
+	expandedTarPath, err := ioutil.TempDir("", "")
+	if err != nil {
+		return err
+	}
+
+	err = chartutil.ExpandFile(expandedTarPath, path)
+	if err != nil {
+		return err
+	}
+
+	files, err := ioutil.ReadDir(expandedTarPath)
+	var chartPathInfo os.FileInfo
+	if err != nil {
+		return err
+	}
+	for _, file := range files {
+		if file.IsDir() {
+			if chartPathInfo != nil {
+				return errors.New("Multiple directories found in uploaded archive")
+			} else {
+				chartPathInfo = file
+			}
+		}
+	}
+
+	chartPath := filepath.Join(expandedTarPath, chartPathInfo.Name())
+	chart, err := helm.NewChart(chartPath, r.privateRegistryServer)
+	if err != nil {
+		return err
+	}
+
+	destinationPath := filepath.Join(r.helmChartDir, chartPathInfo.Name())
+	info, _ := os.Stat(destinationPath)
+	if info != nil {
+		os.RemoveAll(destinationPath)
+	}
+
+	if chartPathInfo.Name() != chart.Metadata.Name {
+		return errors.New("Chart metadata name and top level directory in archive for chart does not match")
+	}
+
+	err = os.Rename(chartPath, filepath.Join(r.helmChartDir, chartPathInfo.Name()))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *repository) DeleteChart(name string) error {
+
+	deletePath := filepath.Join(r.helmChartDir, name)
+
+	_, err := os.Stat(deletePath)
+
+	if os.IsNotExist(err) {
+		r.logger.Info(fmt.Sprintf("[%s] does not exist, skipping", deletePath))
+		return nil
+	} else if err != nil {
+		r.logger.Info(fmt.Sprintf("[%s] error reading at path, skipping", deletePath))
+		return err
+	}
+	os.RemoveAll(deletePath)
+
+	return nil
+
 }
 
 func fileExists(path string) (bool, error) {

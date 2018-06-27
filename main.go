@@ -21,6 +21,7 @@ import (
 	"os"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/cf-platform-eng/kibosh/auth"
 	"github.com/cf-platform-eng/kibosh/broker"
 	"github.com/cf-platform-eng/kibosh/config"
 	"github.com/cf-platform-eng/kibosh/helm"
@@ -32,7 +33,6 @@ import (
 func main() {
 	brokerLogger := lager.NewLogger("kibosh")
 	brokerLogger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
-	brokerLogger.RegisterSink(lager.NewWriterSink(os.Stderr, lager.ERROR))
 	brokerLogger.Info("Starting PKS Generic Broker")
 
 	conf, err := config.Parse()
@@ -75,7 +75,7 @@ func main() {
 	http.Handle("/", brokerAPI)
 
 	repositoryAPI := repository.NewAPI(serviceBroker, repo, brokerLogger)
-	authFilter := repository.NewAuthFilter(conf.AdminUsername, conf.AdminPassword)
+	authFilter := auth.NewAuthFilter(conf.AdminUsername, conf.AdminPassword)
 	http.Handle("/reload_charts", authFilter.Filter(
 		repositoryAPI.ReloadCharts(),
 	))

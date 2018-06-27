@@ -74,21 +74,21 @@ resources:
   source:
     bucket: kibosh
     json_key: {{gcp_service_account_key}}
-    regexp: kibosh.linux
+    regexp: kibosh-(?P<version>.*).linux
 
 - name: kibosh-darwin
   type: gcs-resource
   source:
     bucket: kibosh
     json_key: {{gcp_service_account_key}}
-    regexp: kibosh.darwin
+    regexp: kibosh-(?P<version>.*).darwin
 
 - name: loader-linux
   type: gcs-resource
   source:
     bucket: kibosh
     json_key: {{gcp_service_account_key}}
-    regexp: loader.linux
+    regexp: loader-(?P<version>.*).linux
 
 - name: delete-all-and-deregister
   type: gcs-resource
@@ -309,10 +309,12 @@ jobs:
     - get: source-repo
       passed: [tiller-version-check]
       trigger: true
+    - get: version
   - task: run-tests
     config:
       inputs:
       - name: source-repo
+      - name: version
       outputs:
       - name: output
       platform: linux
@@ -340,19 +342,24 @@ jobs:
           make build-loader
           popd
 
+          export VERSION=`cat version/version`
 
-          cp $SRC/kibosh.darwin output/kibosh.darwin
-          cp $SRC/kibosh.linux output/kibosh.linux
-          cp $SRC/loader.linux output/loader.linux
+          cp $SRC/kibosh.darwin output/kibosh-${VERSION}.darwin
+          cp $SRC/kibosh.linux output/kibosh-${VERSION}.linux
+          cp $SRC/loader.linux output/loader-${VERSION}.linux
   - put: kibosh-linux
     params:
-      file: output/kibosh.linux
+      file: output/kibosh-*.linux
   - put: kibosh-darwin
     params:
-      file: output/kibosh.darwin
+      file: output/kibosh-*.darwin
   - put: loader-linux
     params:
-      file: output/loader.linux
+      file: output/loader-*.linux
+  - put: version
+    params:
+      bump: patch
+
 
 - name: build-boshrelease
   plan:
@@ -396,8 +403,8 @@ jobs:
 
           pushd source-repo/bosh-release
 
-          bosh add-blob ../../kibosh-linux/kibosh.linux kibosh.linux
-          bosh add-blob ../../loader-linux/loader.linux loader.linux
+          bosh add-blob ../../kibosh-linux/kibosh-*.linux kibosh.linux
+          bosh add-blob ../../loader-linux/loader-*.linux loader.linux
           bosh add-blob ../../delete-all-and-deregister/delete_all_and_deregister.linux delete_all_and_deregister.linux
           bosh add-blob ../../cf-cli-binary/cf-cli.tgz cf-cli.tgz
 
@@ -657,8 +664,8 @@ jobs:
         - |
           export VERSION=`cat version/version`
 
-          mv kibosh-linux/kibosh.linux output/kibosh-${VERSION}.linux
-          mv kibosh-darwin/kibosh.darwin output/kibosh-${VERSION}.darwin
+          mv kibosh-linux/kibosh-*.linux output/
+          mv kibosh-darwin/kibosh-*.darwin output/
           mv kibosh-release/kibosh*.tgz output/
           mv tiller-image-fixed/tiller-image.tar output/tiller-$(cat tiller-image/tag | tr -d '\n').tgz
   - put: release-repo
@@ -668,9 +675,6 @@ jobs:
       globs:
       - output/kibosh*.*
       - output/tiller-*.tgz
-  - put: version
-    params:
-      bump: patch
 
 - name: delete-deployment
   plan:

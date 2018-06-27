@@ -5,12 +5,6 @@ label: Kibosh Example Tile
 description: Kibosh Example Tile
 
 properties:
-- name: service_id
-  type: string
-  value: setTouniqueGuidPerTile
-- name: service_name
-  type: string
-  value: spacebears
 - name: kibosh_broker_creds
   type: simple_credentials
   label: Kibosh Broker Creds

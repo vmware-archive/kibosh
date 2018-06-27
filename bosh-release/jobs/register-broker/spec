@@ -11,6 +11,7 @@ packages: []
 
 templates:
   errand.sh.erb: bin/errand.sh
+  enable.py.erb: bin/enable.py
   run.erb: bin/run
 
 consumes:

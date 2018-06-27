@@ -41,6 +41,6 @@ fi
 cf $broker_cmd $broker_name \
     <%= escape_shell(link('kibosh_broker').p('kibosh.username')) %> <%= escape_shell(link('kibosh_broker').p('kibosh.password')) %> $broker_uri
 
-<% if p('enable_service_access') %>
-    cf enable-service-access <%= link('kibosh_broker').p('kibosh.service_name') %>
+<% if p('enable_service_access', true) %>
+    python3 /var/vcap/jobs/register-broker/bin/enable.py
 <% end %>
