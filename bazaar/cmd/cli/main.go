@@ -24,8 +24,8 @@ func newRootCmd(args []string) *cobra.Command {
 	out := cmd.OutOrStdout()
 
 	cmd.AddCommand(
-		cli.NewHelloCmd(out),
 		cli.NewChartsListCmd(out),
+		cli.NewChartsSaveCmd(out),
 	)
 
 	flags.Parse(args)
