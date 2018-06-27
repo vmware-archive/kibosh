@@ -50,10 +50,13 @@ func (a *authFilter) Filter(handler http.Handler) http.Handler {
 }
 
 func (a *authFilter) CheckAuth(req *http.Request) bool {
-	encodedAuth := base64.StdEncoding.EncodeToString(
-		[]byte(fmt.Sprintf("%s:%s", a.adminUsername, a.adminPassword)),
-	)
-	validAuth := fmt.Sprintf("Basic %s", encodedAuth)
-
+	validAuth := BasicAuthorizationHeaderVal(a.adminUsername, a.adminPassword)
 	return req.Header.Get("Authorization") == validAuth
+}
+
+func BasicAuthorizationHeaderVal(user string, pass string) string {
+	encodedAuth := base64.StdEncoding.EncodeToString(
+		[]byte(fmt.Sprintf("%s:%s", user, pass)),
+	)
+	return fmt.Sprintf("Basic %s", encodedAuth)
 }

@@ -1,7 +1,6 @@
 package bazaar
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,6 +10,7 @@ import (
 	"path/filepath"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/cf-platform-eng/kibosh/auth"
 	"github.com/cf-platform-eng/kibosh/repository"
 	"github.com/pkg/errors"
 	"strings"
@@ -37,10 +37,11 @@ func NewAPI(repo repository.Repository, kiboshConfig *KiboshConfig, l lager.Logg
 	}
 }
 
-type displayChart struct {
+type DisplayChart struct {
 	Name      string   `json:"name"`
 	Plans     []string `json:"plans"`
 	Chartpath string   `json:"chartpath"`
+	Version   string   `json:"version"`
 }
 
 func (api *api) Charts() http.Handler {
@@ -73,14 +74,15 @@ func (api *api) ListCharts(w http.ResponseWriter, r *http.Request) error {
 		api.logger.Error("Unable to load charts", err)
 		api.ServerError(500, "Unable to load charts", w)
 	} else {
-		var displayCharts []displayChart
+		var displayCharts []DisplayChart
 		for _, chart := range charts {
 			var plans []string
 			for _, plan := range chart.Plans {
 				plans = append(plans, plan.Name)
 			}
-			displayCharts = append(displayCharts, displayChart{
+			displayCharts = append(displayCharts, DisplayChart{
 				Name:      chart.Metadata.Name,
+				Version:   chart.Metadata.Version,
 				Plans:     plans,
 				Chartpath: chart.Chartpath,
 			})
@@ -192,10 +194,10 @@ func (api *api) triggerKiboshReload() error {
 		return err
 	}
 
-	auth := base64.StdEncoding.EncodeToString(
-		[]byte(fmt.Sprintf("%s:%s", api.kiboshConfig.User, api.kiboshConfig.Pass)),
+	req.Header.Set(
+		"Authorization",
+		auth.BasicAuthorizationHeaderVal(api.kiboshConfig.User, api.kiboshConfig.Pass),
 	)
-	req.Header.Set("Authorization", fmt.Sprintf("Basic %s", auth))
 	res, err := client.Do(req)
 	if err != nil {
 		api.logger.Error("Couldn't call kibosh to update", err)
