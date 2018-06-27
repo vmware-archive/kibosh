@@ -463,10 +463,10 @@ jobs:
           bosh upload-stemcell lite-stemcell-fixed/stemcell.tgz
           bosh upload-release kibosh-release/kibosh-release*
 
-          mkdir source-repo/example-chart-bosh-release/images
-          mv spacebears-image/image source-repo/example-chart-bosh-release/images/spacebears.tgz
+          mkdir source-repo/bosh/example-chart-bosh-release/images
+          mv spacebears-image/image source-repo/bosh/example-chart-bosh-release/images/spacebears.tgz
 
-          pushd source-repo/example-chart-bosh-release
+          pushd source-repo/bosh/example-chart-bosh-release
           ./deploy.sh
           popd
 
@@ -512,7 +512,7 @@ jobs:
           registry-pass: {{deployment_registry_pass}}
           ' > values.yml
 
-          yes | bosh -d kibosh deploy bosh-release/manifests/lite-manifest.yml --no-redact --vars-store=values.yml
+          yes | bosh -d kibosh deploy bosh/bosh-release/manifests/lite-manifest.yml --no-redact --vars-store=values.yml
           popd
 
 - name: push-image-errand
