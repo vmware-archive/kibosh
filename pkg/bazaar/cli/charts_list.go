@@ -24,6 +24,9 @@ func NewChartsListCmd(out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "list charts in repository",
+		PreRun: func(cmd *cobra.Command, args []string) {
+			cl.preRun(cmd, args)
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return cl.run()
 		},

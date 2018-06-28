@@ -16,7 +16,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var _ = Describe("List charts", func() {
+var _ = Describe("Delete charts", func() {
 	var b bytes.Buffer
 	var out *bufio.Writer
 
@@ -27,7 +27,8 @@ var _ = Describe("List charts", func() {
 	BeforeEach(func() {
 		b = bytes.Buffer{}
 		out = bufio.NewWriter(&b)
-		c = cli.NewChartsListCmd(out)
+		c = cli.NewChartsDeleteCmd(out)
+
 		c.Flags().Set("user", "bob")
 		c.Flags().Set("password", "monkey123")
 
@@ -36,20 +37,11 @@ var _ = Describe("List charts", func() {
 		bazaarAPITestServer.Close()
 	})
 
-	It("calls list charts", func() {
-		charts := []bazaar.DisplayChart{
-			{
-				Name:    "mysql",
-				Version: "0.1",
-				Plans:   []string{"small", "medium"},
-			},
-			{
-				Name:    "spacebears",
-				Version: "0.2",
-				Plans:   []string{"tiny", "big"},
-			},
+	It("calls delete chart", func() {
+		msgFromServer := bazaar.DisplayResponse{
+			Message: "Yay",
 		}
-		responseBody, _ := json.Marshal(charts)
+		responseBody, _ := json.Marshal(msgFromServer)
 
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Write(responseBody)
@@ -59,25 +51,30 @@ var _ = Describe("List charts", func() {
 
 		c.Flags().Set("target", bazaarAPITestServer.URL)
 
-		err := c.RunE(c, []string{})
+		err := c.RunE(c, []string{
+			"casandra",
+		})
 		out.Flush()
 
 		Expect(err).To(BeNil())
 
-		Expect(string(b.Bytes())).To(ContainSubstring("mysql"))
-		Expect(string(b.Bytes())).To(ContainSubstring("spacebears"))
+		Expect(string(b.Bytes())).To(ContainSubstring("Yay"))
+		Expect(bazaarAPIRequest.URL.Path).To(Equal("/charts/casandra"))
+
 	})
 
 	It("correctly auths request", func() {
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("[]"))
+			w.Write([]byte("{}"))
 			bazaarAPIRequest = r
 		})
 		bazaarAPITestServer = httptest.NewServer(handler)
 
 		c.Flags().Set("target", bazaarAPITestServer.URL)
 
-		err := c.RunE(c, []string{})
+		err := c.RunE(c, []string{
+			"cassandra",
+		})
 		out.Flush()
 
 		Expect(err).To(BeNil())
@@ -86,7 +83,15 @@ var _ = Describe("List charts", func() {
 		)
 	})
 
-	It("auth failure list charts", func() {
+	It("error when chart name not supplied", func() {
+		c.Flags().Set("target", bazaarAPITestServer.URL)
+
+		err := c.RunE(c, []string{})
+		Expect(err).NotTo(BeNil())
+		Expect(err.Error()).To(ContainSubstring("chart"))
+	})
+
+	It("auth failure delete chart", func() {
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(401)
 		})
@@ -94,7 +99,9 @@ var _ = Describe("List charts", func() {
 
 		c.Flags().Set("target", bazaarAPITestServer.URL)
 
-		err := c.RunE(c, []string{})
+		err := c.RunE(c, []string{
+			"cassandra",
+		})
 		out.Flush()
 
 		Expect(err).NotTo(BeNil())

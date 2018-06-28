@@ -26,6 +26,7 @@ func newRootCmd(args []string) *cobra.Command {
 	cmd.AddCommand(
 		cli.NewChartsListCmd(out),
 		cli.NewChartsSaveCmd(out),
+		cli.NewChartsDeleteCmd(out),
 	)
 
 	flags.Parse(args)

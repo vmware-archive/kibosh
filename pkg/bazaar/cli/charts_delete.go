@@ -12,44 +12,44 @@ import (
 	"net/http"
 )
 
-type chartsSaveCmd struct {
+type chartsDeleteCmd struct {
 	baseBazaarCmd
-	path string
+	name string
 }
 
-func NewChartsSaveCmd(out io.Writer) *cobra.Command {
-	cs := &chartsSaveCmd{}
-	cs.out = out
+func NewChartsDeleteCmd(out io.Writer) *cobra.Command {
+	cd := &chartsDeleteCmd{}
+	cd.out = out
 
 	cmd := &cobra.Command{
-		Use:   "save PATH-TO-CHART.tgz",
-		Short: "save chart to repository",
+		Use:   "delete CHART-NAME",
+		Short: "delete chart from repository",
 		PreRun: func(cmd *cobra.Command, args []string) {
-			cs.preRun(cmd, args)
+			cd.preRun(cmd, args)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) != 1 {
-				return errors.New("missing tar file")
+				return errors.New("missing chart name")
 			}
-			cs.path = args[0]
-			return cs.run()
+			cd.name = args[0]
+			return cd.run()
 		},
 	}
 
-	cs.baseBazaarCmd.addCommonFlags(cmd)
+	cd.baseBazaarCmd.addCommonFlags(cmd)
 
 	return cmd
 }
 
-func (cs *chartsSaveCmd) run() error {
-	url := cs.target + "/charts"
-	req, err := httphelpers.CreateFormRequest(url, "chart", cs.path)
+func (cd *chartsDeleteCmd) run() error {
+	client := &http.Client{}
+	url := fmt.Sprintf("%s/charts/%s", cd.target, cd.name)
+	req, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
 		return err
 	}
-	httphelpers.AddBasicAuthHeader(req, cs.user, cs.pass)
+	httphelpers.AddBasicAuthHeader(req, cd.user, cd.pass)
 
-	client := &http.Client{}
 	res, err := client.Do(req)
 	if err != nil {
 		return err
@@ -70,7 +70,7 @@ func (cs *chartsSaveCmd) run() error {
 		return err
 	}
 
-	cs.out.Write([]byte(fmt.Sprintf("Message from server: %s\n", responseJSON.Message)))
+	cd.out.Write([]byte(fmt.Sprintf("Message from server: %s\n", responseJSON.Message)))
 
 	return nil
 }

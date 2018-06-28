@@ -13,6 +13,7 @@ import (
 	"github.com/cf-platform-eng/kibosh/pkg/bazaar"
 	"github.com/cf-platform-eng/kibosh/pkg/bazaar/cli"
 	"github.com/cf-platform-eng/kibosh/pkg/httphelpers"
+	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
 )
@@ -24,6 +25,7 @@ var _ = Describe("Save charts", func() {
 	var bazaarAPIRequest *http.Request
 	var bazaarAPITestServer *httptest.Server
 	var file *os.File
+	var c *cobra.Command
 
 	BeforeEach(func() {
 		b = bytes.Buffer{}
@@ -34,6 +36,11 @@ var _ = Describe("Save charts", func() {
 		Expect(err).To(BeNil())
 		_, err = file.Write([]byte("I am really a tgz of a chart"))
 		Expect(err).To(BeNil())
+
+		c = cli.NewChartsSaveCmd(out)
+		c.Flags().Set("user", "bob")
+		c.Flags().Set("password", "monkey123")
+
 	})
 
 	AfterEach(func() {
@@ -53,10 +60,7 @@ var _ = Describe("Save charts", func() {
 		})
 		bazaarAPITestServer = httptest.NewServer(handler)
 
-		c := cli.NewChartsSaveCmd(out)
 		c.Flags().Set("target", bazaarAPITestServer.URL)
-		c.Flags().Set("user", "bob")
-		c.Flags().Set("password", "monkey123")
 
 		err := c.RunE(c, []string{
 			file.Name(),
@@ -85,10 +89,7 @@ var _ = Describe("Save charts", func() {
 		})
 		bazaarAPITestServer = httptest.NewServer(handler)
 
-		c := cli.NewChartsSaveCmd(out)
 		c.Flags().Set("target", bazaarAPITestServer.URL)
-		c.Flags().Set("user", "bob")
-		c.Flags().Set("password", "monkey123")
 
 		err := c.RunE(c, []string{
 			file.Name(),
@@ -101,16 +102,21 @@ var _ = Describe("Save charts", func() {
 		)
 	})
 
-	It("auth failure  save charts", func() {
+	It("error when chart path not supplied", func() {
+		c.Flags().Set("target", bazaarAPITestServer.URL)
+
+		err := c.RunE(c, []string{})
+		Expect(err).NotTo(BeNil())
+		Expect(err.Error()).To(ContainSubstring("missing"))
+	})
+
+	It("auth failure save charts", func() {
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(401)
 		})
 		bazaarAPITestServer = httptest.NewServer(handler)
 
-		c := cli.NewChartsSaveCmd(out)
 		c.Flags().Set("target", bazaarAPITestServer.URL)
-		c.Flags().Set("user", "bob")
-		c.Flags().Set("password", "monkey123")
 
 		err := c.RunE(c, []string{
 			file.Name(),

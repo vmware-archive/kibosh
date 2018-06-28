@@ -22,10 +22,10 @@ func (b *baseBazaarCmd) preRun(cmd *cobra.Command, args []string) {
 func (b *baseBazaarCmd) addCommonFlags(cmd *cobra.Command) {
 	//todo: -k flag for ignore ssl
 
-	cmd.Flags().StringVarP(&b.target, "target", "t", "", "bazaar API url")
+	cmd.Flags().StringVarP(&b.target, "target", "t", "", "bazaar API url (required)")
 	cobra.MarkFlagRequired(cmd.Flags(), "target")
-	cmd.Flags().StringVarP(&b.user, "user", "u", "", "bazaar API user")
+	cmd.Flags().StringVarP(&b.user, "user", "u", "", "bazaar API user (required)")
 	cobra.MarkFlagRequired(cmd.Flags(), "user")
-	cmd.Flags().StringVarP(&b.pass, "password", "p", "", "bazaar API password")
+	cmd.Flags().StringVarP(&b.pass, "password", "p", "", "bazaar API password (required)")
 	cobra.MarkFlagRequired(cmd.Flags(), "password")
 }
