@@ -21,10 +21,10 @@ import (
 	"os"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/cf-platform-eng/kibosh/pkg/auth"
 	"github.com/cf-platform-eng/kibosh/pkg/broker"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	"github.com/cf-platform-eng/kibosh/pkg/helm"
+	"github.com/cf-platform-eng/kibosh/pkg/httphelpers"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
 	"github.com/cf-platform-eng/kibosh/pkg/repository"
 	"github.com/pivotal-cf/brokerapi"
@@ -75,7 +75,7 @@ func main() {
 	http.Handle("/", brokerAPI)
 
 	repositoryAPI := repository.NewAPI(serviceBroker, repo, brokerLogger)
-	authFilter := auth.NewAuthFilter(conf.AdminUsername, conf.AdminPassword)
+	authFilter := httphelpers.NewAuthFilter(conf.AdminUsername, conf.AdminPassword)
 	http.Handle("/reload_charts", authFilter.Filter(
 		repositoryAPI.ReloadCharts(),
 	))

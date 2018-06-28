@@ -3,8 +3,8 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/cf-platform-eng/kibosh/pkg/auth"
 	"github.com/cf-platform-eng/kibosh/pkg/bazaar"
+	"github.com/cf-platform-eng/kibosh/pkg/httphelpers"
 	"github.com/gosuri/uitable"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -29,7 +29,7 @@ func NewChartsListCmd(out io.Writer) *cobra.Command {
 		},
 	}
 
-	cl.baseBazaarCmd.parseCommonFlags(cmd)
+	cl.baseBazaarCmd.addCommonFlags(cmd)
 
 	return cmd
 }
@@ -41,7 +41,7 @@ func (cl *chartsListCmd) run() error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", auth.BasicAuthorizationHeaderVal(cl.user, cl.pass))
+	httphelpers.AddBasicAuthHeader(req, cl.user, cl.pass)
 
 	res, err := client.Do(req)
 	if err != nil {

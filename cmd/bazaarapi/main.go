@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/cf-platform-eng/kibosh/pkg/auth"
 	"github.com/cf-platform-eng/kibosh/pkg/bazaar"
+	"github.com/cf-platform-eng/kibosh/pkg/httphelpers"
 	"github.com/cf-platform-eng/kibosh/pkg/repository"
 )
 
@@ -23,7 +23,13 @@ func main() {
 
 	repo := repository.NewRepository(conf.HelmChartDir, conf.RegistryConfig.Server, bazaarLogger)
 	bazaarAPI := bazaar.NewAPI(repo, conf.KiboshConfig, bazaarLogger)
-	authFilter := auth.NewAuthFilter(conf.AdminUsername, conf.AdminPassword)
+	authFilter := httphelpers.NewAuthFilter(conf.AdminUsername, conf.AdminPassword)
+
+	// When registering *only* the trailing slash, for the non-trailing slash url,
+	// ServeMux returns a 301 (not 307), so client flips to GET
+	http.Handle("/charts", authFilter.Filter(
+		bazaarAPI.Charts(),
+	))
 	http.Handle("/charts/", authFilter.Filter(
 		bazaarAPI.Charts(),
 	))

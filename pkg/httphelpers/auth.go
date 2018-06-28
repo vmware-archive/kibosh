@@ -13,7 +13,7 @@
 // express or implied. See the License for the specific language governing permissions and
 // limitations under the License.
 
-package auth
+package httphelpers
 
 import (
 	"encoding/base64"
@@ -50,13 +50,17 @@ func (a *authFilter) Filter(handler http.Handler) http.Handler {
 }
 
 func (a *authFilter) CheckAuth(req *http.Request) bool {
-	validAuth := BasicAuthorizationHeaderVal(a.adminUsername, a.adminPassword)
+	validAuth := BasicAuthHeaderVal(a.adminUsername, a.adminPassword)
 	return req.Header.Get("Authorization") == validAuth
 }
 
-func BasicAuthorizationHeaderVal(user string, pass string) string {
+func BasicAuthHeaderVal(user string, pass string) string {
 	encodedAuth := base64.StdEncoding.EncodeToString(
 		[]byte(fmt.Sprintf("%s:%s", user, pass)),
 	)
 	return fmt.Sprintf("Basic %s", encodedAuth)
+}
+
+func AddBasicAuthHeader(r *http.Request, user string, pass string) {
+	r.Header.Set("Authorization", BasicAuthHeaderVal(user, pass))
 }

@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/cf-platform-eng/kibosh/pkg/auth"
+	"github.com/cf-platform-eng/kibosh/pkg/httphelpers"
 	"github.com/cf-platform-eng/kibosh/pkg/repository"
 	"github.com/pkg/errors"
 	"strings"
@@ -44,8 +44,14 @@ type DisplayChart struct {
 	Version   string   `json:"version"`
 }
 
+type DisplayResponse struct {
+	Message string `json:"message"`
+}
+
 func (api *api) Charts() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		println(fmt.Sprintf("Got method: %s", r.Method))
+
 		var err error
 		switch r.Method {
 		case "GET":
@@ -105,7 +111,7 @@ func (api *api) SaveChart(w http.ResponseWriter, r *http.Request) error {
 		api.ServerError(500, "Chart persisted, but Kibosh reload failed", w)
 		return nil
 	}
-	return api.WriteJSONResponse(w, map[string]interface{}{"message": "Chart saved"})
+	return api.WriteJSONResponse(w, DisplayResponse{Message: "Chart saved"})
 }
 
 func (api *api) DeleteChart(w http.ResponseWriter, r *http.Request) error {
@@ -127,8 +133,8 @@ func (api *api) DeleteChart(w http.ResponseWriter, r *http.Request) error {
 		api.ServerError(500, "Chart deleted, but Kibosh reload failed", w)
 		return nil
 	}
-	return api.WriteJSONResponse(w, map[string]interface{}{
-		"message": fmt.Sprintf("Chart [%v] deleted", chartName),
+	return api.WriteJSONResponse(w, DisplayResponse{
+		Message: fmt.Sprintf("Chart [%v] deleted", chartName),
 	})
 }
 
@@ -194,10 +200,7 @@ func (api *api) triggerKiboshReload() error {
 		return err
 	}
 
-	req.Header.Set(
-		"Authorization",
-		auth.BasicAuthorizationHeaderVal(api.kiboshConfig.User, api.kiboshConfig.Pass),
-	)
+	httphelpers.AddBasicAuthHeader(req, api.kiboshConfig.User, api.kiboshConfig.Pass)
 	res, err := client.Do(req)
 	if err != nil {
 		api.logger.Error("Couldn't call kibosh to update", err)

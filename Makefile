@@ -23,18 +23,18 @@ build-loader-mac:
 build-loader: build-loader-linux build-loader-mac
 
 build-bazaar-mac:
-	GOOS=darwin GOARCH=amd64 go build -o bazaar.mac ./cmd/bazaar-api/main.go
+	GOOS=darwin GOARCH=amd64 go build -o bazaar.mac ./cmd/bazaarapi/main.go
 
 build-bazaar-linux:
-	GOOS=linux GOARCH=amd64 go build -o bazaar.linux ./cmd/bazaar-api/main.go
+	GOOS=linux GOARCH=amd64 go build -o bazaar.linux ./cmd/bazaarapi/main.go
 
 build-bazaar: build-bazaar-linux build-bazaar-mac
 
 build-bazaar-cli-mac:
-	GOOS=darwin GOARCH=amd64 go build -o bazaarcli.mac ./cmd/bazaar-cli/main.go
+	GOOS=darwin GOARCH=amd64 go build -o bazaarcli.mac ./cmd/bazaarcli/main.go
 
 build-bazaar-cli-linux:
-	GOOS=linux GOARCH=amd64 go build -o bazaarcli.linux ./cmd/bazaar-cli/main.go
+	GOOS=linux GOARCH=amd64 go build -o bazaarcli.linux ./cmd/bazaarcli/main.go
 
 build-bazaar-cli: build-bazaar-cli-mac build-bazaar-cli-linux
 

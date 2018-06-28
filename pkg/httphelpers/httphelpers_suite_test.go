@@ -1,4 +1,4 @@
-package auth_test
+package httphelpers_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestAuth(t *testing.T) {
+func TestHttphelpers(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Auth Suite")
+	RunSpecs(t, "Httphelpers Suite")
 }

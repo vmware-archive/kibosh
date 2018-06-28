@@ -3,6 +3,7 @@ package cli
 import (
 	"github.com/spf13/cobra"
 	"io"
+	"strings"
 )
 
 type baseBazaarCmd struct {
@@ -12,7 +13,13 @@ type baseBazaarCmd struct {
 	out    io.Writer
 }
 
-func (b *baseBazaarCmd) parseCommonFlags(cmd *cobra.Command) {
+func (b *baseBazaarCmd) preRun(cmd *cobra.Command, args []string) {
+	if strings.HasSuffix(b.target, "/") {
+		b.target = b.target[:len(b.target)-1]
+	}
+}
+
+func (b *baseBazaarCmd) addCommonFlags(cmd *cobra.Command) {
 	//todo: -k flag for ignore ssl
 
 	cmd.Flags().StringVarP(&b.target, "target", "t", "", "bazaar API url")
