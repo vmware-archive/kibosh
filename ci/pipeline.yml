@@ -367,7 +367,7 @@ jobs:
       file: output/loader-*.linux
   - put: bazaar-linux
     params:
-      file: bazaar/loader-*.linux
+      file: output/bazaar-*.linux
   - put: version
     params:
       bump: patch
@@ -383,6 +383,8 @@ jobs:
       passed: [unit-tests]
     - get: loader-linux
       passed: [unit-tests]
+    - get: bazaar-linux
+      passed: [unit-tests]
     - get: delete-all-and-deregister
       passed: [build-delete-all-and-deregister]
     - get: cf-cli-binary
@@ -393,6 +395,7 @@ jobs:
       - name: source-repo
       - name: kibosh-linux
       - name: loader-linux
+      - name: bazaar-linux
       - name: delete-all-and-deregister
       - name: cf-cli-binary
       - name: version
