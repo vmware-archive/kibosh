@@ -1,0 +1,97 @@
+---
+
+name: bazaar
+
+releases:
+  - name: kibosh
+    version: latest
+  - name: cf-cli
+    version: latest
+  - name: routing
+    version: latest
+
+stemcells:
+  - alias: ((stemcell))
+    os: ubuntu-trusty
+    version: latest
+
+update:
+  canaries: 1
+  max_in_flight: 10
+  canary_watch_time: 1000-30000
+  update_watch_time: 1000-30000
+
+instance_groups:
+- name: kibosh_node
+  instances: 1
+  azs: [z1]
+  jobs:
+    - name: route_registrar
+      properties:
+        route_registrar:
+          routes:
+          - name: bazaar-broker
+            port: 8080
+            registration_interval: 20s
+            uris:
+            - bazaar-broker.v3.pcfdev.io
+          - name: bazaar
+            port: 8081
+            registration_interval: 20s
+            uris:
+            - bazaar.v3.pcfdev.io
+      release: routing
+      consumes:
+        nats: {from: nats, deployment: cf}
+    - name: kibosh
+      release: kibosh
+    - name: bazaar
+      release: kibosh
+  properties:
+    bazaar:
+      username: admin
+      password: ((kibosh-password))
+      #todo: need to fix rename after un-tar to support different disks
+      #helm_chart_dir: /var/vcap/store/repo
+      helm_chart_dir: /var/tmp/repo
+    kibosh:
+      username: admin
+      password: ((kibosh-password))
+      #todo: need to fix rename after un-tar to support different disks
+      #helm_chart_dir: /var/vcap/store/repo
+      helm_chart_dir: /var/tmp/repo
+      ca_data: ((k8s-cluster-ca-cert))
+      server: ((k8s-cluster-server))
+      token: ((k8s-cluster-token))
+  vm_type: default
+  cloud_properties:
+    tags:
+      - allow-ssh
+  stemcell: ((stemcell))
+  persistent_disk_type: default
+  networks:
+    - name: default
+
+- name: deregistrar
+  instances: 1
+  azs: [z1]
+  lifecycle: errand
+  jobs:
+    - name: delete-all-and-deregister
+      release: kibosh
+  properties:
+    broker_name: spacebears-broker
+    disable_ssl_cert_verification: true
+    cf:
+      api_url: https://api.v3.pcfdev.io
+      uaa_url: https://uaa.v3.pcfdev.io
+      admin_username: admin
+      admin_password: admin
+  vm_type: default
+  stemcell: ((stemcell))
+  networks:
+    - name: default
+
+variables:
+- name: kibosh-password
+  type: password

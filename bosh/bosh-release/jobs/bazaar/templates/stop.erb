@@ -3,7 +3,7 @@
 # If a command fails, exit immediately
 set -e
 
-PIDFILE="/var/vcap/sys/run/kibosh/kibosh.pid"
+PIDFILE="/var/vcap/sys/run/bazaar/bazaar.pid"
 
 /sbin/start-stop-daemon \
   --pidfile "$PIDFILE" \
@@ -11,4 +11,4 @@ PIDFILE="/var/vcap/sys/run/kibosh/kibosh.pid"
   --oknodo \
   --stop
 
-rm /var/vcap/sys/run/kibosh/kibosh.pid
+rm /var/vcap/sys/run/bazaar/bazaar.pid

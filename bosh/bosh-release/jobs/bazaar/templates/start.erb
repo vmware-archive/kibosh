@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+
+# If a command fails, exit immediately
+set -e
+
+LOG_DIR="/var/vcap/sys/log/bazaar"
+RUN_DIR="/var/vcap/sys/run/bazaar"
+PIDFILE="$RUN_DIR/bazaar.pid"
+
+export SECURITY_USER_NAME=<%= p("bazaar.username", "admin") %>
+export SECURITY_USER_PASSWORD=<%= p("bazaar.password") %>
+
+export PORT=<%= p("bazaar.port", "8081") %>
+export HELM_CHART_DIR=<%= p("bazaar.helm_chart_dir", "charts") %>
+
+<%
+def escape_shell(str)
+  "'#{str.to_s.gsub(/'/, "'\\\\''")}'"
+end
+%>
+
+export KIBOSH_SERVER=http://<%= link('kibosh_broker').instances[0].address %>:<%= link('kibosh_broker').p('kibosh.port') %>
+export KIBOSH_USER_NAME=<%= escape_shell(link('kibosh_broker').p('kibosh.username')) %>
+export KIBOSH_USER_PASSWORD=<%= escape_shell(link('kibosh_broker').p('kibosh.password')) %>
+
+mkdir -p "$LOG_DIR" "$RUN_DIR" "$HELM_CHART_DIR"
+
+# If one of these directories is very large, chowning might take a very long time.
+# Consider only chowning if dir did not yet exist in the previous step
+chown -R vcap:vcap "$LOG_DIR" "$RUN_DIR" "$HELM_CHART_DIR"
+
+# heed warnings from start-stop-daemon(8) about use of exec flag with interpreters
+/sbin/start-stop-daemon \
+  --pidfile "$PIDFILE" \
+  --make-pidfile \
+  --chuid vcap:vcap \
+  --start \
+  --exec /var/vcap/packages/bazaar_pkg/bazaar.linux \
+   >> "$LOG_DIR/bazaar.out.log" \
+  2>> "$LOG_DIR/bazaar.err.log"

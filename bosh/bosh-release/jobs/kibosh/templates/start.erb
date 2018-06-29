@@ -25,7 +25,7 @@ export REG_EMAIL='<%= p("registry.username") %>'
 <% end %>
 
 
-mkdir -p "$LOG_DIR" "$RUN_DIR"
+mkdir -p "$LOG_DIR" "$RUN_DIR" "$HELM_CHART_DIR"
 
 # If one of these directories is very large, chowning might take a very long time.
 # Consider only chowning if dir did not yet exist in the previous step
