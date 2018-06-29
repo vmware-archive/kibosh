@@ -90,6 +90,13 @@ resources:
     json_key: {{gcp_service_account_key}}
     regexp: loader-(?P<version>.*).linux
 
+- name: bazaar-linux
+  type: gcs-resource
+  source:
+    bucket: kibosh
+    json_key: {{gcp_service_account_key}}
+    regexp: bazaar-(?P<version>.*).linux
+
 - name: delete-all-and-deregister
   type: gcs-resource
   source:
@@ -340,6 +347,7 @@ jobs:
           make test
           make build
           make build-loader
+          make build-bazaar
           popd
 
           export VERSION=`cat version/version`
@@ -347,6 +355,7 @@ jobs:
           cp $SRC/kibosh.darwin output/kibosh-${VERSION}.darwin
           cp $SRC/kibosh.linux output/kibosh-${VERSION}.linux
           cp $SRC/loader.linux output/loader-${VERSION}.linux
+          cp $SRC/bazaar.linux output/bazaar-${VERSION}.linux
   - put: kibosh-linux
     params:
       file: output/kibosh-*.linux
@@ -356,6 +365,9 @@ jobs:
   - put: loader-linux
     params:
       file: output/loader-*.linux
+  - put: bazaar-linux
+    params:
+      file: bazaar/loader-*.linux
   - put: version
     params:
       bump: patch
@@ -405,6 +417,7 @@ jobs:
 
           bosh add-blob ../../../kibosh-linux/kibosh-*.linux kibosh.linux
           bosh add-blob ../../../loader-linux/loader-*.linux loader.linux
+          bosh add-blob ../../../bazaar-linux/bazaar-*.linux bazaar.linux
           bosh add-blob ../../../delete-all-and-deregister/delete_all_and_deregister.linux delete_all_and_deregister.linux
           bosh add-blob ../../../cf-cli-binary/cf-cli.tgz cf-cli.tgz
 
