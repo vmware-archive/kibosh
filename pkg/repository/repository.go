@@ -67,6 +67,10 @@ func (r *repository) LoadCharts() ([]*helm.MyChart, error) {
 			return charts, err
 		}
 		for _, fileInfo := range helmDirFiles {
+			if fileInfo.Name() == "workspace_tmp" {
+				//rename doesn't support moving things across disks, so we're expanding to a working dir
+				continue
+			}
 			if fileInfo.IsDir() {
 				subChartPath := filepath.Join(r.helmChartDir, fileInfo.Name())
 				subdirChartExists, err := fileExists(filepath.Join(subChartPath, "Chart.yaml"))
@@ -90,8 +94,9 @@ func (r *repository) LoadCharts() ([]*helm.MyChart, error) {
 }
 
 func (r *repository) SaveChart(path string) error {
-	expandedTarPath, err := ioutil.TempDir("", "")
-	if err != nil {
+	expandedTarPath := filepath.Join(r.helmChartDir, "workspace_tmp")
+	err := os.Mkdir(expandedTarPath, 0700)
+	if err != nil && !os.IsExist(err) {
 		return err
 	}
 

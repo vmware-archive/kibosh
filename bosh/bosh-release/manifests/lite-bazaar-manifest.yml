@@ -51,15 +51,11 @@ instance_groups:
     bazaar:
       username: admin
       password: ((kibosh-password))
-      #todo: need to fix rename after un-tar to support different disks
-      #helm_chart_dir: /var/vcap/store/repo
-      helm_chart_dir: /var/tmp/repo
+      helm_chart_dir: /var/vcap/store/repo
     kibosh:
       username: admin
       password: ((kibosh-password))
-      #todo: need to fix rename after un-tar to support different disks
-      #helm_chart_dir: /var/vcap/store/repo
-      helm_chart_dir: /var/tmp/repo
+      helm_chart_dir: /var/vcap/store/repo
       ca_data: ((k8s-cluster-ca-cert))
       server: ((k8s-cluster-server))
       token: ((k8s-cluster-token))
