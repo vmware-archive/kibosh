@@ -1,8 +1,9 @@
 package operator
 
 import (
-	"code.cloudfoundry.org/lager"
 	"fmt"
+
+	"code.cloudfoundry.org/lager"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
@@ -32,10 +33,14 @@ func NewInstaller(registryConfig *config.RegistryConfig, cluster k8s.Cluster, my
 	return operator
 }
 
-func (operator *PksOperator) InstallCharts(operatorCharts []*my_helm.MyChart) {
+func (operator *PksOperator) InstallCharts(operatorCharts []*my_helm.MyChart) error {
 	for _, operatorChart := range operatorCharts {
-		operator.Install(operatorChart)
+		err := operator.Install(operatorChart)
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func (operator *PksOperator) Install(chart *my_helm.MyChart) error {
