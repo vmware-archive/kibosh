@@ -94,6 +94,7 @@ go get -u github.com/onsi/ginkgo/ginkgo
 go get -u github.com/onsi/gomega
 go get -u github.com/maxbrunsfeld/counterfeiter
 go get -u github.com/golang/dep/cmd/dep
+go get -u github.com/gosuri/uitable
 ```
 
 #### Run

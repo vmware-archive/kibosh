@@ -213,13 +213,13 @@ type FakeMyHelmClient struct {
 	upgradeReturnsOnCall map[int]struct {
 		result1 error
 	}
-	InstallChartStub        func(chart *helm.MyChart, namespace string, planName string, options []byte) (*rls.InstallReleaseResponse, error)
+	InstallChartStub        func(chart *helm.MyChart, namespace string, planName string, installValues []byte) (*rls.InstallReleaseResponse, error)
 	installChartMutex       sync.RWMutex
 	installChartArgsForCall []struct {
-		chart     *helm.MyChart
-		namespace string
-		planName  string
-		options   []byte
+		chart         *helm.MyChart
+		namespace     string
+		planName      string
+		installValues []byte
 	}
 	installChartReturns struct {
 		result1 *rls.InstallReleaseResponse
@@ -229,13 +229,27 @@ type FakeMyHelmClient struct {
 		result1 *rls.InstallReleaseResponse
 		result2 error
 	}
-	UpdateChartStub        func(chart *helm.MyChart, rlsName string, planName string, options []byte) (*rls.UpdateReleaseResponse, error)
+	InstallOperatorStub        func(chart *helm.MyChart, namespace string) (*rls.InstallReleaseResponse, error)
+	installOperatorMutex       sync.RWMutex
+	installOperatorArgsForCall []struct {
+		chart     *helm.MyChart
+		namespace string
+	}
+	installOperatorReturns struct {
+		result1 *rls.InstallReleaseResponse
+		result2 error
+	}
+	installOperatorReturnsOnCall map[int]struct {
+		result1 *rls.InstallReleaseResponse
+		result2 error
+	}
+	UpdateChartStub        func(chart *helm.MyChart, rlsName string, planName string, updateValues []byte) (*rls.UpdateReleaseResponse, error)
 	updateChartMutex       sync.RWMutex
 	updateChartArgsForCall []struct {
-		chart    *helm.MyChart
-		rlsName  string
-		planName string
-		options  []byte
+		chart        *helm.MyChart
+		rlsName      string
+		planName     string
+		updateValues []byte
 	}
 	updateChartReturns struct {
 		result1 *rls.UpdateReleaseResponse
@@ -563,7 +577,7 @@ func (fake *FakeMyHelmClient) UpdateReleaseReturnsOnCall(i int, result1 *rls.Upd
 }
 
 func (fake *FakeMyHelmClient) UpdateReleaseFromChart(rlsName string, chart *chart.Chart, opts ...helmpkg.UpdateOption) (*rls.UpdateReleaseResponse, error) {
-	panic("bad fake generationt")
+	panic("Bad fake generation")
 }
 
 func (fake *FakeMyHelmClient) UpdateReleaseFromChartCallCount() int {
@@ -995,19 +1009,24 @@ func (fake *FakeMyHelmClient) UpgradeReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeMyHelmClient) InstallChart(chart *helm.MyChart, namespace string, planName string, options []byte) (*rls.InstallReleaseResponse, error) {
+func (fake *FakeMyHelmClient) InstallChart(chart *helm.MyChart, namespace string, planName string, installValues []byte) (*rls.InstallReleaseResponse, error) {
+	var installValuesCopy []byte
+	if installValues != nil {
+		installValuesCopy = make([]byte, len(installValues))
+		copy(installValuesCopy, installValues)
+	}
 	fake.installChartMutex.Lock()
 	ret, specificReturn := fake.installChartReturnsOnCall[len(fake.installChartArgsForCall)]
 	fake.installChartArgsForCall = append(fake.installChartArgsForCall, struct {
-		chart     *helm.MyChart
-		namespace string
-		planName  string
-		options   []byte
-	}{chart, namespace, planName, options})
-	fake.recordInvocation("InstallChart", []interface{}{chart, namespace, planName, options})
+		chart         *helm.MyChart
+		namespace     string
+		planName      string
+		installValues []byte
+	}{chart, namespace, planName, installValuesCopy})
+	fake.recordInvocation("InstallChart", []interface{}{chart, namespace, planName, installValuesCopy})
 	fake.installChartMutex.Unlock()
 	if fake.InstallChartStub != nil {
-		return fake.InstallChartStub(chart, namespace, planName, options)
+		return fake.InstallChartStub(chart, namespace, planName, installValues)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -1024,7 +1043,7 @@ func (fake *FakeMyHelmClient) InstallChartCallCount() int {
 func (fake *FakeMyHelmClient) InstallChartArgsForCall(i int) (*helm.MyChart, string, string, []byte) {
 	fake.installChartMutex.RLock()
 	defer fake.installChartMutex.RUnlock()
-	return fake.installChartArgsForCall[i].chart, fake.installChartArgsForCall[i].namespace, fake.installChartArgsForCall[i].planName, fake.installChartArgsForCall[i].options
+	return fake.installChartArgsForCall[i].chart, fake.installChartArgsForCall[i].namespace, fake.installChartArgsForCall[i].planName, fake.installChartArgsForCall[i].installValues
 }
 
 func (fake *FakeMyHelmClient) InstallChartReturns(result1 *rls.InstallReleaseResponse, result2 error) {
@@ -1049,19 +1068,76 @@ func (fake *FakeMyHelmClient) InstallChartReturnsOnCall(i int, result1 *rls.Inst
 	}{result1, result2}
 }
 
-func (fake *FakeMyHelmClient) UpdateChart(chart *helm.MyChart, rlsName string, planName string, options []byte) (*rls.UpdateReleaseResponse, error) {
+func (fake *FakeMyHelmClient) InstallOperator(chart *helm.MyChart, namespace string) (*rls.InstallReleaseResponse, error) {
+	fake.installOperatorMutex.Lock()
+	ret, specificReturn := fake.installOperatorReturnsOnCall[len(fake.installOperatorArgsForCall)]
+	fake.installOperatorArgsForCall = append(fake.installOperatorArgsForCall, struct {
+		chart     *helm.MyChart
+		namespace string
+	}{chart, namespace})
+	fake.recordInvocation("InstallOperator", []interface{}{chart, namespace})
+	fake.installOperatorMutex.Unlock()
+	if fake.InstallOperatorStub != nil {
+		return fake.InstallOperatorStub(chart, namespace)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.installOperatorReturns.result1, fake.installOperatorReturns.result2
+}
+
+func (fake *FakeMyHelmClient) InstallOperatorCallCount() int {
+	fake.installOperatorMutex.RLock()
+	defer fake.installOperatorMutex.RUnlock()
+	return len(fake.installOperatorArgsForCall)
+}
+
+func (fake *FakeMyHelmClient) InstallOperatorArgsForCall(i int) (*helm.MyChart, string) {
+	fake.installOperatorMutex.RLock()
+	defer fake.installOperatorMutex.RUnlock()
+	return fake.installOperatorArgsForCall[i].chart, fake.installOperatorArgsForCall[i].namespace
+}
+
+func (fake *FakeMyHelmClient) InstallOperatorReturns(result1 *rls.InstallReleaseResponse, result2 error) {
+	fake.InstallOperatorStub = nil
+	fake.installOperatorReturns = struct {
+		result1 *rls.InstallReleaseResponse
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) InstallOperatorReturnsOnCall(i int, result1 *rls.InstallReleaseResponse, result2 error) {
+	fake.InstallOperatorStub = nil
+	if fake.installOperatorReturnsOnCall == nil {
+		fake.installOperatorReturnsOnCall = make(map[int]struct {
+			result1 *rls.InstallReleaseResponse
+			result2 error
+		})
+	}
+	fake.installOperatorReturnsOnCall[i] = struct {
+		result1 *rls.InstallReleaseResponse
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) UpdateChart(chart *helm.MyChart, rlsName string, planName string, updateValues []byte) (*rls.UpdateReleaseResponse, error) {
+	var updateValuesCopy []byte
+	if updateValues != nil {
+		updateValuesCopy = make([]byte, len(updateValues))
+		copy(updateValuesCopy, updateValues)
+	}
 	fake.updateChartMutex.Lock()
 	ret, specificReturn := fake.updateChartReturnsOnCall[len(fake.updateChartArgsForCall)]
 	fake.updateChartArgsForCall = append(fake.updateChartArgsForCall, struct {
-		chart    *helm.MyChart
-		rlsName  string
-		planName string
-		options  []byte
-	}{chart, rlsName, planName, options})
-	fake.recordInvocation("UpdateChart", []interface{}{chart, rlsName, planName, options})
+		chart        *helm.MyChart
+		rlsName      string
+		planName     string
+		updateValues []byte
+	}{chart, rlsName, planName, updateValuesCopy})
+	fake.recordInvocation("UpdateChart", []interface{}{chart, rlsName, planName, updateValuesCopy})
 	fake.updateChartMutex.Unlock()
 	if fake.UpdateChartStub != nil {
-		return fake.UpdateChartStub(chart, rlsName, planName, options)
+		return fake.UpdateChartStub(chart, rlsName, planName, updateValues)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -1078,7 +1154,7 @@ func (fake *FakeMyHelmClient) UpdateChartCallCount() int {
 func (fake *FakeMyHelmClient) UpdateChartArgsForCall(i int) (*helm.MyChart, string, string, []byte) {
 	fake.updateChartMutex.RLock()
 	defer fake.updateChartMutex.RUnlock()
-	return fake.updateChartArgsForCall[i].chart, fake.updateChartArgsForCall[i].rlsName, fake.updateChartArgsForCall[i].planName, fake.updateChartArgsForCall[i].options
+	return fake.updateChartArgsForCall[i].chart, fake.updateChartArgsForCall[i].rlsName, fake.updateChartArgsForCall[i].planName, fake.updateChartArgsForCall[i].updateValues
 }
 
 func (fake *FakeMyHelmClient) UpdateChartReturns(result1 *rls.UpdateReleaseResponse, result2 error) {
@@ -1200,6 +1276,8 @@ func (fake *FakeMyHelmClient) Invocations() map[string][][]interface{} {
 	defer fake.upgradeMutex.RUnlock()
 	fake.installChartMutex.RLock()
 	defer fake.installChartMutex.RUnlock()
+	fake.installOperatorMutex.RLock()
+	defer fake.installOperatorMutex.RUnlock()
 	fake.updateChartMutex.RLock()
 	defer fake.updateChartMutex.RUnlock()
 	fake.mergeValueBytesMutex.RLock()

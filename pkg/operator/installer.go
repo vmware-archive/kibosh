@@ -1,3 +1,18 @@
+// kibosh
+//
+// Copyright (c) 2017-Present Pivotal Software, Inc. All Rights Reserved.
+//
+// This program and the accompanying materials are made available under the terms of the under the Apache License,
+// Version 2.0 (the "License”); you may not use this file except in compliance with the License. You may
+// obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software distributed under the
+// License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+// express or implied. See the License for the specific language governing permissions and
+// limitations under the License.
+
 package operator
 
 import (
@@ -32,17 +47,30 @@ func NewInstaller(registryConfig *config.RegistryConfig, cluster k8s.Cluster, my
 	return operator
 }
 
-func (operator *PksOperator) InstallCharts(operatorCharts []*my_helm.MyChart) {
+func (operator *PksOperator) InstallCharts(operatorCharts []*my_helm.MyChart) error {
 	for _, operatorChart := range operatorCharts {
-		operator.Install(operatorChart)
+		err := operator.Install(operatorChart)
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func (operator *PksOperator) Install(chart *my_helm.MyChart) error {
 
-	operator.Logger.Info(fmt.Sprintf("operator to install " + chart.Chartpath))
-
 	namespaceName := chart.String() + "-kibosh-operator"
+
+	releases, err := operator.myHelmClient.ListReleases()
+	if err != nil {
+		return err
+	}
+	if releases != nil && exists(namespaceName, releases) {
+		operator.Logger.Info(fmt.Sprintf("Operator " + chart.String() + " is already installed. Not installing."))
+		return nil
+	}
+
+	operator.Logger.Info(fmt.Sprintf("Installing operator chart: " + chart.String() + "..."))
 
 	ns, err := operator.cluster.GetNamespace(namespaceName, &meta_v1.GetOptions{})
 	if err != nil {
@@ -70,14 +98,6 @@ func (operator *PksOperator) Install(chart *my_helm.MyChart) error {
 		if err != nil {
 			return err
 		}
-	}
-
-	releases, err := operator.myHelmClient.ListReleases()
-	if err != nil {
-		return err
-	}
-	if releases != nil && exists(namespaceName, releases) {
-		return nil
 	}
 
 	_, err = operator.myHelmClient.InstallOperator(chart, namespaceName)
