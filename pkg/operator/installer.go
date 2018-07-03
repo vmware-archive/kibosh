@@ -23,6 +23,7 @@ import (
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
 	api_v1 "k8s.io/api/core/v1"
+	api_errors "k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	rls "k8s.io/helm/pkg/proto/hapi/services"
 )
@@ -71,24 +72,29 @@ func (operator *PksOperator) Install(chart *my_helm.MyChart) error {
 		return nil
 	}
 
-	operator.Logger.Info(fmt.Sprintf("Installing operator chart: " + chart.String() + "..."))
+	operator.Logger.Info(fmt.Sprintf("Installing operator chart: " + chart.String()))
 
-	ns, err := operator.cluster.GetNamespace(namespaceName, &meta_v1.GetOptions{})
+	_, err = operator.cluster.GetNamespace(namespaceName, &meta_v1.GetOptions{})
 	if err != nil {
-		return err
-	}
-	if ns == nil {
-		namespace := api_v1.Namespace{
-			Spec: api_v1.NamespaceSpec{},
-			ObjectMeta: meta_v1.ObjectMeta{
-				Name: namespaceName,
-				Labels: map[string]string{
-					"kibosh": "installed",
-				},
-			},
+		statusErr, ok := err.(*api_errors.StatusError)
+		if !ok {
+			return err
 		}
-		_, err := operator.cluster.CreateNamespace(&namespace)
-		if err != nil {
+		if statusErr.ErrStatus.Reason == meta_v1.StatusReasonNotFound {
+			namespace := api_v1.Namespace{
+				Spec: api_v1.NamespaceSpec{},
+				ObjectMeta: meta_v1.ObjectMeta{
+					Name: namespaceName,
+					Labels: map[string]string{
+						"kibosh": "installed",
+					},
+				},
+			}
+			_, err := operator.cluster.CreateNamespace(&namespace)
+			if err != nil {
+				return err
+			}
+		} else {
 			return err
 		}
 	}
