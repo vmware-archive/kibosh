@@ -81,7 +81,7 @@ func main() {
 
 	// Install each operator chart.
 	operatorInstaller := operator.NewInstaller(conf.RegistryConfig, cluster, myHelmClient, brokerLogger)
-	operatorInstaller.InstallCharts(operatorCharts)
+	err = operatorInstaller.InstallCharts(operatorCharts)
 	if err != nil {
 		brokerLogger.Fatal("Error installing operator", err)
 	}
