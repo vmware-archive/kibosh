@@ -56,9 +56,11 @@ func main() {
 	operatorRepo := repository.NewRepository(conf.OperatorDir, conf.RegistryConfig.Server, brokerLogger)
 	operatorCharts, err := operatorRepo.LoadCharts()
 	if err != nil {
-		brokerLogger.Fatal("Unable to load operators", err)
+		if !os.IsNotExist(err) {
+			brokerLogger.Fatal("Unable to load operators", err)
+		}
 	}
-	brokerLogger.Info(fmt.Sprintf("Brokering operators %s", operatorCharts))
+	brokerLogger.Info(fmt.Sprintf("Installing operators %s", operatorCharts))
 
 	myHelmClient := helm.NewMyHelmClient(cluster, brokerLogger)
 	serviceBroker := broker.NewPksServiceBroker(conf.RegistryConfig, cluster, myHelmClient, charts, brokerLogger)
