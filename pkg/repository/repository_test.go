@@ -36,10 +36,47 @@ var _ = Describe("Repository", func() {
 
 	var logger lager.Logger
 
-	It("load chart returns error on failure", func() {
-		myRepository := repository.NewRepository(chartPath, "", logger)
-		_, err := myRepository.LoadCharts()
-		Expect(err).NotTo(BeNil())
+	Context("no charts", func() {
+		var emptyDir string
+		var nestedEmptyDir string
+
+		BeforeEach(func() {
+			var err error
+			emptyDir, err = ioutil.TempDir("", "emptyDir")
+			Expect(err).To(BeNil())
+
+			nestedEmptyDir, err = ioutil.TempDir("", "nestedEmptyDir")
+			Expect(err).To(BeNil())
+			_, err = ioutil.TempDir(nestedEmptyDir, "emptyDir")
+			Expect(err).To(BeNil())
+
+			logger = lager.NewLogger("test")
+		})
+
+		AfterEach(func() {
+			os.RemoveAll(emptyDir)
+			os.RemoveAll(nestedEmptyDir)
+		})
+
+		It("returns error on empty path", func() {
+			myRepository := repository.NewRepository("", "", logger)
+			_, err := myRepository.LoadCharts()
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("returns empty slice on directory with no charts", func() {
+			myRepository := repository.NewRepository(emptyDir, "", logger)
+			charts, err := myRepository.LoadCharts()
+			Expect(charts).To(BeEmpty())
+			Expect(err).To(BeNil())
+		})
+
+		It("returns empty slice on directory with empty directories", func() {
+			myRepository := repository.NewRepository(nestedEmptyDir, "", logger)
+			charts, err := myRepository.LoadCharts()
+			Expect(charts).To(BeEmpty())
+			Expect(err).To(BeNil())
+		})
 	})
 
 	Context("single charts", func() {

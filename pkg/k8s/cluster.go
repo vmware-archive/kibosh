@@ -34,6 +34,7 @@ type Cluster interface {
 
 	CreateNamespace(*api_v1.Namespace) (*api_v1.Namespace, error)
 	DeleteNamespace(name string, options *meta_v1.DeleteOptions) error
+	GetNamespace(name string, options *meta_v1.GetOptions) (*api_v1.Namespace, error)
 	ListPods(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.PodList, error)
 	GetDeployment(string, string, meta_v1.GetOptions) (*v1_beta1.Deployment, error)
 	ListServiceAccounts(string, meta_v1.ListOptions) (*api_v1.ServiceAccountList, error)
@@ -98,6 +99,10 @@ func (cluster *cluster) CreateNamespace(namespace *api_v1.Namespace) (*api_v1.Na
 
 func (cluster *cluster) DeleteNamespace(name string, options *meta_v1.DeleteOptions) error {
 	return cluster.GetClient().CoreV1().Namespaces().Delete(name, options)
+}
+
+func (cluster *cluster) GetNamespace(name string, options *meta_v1.GetOptions) (*api_v1.Namespace, error) {
+	return cluster.GetClient().CoreV1().Namespaces().Get(name, meta_v1.GetOptions{})
 }
 
 func (cluster *cluster) ListPods(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.PodList, error) {

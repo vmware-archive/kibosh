@@ -26,6 +26,7 @@ import (
 	"github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/httphelpers"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
+	"github.com/cf-platform-eng/kibosh/pkg/operator"
 	"github.com/cf-platform-eng/kibosh/pkg/repository"
 	"github.com/pivotal-cf/brokerapi"
 )
@@ -52,6 +53,15 @@ func main() {
 	}
 	brokerLogger.Info(fmt.Sprintf("Brokering charts %s", charts))
 
+	operatorRepo := repository.NewRepository(conf.OperatorDir, conf.RegistryConfig.Server, brokerLogger)
+	operatorCharts, err := operatorRepo.LoadCharts()
+	if err != nil {
+		if !os.IsNotExist(err) {
+			brokerLogger.Fatal("Unable to load operators", err)
+		}
+	}
+	brokerLogger.Info(fmt.Sprintf("Installing operators %s", operatorCharts))
+
 	myHelmClient := helm.NewMyHelmClient(cluster, brokerLogger)
 	serviceBroker := broker.NewPksServiceBroker(conf.RegistryConfig, cluster, myHelmClient, charts, brokerLogger)
 	brokerCredentials := brokerapi.BrokerCredentials{
@@ -69,6 +79,13 @@ func main() {
 	err = helmInstaller.Install()
 	if err != nil {
 		brokerLogger.Fatal("Error installing helm", err)
+	}
+
+	// Install each operator chart.
+	operatorInstaller := operator.NewInstaller(conf.RegistryConfig, cluster, myHelmClient, brokerLogger)
+	err = operatorInstaller.InstallCharts(operatorCharts)
+	if err != nil {
+		brokerLogger.Fatal("Error installing operator", err)
 	}
 
 	brokerAPI := brokerapi.New(serviceBroker, brokerLogger, brokerCredentials)

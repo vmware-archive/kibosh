@@ -42,6 +42,7 @@ type MyHelmClient interface {
 	Install(*helmstaller.Options) error
 	Upgrade(*helmstaller.Options) error
 	InstallChart(chart *MyChart, namespace string, planName string, installValues []byte) (*rls.InstallReleaseResponse, error)
+	InstallOperator(chart *MyChart, namespace string) (*rls.InstallReleaseResponse, error)
 	UpdateChart(chart *MyChart, rlsName string, planName string, updateValues []byte) (*rls.UpdateReleaseResponse, error)
 	MergeValueBytes(base []byte, override []byte) ([]byte, error)
 }
@@ -108,6 +109,10 @@ func (c myHelmClient) InstallChart(chart *MyChart, namespace string, planName st
 	}
 
 	return c.InstallReleaseFromChart(chart.Chart, namespace, helm.ReleaseName(namespace), helm.ValueOverrides(mergedValues))
+}
+
+func (c myHelmClient) InstallOperator(chart *MyChart, namespace string) (*rls.InstallReleaseResponse, error) {
+	return c.InstallReleaseFromChart(chart.Chart, namespace, helm.ReleaseName(namespace), helm.ValueOverrides(chart.Values))
 }
 
 func (c myHelmClient) UpdateChart(chart *MyChart, rlsName string, planName string, updateValues []byte) (*rls.UpdateReleaseResponse, error) {
