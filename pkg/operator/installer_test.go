@@ -25,7 +25,13 @@ import (
 	"github.com/cf-platform-eng/kibosh/pkg/test"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	api_v1 "k8s.io/api/core/v1"
+	api_errors "k8s.io/apimachinery/pkg/api/errors"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	helmpkg "k8s.io/helm/pkg/helm"
 	hapi_chart "k8s.io/helm/pkg/proto/hapi/chart"
+	hapi_release "k8s.io/helm/pkg/proto/hapi/release"
+	rls "k8s.io/helm/pkg/proto/hapi/services"
 )
 
 var _ = Describe("Operator", func() {
@@ -54,6 +60,39 @@ var _ = Describe("Operator", func() {
 		cluster = k8sfakes.FakeCluster{}
 		cluster.GetClientReturns(&k8sClient)
 		client = helmfakes.FakeMyHelmClient{}
+
+		knownNamespaces := []*api_v1.Namespace{}
+		cluster.CreateNamespaceStub = func(namespace *api_v1.Namespace) (*api_v1.Namespace, error) {
+			knownNamespaces = append(knownNamespaces, namespace)
+			return namespace, nil
+		}
+
+		cluster.GetNamespaceStub = func(name string, options *meta_v1.GetOptions) (*api_v1.Namespace, error) {
+			for _, knownNamespace := range knownNamespaces {
+				if name == knownNamespace.ObjectMeta.Name {
+					return knownNamespace, nil
+				}
+			}
+			return nil, &api_errors.StatusError{
+				ErrStatus: meta_v1.Status{
+					Reason: meta_v1.StatusReasonNotFound,
+				},
+			}
+		}
+
+		installedReleases := []*hapi_release.Release{}
+		client.ListReleasesStub = func(opts ...helmpkg.ReleaseListOption) (*rls.ListReleasesResponse, error) {
+			return &rls.ListReleasesResponse{
+				Releases: installedReleases,
+			}, nil
+		}
+
+		client.InstallOperatorStub = func(chart *my_helm.MyChart, namespace string) (*rls.InstallReleaseResponse, error) {
+			installedReleases = append(installedReleases, &hapi_release.Release{
+				Name: namespace,
+			})
+			return &rls.InstallReleaseResponse{}, nil
+		}
 
 		installer = NewInstaller(&registryConfig, &cluster, &client, logger)
 
@@ -108,20 +147,34 @@ var _ = Describe("Operator", func() {
 	})
 
 	It("installs the namespace", func() {
+		err := installer.InstallCharts(operatorChart)
+		Expect(err).To(BeNil())
+		Expect(cluster.CreateNamespaceCallCount()).To(BeEquivalentTo(1))
+	})
 
+	It("doesn't install the namespace twice", func() {
+		err := installer.InstallCharts(operatorChart)
+		err = installer.InstallCharts(operatorChart)
+		Expect(err).To(BeNil())
+		Expect(cluster.CreateNamespaceCallCount()).To(BeEquivalentTo(1))
 	})
 
 	It("installs one operator chart", func() {
 		err := installer.InstallCharts(operatorChart)
 		Expect(err).To(BeNil())
+		Expect(client.InstallOperatorCallCount()).To(BeEquivalentTo(1))
 	})
 
-	It("installs two operator charts", func() {
+	It("installs multiple operator charts", func() {
 		err := installer.InstallCharts(operatorCharts)
 		Expect(err).To(BeNil())
+		Expect(client.InstallOperatorCallCount()).To(BeEquivalentTo(len(operatorCharts)))
 	})
 
 	It("doesn't try to install an operator twice", func() {
-
+		err := installer.InstallCharts(operatorChart)
+		err = installer.InstallCharts(operatorChart)
+		Expect(err).To(BeNil())
+		Expect(client.InstallOperatorCallCount()).To(BeEquivalentTo(1))
 	})
 })
