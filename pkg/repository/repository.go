@@ -96,8 +96,14 @@ func (r *repository) LoadCharts() ([]*helm.MyChart, error) {
 
 func (r *repository) SaveChart(path string) error {
 	expandedTarPath := filepath.Join(r.helmChartDir, "workspace_tmp")
-	err := os.Mkdir(expandedTarPath, 0700)
-	if err != nil && !os.IsExist(err) {
+	err := os.RemoveAll(expandedTarPath)
+
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
+	err = os.Mkdir(expandedTarPath, 0700)
+	if err != nil {
 		return err
 	}
 

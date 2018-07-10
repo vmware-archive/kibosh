@@ -231,6 +231,32 @@ version: 0.0.1
 			Expect(err).NotTo(BeNil())
 		})
 
+		It("save cleans up previous run stuff", func() {
+			expandedTarPath := filepath.Join(repoDir, "workspace_tmp")
+			os.Mkdir(expandedTarPath, 0700)
+
+			fooFilePath := filepath.Join(repoDir, "workspace_tmp", "foo.yml")
+
+			err := ioutil.WriteFile(fooFilePath, []byte("key: value"), 0666)
+			Expect(err).To(BeNil())
+
+			err = testChart.WriteChart(tarDir)
+			Expect(err).To(BeNil())
+
+			chart, err := helm.NewChart(tarDir, "docker.example.com")
+			tarFile, err := chartutil.Save(chart.Chart, tarDir)
+
+			myRepository := repository.NewRepository(repoDir, "", logger)
+			_, err = ioutil.ReadDir(repoDir)
+			Expect(err).To(BeNil())
+
+			err = myRepository.SaveChart(tarFile)
+			Expect(err).To(BeNil())
+
+			_, err = os.Stat(fooFilePath)
+			Expect(os.IsNotExist(err)).To(BeTrue())
+		})
+
 		It("overrides existing chart", func() {
 			err := testChart.WriteChart(tarDir)
 			Expect(err).To(BeNil())
@@ -278,7 +304,6 @@ version: 0.0.2
 	})
 
 	Context("delete chart", func() {
-
 		BeforeEach(func() {
 			testChart = test.DefaultChart()
 		})
