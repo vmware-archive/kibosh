@@ -35,7 +35,8 @@ We are still in early development, but do plan to provide migration for partners
     ```
     `file` is a filename that exists in the `plans` subdirectory of the chart and
     `name`'s value should be lower alpha, numeric, `.`, or `-` 
-    Values `values.yaml` sets the defaults and plans only need override values 
+    Values `values.yaml` sets the defaults. Each plan's yaml file is an set of values overriding the defaults present in `values.yaml`
+    (copy any `values.yaml` key/value pairs to override into a new plan file)
 
 In order to successfully pull private images, we're imposing some requirements
 on the `values.yaml` file structure
