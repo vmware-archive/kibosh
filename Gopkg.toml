@@ -41,12 +41,12 @@ ignored = [
   version = "~v1.3.0"
 
 [[constraint]]
-  name = "code.cloudfoundry.org/lager"
-  version = "~v1.0.0"
-
-[[constraint]]
   name = "github.com/pivotal-cf/brokerapi"
   branch = "master"
+
+[[override]]
+  name = "code.cloudfoundry.org/lager"
+  version = "~v1.1.0"
 
 [[constraint]]
   name = "github.com/gosuri/uitable"
