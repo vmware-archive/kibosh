@@ -65,8 +65,6 @@ type DisplayResponse struct {
 
 func (api *api) Charts() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		println(fmt.Sprintf("Got method: %s", r.Method))
-
 		var err error
 		switch r.Method {
 		case "GET":
