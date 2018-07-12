@@ -48,8 +48,8 @@
 [[projects]]
   name = "github.com/Masterminds/semver"
   packages = ["."]
-  revision = "15d8430ab86497c5c0da827b748823945e1cf1e1"
-  version = "v1.4.0"
+  revision = "c7af12943936e8c39859482e61f0574c2fd7fc75"
+  version = "v1.4.2"
 
 [[projects]]
   name = "github.com/PuerkitoBio/purell"
@@ -113,6 +113,18 @@
   name = "github.com/beorn7/perks"
   packages = ["quantile"]
   revision = "4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/cloudfoundry-community/go-cfclient"
+  packages = ["."]
+  revision = "3117bbce91e99c3304b0f8e28fff1a8bdd47629f"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/cloudfoundry/gofileutils"
+  packages = ["fileutils"]
+  revision = "4d0c80011a0f37da1711c184028bc40137cd45af"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"
@@ -598,6 +610,7 @@
   name = "golang.org/x/oauth2"
   packages = [
     ".",
+    "clientcredentials",
     "google",
     "internal",
     "jws",
@@ -1193,6 +1206,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9c54253aca185720685213c47d6de4ed02648ac4d493b8da8784bd10209a24b3"
+  inputs-digest = "7e98f105863acf1873076a986dd838ce6b4095e1a4e92aaf67ee8f89199a2ef2"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -28,6 +28,19 @@ properties:
     default: https://127.0.0.1:8443
   kibosh.token:
     description: Token for the kubernetes cluster. Generally found in kubeconfig.
+  kibosh.cf.api_url:
+    description: When present, Kibosh will register itself in this cf marketplace
+  kibosh.cf.admin_username:
+    description: CF user with sufficient permissions to create and update brokers
+  kibosh.cf.admin_password:
+    description: CF user password
+  kibosh.cf.broker_url:
+    description: Broker url (self url)
+  kibosh.cf.broker_name:
+    description: Broker name to register with cf
+  kibosh.cf.skip_ssl_validation:
+    description: Set to true to allow self-signed certificates, for dev environments only
+    default: false
   registry.server:
     description: Private registry server to push images to. Optional, errand is no-op when missing
   registry.username:

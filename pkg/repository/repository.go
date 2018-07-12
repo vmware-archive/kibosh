@@ -152,7 +152,6 @@ func (r *repository) SaveChart(path string) error {
 }
 
 func (r *repository) DeleteChart(name string) error {
-
 	deletePath := filepath.Join(r.helmChartDir, name)
 
 	_, err := os.Stat(deletePath)

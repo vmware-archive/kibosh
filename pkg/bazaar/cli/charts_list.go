@@ -67,7 +67,8 @@ func (cl *chartsListCmd) run() error {
 	}
 
 	if res.StatusCode != 200 {
-		return errors.New(fmt.Sprintf("Non-OK response code from API [%v]", res.Status))
+		body, _ := ioutil.ReadAll(res.Body)
+		return errors.New(fmt.Sprintf("Non-OK response code from API [%v]\nMessage from server: %v\n", res.Status, string(body)))
 	}
 
 	body, err := ioutil.ReadAll(res.Body)

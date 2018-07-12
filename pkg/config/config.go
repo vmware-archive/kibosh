@@ -38,7 +38,16 @@ type RegistryConfig struct {
 	Email  string `envconfig:"REG_EMAIL"`
 }
 
-type config struct {
+type CFClientConfig struct {
+	BrokerURL         string `envconfig:"CF_BROKER_URL"`
+	BrokerName        string `envconfig:"CF_BROKER_NAME"`
+	ApiAddress        string `envconfig:"CF_API_ADDRESS"`
+	Username          string `envconfig:"CF_USERNAME"`
+	Password          string `envconfig:"CF_PASSWORD"`
+	SkipSslValidation bool   `envconfig:"CF_SKIP_SSL_VALIDATION"`
+}
+
+type Config struct {
 	AdminUsername string `envconfig:"SECURITY_USER_NAME" required:"true"`
 	AdminPassword string `envconfig:"SECURITY_USER_PASSWORD" required:"true"`
 
@@ -48,15 +57,20 @@ type config struct {
 
 	ClusterCredentials *ClusterCredentials
 	RegistryConfig     *RegistryConfig
+	CFClientConfig     *CFClientConfig
 }
 
 func (r RegistryConfig) HasRegistryConfig() bool {
 	return r.Server != ""
 }
 
+func (c CFClientConfig) HasCFClientConfig() bool {
+	return c.ApiAddress != ""
+}
+
 func (r RegistryConfig) GetDockerConfigJson() ([]byte, error) {
 	if r.Server == "" || r.Email == "" || r.Pass == "" || r.User == "" {
-		return nil, errors.New("environment didn't have a proper registry config")
+		return nil, errors.New("environment didn't have a proper registry Config")
 	}
 
 	dockerConfig := map[string]interface{}{
@@ -76,8 +90,8 @@ func (r RegistryConfig) GetDockerConfigJson() ([]byte, error) {
 	return dockerConfigJson, nil
 }
 
-func Parse() (*config, error) {
-	c := &config{}
+func Parse() (*Config, error) {
+	c := &Config{}
 	err := envconfig.Process("", c)
 	if err != nil {
 		return nil, err

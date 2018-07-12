@@ -20,6 +20,12 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/cf-platform-eng/kibosh/pkg/broker"
+	"github.com/cf-platform-eng/kibosh/pkg/cf"
+	"github.com/cf-platform-eng/kibosh/pkg/config"
+	"github.com/cf-platform-eng/kibosh/pkg/helm"
+	"github.com/cloudfoundry-community/go-cfclient"
+	"github.com/pkg/errors"
+	"strings"
 )
 
 type API interface {
@@ -29,13 +35,17 @@ type API interface {
 type api struct {
 	broker     *broker.PksServiceBroker
 	repository Repository
+	cfClient   cf.Client
+	conf       *config.Config
 	logger     lager.Logger
 }
 
-func NewAPI(b *broker.PksServiceBroker, r Repository, l lager.Logger) API {
+func NewAPI(b *broker.PksServiceBroker, r Repository, c cf.Client, conf *config.Config, l lager.Logger) API {
 	return &api{
 		broker:     b,
 		repository: r,
+		cfClient:   c,
+		conf:       conf,
 		logger:     l,
 	}
 
@@ -48,9 +58,54 @@ func (api *api) ReloadCharts() http.Handler {
 			api.logger.Error("Unable to load charts", err)
 			w.WriteHeader(500)
 			w.Write([]byte("Unable to load charts"))
+			return
 		} else {
 			api.broker.SetCharts(charts)
-			w.Write([]byte("Reloaded charts successfully"))
+
+			if api.cfClient != nil {
+				err = api.refreshCloudFoundry(charts)
+				if err != nil {
+					w.WriteHeader(500)
+					w.Write([]byte(err.Error()))
+					return
+				}
+			}
 		}
+
+		w.Write([]byte("Reloaded charts successfully"))
 	})
+}
+
+func (api *api) refreshCloudFoundry(charts []*helm.MyChart) error {
+	bro, err := api.cfClient.GetServiceBrokerByName(api.conf.CFClientConfig.BrokerName)
+
+	if err == nil {
+		_, err = api.cfClient.UpdateServiceBroker(bro.Guid, cfclient.UpdateServiceBrokerRequest{
+			BrokerURL: api.conf.CFClientConfig.BrokerURL,
+			Username:  api.conf.AdminUsername,
+			Password:  api.conf.AdminPassword,
+			Name:      api.conf.CFClientConfig.BrokerName,
+		})
+
+		if err != nil {
+			api.logger.Error("Reloaded charts, but unable to update the broker", err)
+			return errors.New("Reloaded charts, but unable to update the broker")
+		}
+	} else if strings.Contains(err.Error(), "Unable to find service broker") {
+		_, err = api.cfClient.CreateServiceBroker(cfclient.CreateServiceBrokerRequest{
+			BrokerURL: api.conf.CFClientConfig.BrokerURL,
+			Username:  api.conf.AdminUsername,
+			Password:  api.conf.AdminPassword,
+			Name:      api.conf.CFClientConfig.BrokerName,
+		})
+
+		if err != nil {
+			api.logger.Error("Reloaded charts, but unable to register broker", err)
+			return errors.New("Reloaded charts, but unable to register broker")
+		}
+	} else {
+		return errors.New("Reloaded charts, but failed talking to CF")
+	}
+
+	return nil
 }

@@ -256,6 +256,37 @@ var _ = Describe("Api", func() {
 			Expect(recorder.Code).To(Equal(200))
 			Expect(recorder.Body).To(ContainSubstring("deleted"))
 		})
+
+		It("reject deletion when there is only one chart", func() {
+			spacebearsChart := &helm.MyChart{
+				Chartpath: "/foo/bar",
+				Plans: map[string]helm.Plan{
+					"plan1": {
+						Name: "plan1",
+					},
+				},
+				Chart: &hapi_chart.Chart{
+					Metadata: &hapi_chart.Metadata{
+						Name: "spacebears",
+					},
+				},
+			}
+
+			repo.LoadChartsReturns([]*helm.MyChart{
+				spacebearsChart,
+			}, nil)
+			req, err := http.NewRequest("DELETE", "/charts/spacebears", nil)
+			Expect(err).To(BeNil())
+
+			recorder := httptest.NewRecorder()
+
+			apiHandler := api.Charts()
+			apiHandler.ServeHTTP(recorder, req)
+
+			Expect(recorder.Code).To(Equal(400))
+			Expect(repo.DeleteChartCallCount()).To(BeZero())
+
+		})
 	})
 })
 

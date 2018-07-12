@@ -134,6 +134,18 @@ func (api *api) DeleteChart(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}
 
+	charts, err := api.repo.LoadCharts()
+	if err != nil {
+		api.ServerError(500, "Unable to delete chart", w)
+		return nil
+	}
+	if len(charts) == 1 {
+		if charts[0].Metadata.Name == chartName {
+			api.ServerError(400, "Cannot remove last chart (this would result in invalid catalog)", w)
+			return nil
+		}
+	}
+
 	err = api.repo.DeleteChart(chartName)
 	if err != nil {
 		api.ServerError(500, "Unable to delete chart", w)

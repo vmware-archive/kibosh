@@ -15,5 +15,6 @@ vendor
 .idea
 
 charts
+operators
 charts.bk
 local_dev.sh

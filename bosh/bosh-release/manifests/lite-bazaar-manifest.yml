@@ -59,6 +59,13 @@ instance_groups:
       ca_data: ((k8s-cluster-ca-cert))
       server: ((k8s-cluster-server))
       token: ((k8s-cluster-token))
+      cf:
+        api_url: https://api.v3.pcfdev.io
+        broker_name: bazaar
+        broker_url: https://bazaar-broker.v3.pcfdev.io
+        admin_username: admin
+        admin_password: admin
+        skip_ssl_validation: true
   vm_type: default
   cloud_properties:
     tags:

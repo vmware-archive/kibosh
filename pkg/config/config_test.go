@@ -37,6 +37,12 @@ var _ = Describe("Config", func() {
 			os.Setenv("SECURITY_USER_PASSWORD", "abc123")
 			os.Setenv("PORT", "9001")
 			os.Setenv("HELM_CHART_DIR", "/home/somewhere")
+
+			os.Setenv("CF_API_ADDRESS", "https://api.mycf.example.com")
+			os.Setenv("CF_USERNAME", "admin")
+			os.Setenv("CF_PASSWORD", "monkey123")
+			os.Setenv("CF_SKIP_SSL_VALIDATION", "true")
+
 		})
 
 		It("parses config from environment", func() {
@@ -48,6 +54,15 @@ var _ = Describe("Config", func() {
 			Expect(c.Port).To(Equal(9001))
 
 			Expect(c.ClusterCredentials.Server).To(Equal("127.0.0.1/api"))
+		})
+
+		It("parses cf config", func() {
+			c, err := Parse()
+			Expect(err).To(BeNil())
+			Expect(c.CFClientConfig.ApiAddress).To(Equal("https://api.mycf.example.com"))
+			Expect(c.CFClientConfig.Username).To(Equal("admin"))
+			Expect(c.CFClientConfig.Password).To(Equal("monkey123"))
+			Expect(c.CFClientConfig.SkipSslValidation).To(BeTrue())
 		})
 
 		It("has registry config", func() {

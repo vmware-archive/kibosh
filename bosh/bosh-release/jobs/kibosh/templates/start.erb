@@ -15,15 +15,23 @@ export CA_DATA=<%= Shellwords.escape p("kibosh.ca_data") %>
 export SERVER=<%= p("kibosh.server", "https://127.0.0.1") %>
 export TOKEN=<%= p("kibosh.token", "bXktdG9rZW4=") %>
 
-
 <% if p("registry.server", "") != "" %>
-echo "'registry.server' is not configured, errand exiting as no-op"
+echo "'registry.server' is configured"
 export REG_SERVER=<%= p("registry.server") %>
 export REG_USER=<%= p("registry.username") %>
 export REG_PASS='<%= p("registry.password") %>'
 export REG_EMAIL='<%= p("registry.username") %>'
 <% end %>
 
+<% if p("kibosh.cf.api_url", "") != "" %>
+echo "'kibosh.cf.api_url' is configured"
+export CF_API_ADDRESS=<%= p("kibosh.cf.api_url") %>
+export CF_USERNAME=<%= p("kibosh.cf.admin_username") %>
+export CF_PASSWORD=<%= p("kibosh.cf.admin_password") %>
+export CF_BROKER_URL=<%= p("kibosh.cf.broker_url") %>
+export CF_BROKER_NAME=<%= p("kibosh.cf.broker_name") %>
+export CF_SKIP_SSL_VALIDATION=<%= p("kibosh.cf.skip_ssl_validation") %>
+<% end %>
 
 mkdir -p "$LOG_DIR" "$RUN_DIR" "$HELM_CHART_DIR"
 

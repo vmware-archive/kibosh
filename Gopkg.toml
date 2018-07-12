@@ -51,3 +51,7 @@ ignored = [
 [[constraint]]
   name = "github.com/gosuri/uitable"
   revision = "36ee7e946282a3fb1cfecd476ddc9b35d8847e42"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/cloudfoundry-community/go-cfclient"
