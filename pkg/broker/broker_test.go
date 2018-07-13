@@ -102,7 +102,8 @@ var _ = Describe("Broker", func() {
 	Context("catalog", func() {
 		It("Provides a catalog with correct service", func() {
 			serviceBroker := NewPksServiceBroker(registryConfig, nil, nil, charts, logger)
-			serviceCatalog := serviceBroker.Services(nil)
+			serviceCatalog, err := serviceBroker.Services(nil)
+			Expect(err).To(BeNil())
 
 			Expect(len(serviceCatalog)).To(Equal(2))
 
@@ -129,7 +130,8 @@ var _ = Describe("Broker", func() {
 
 		It("Provides a catalog with correct plans", func() {
 			serviceBroker := NewPksServiceBroker(registryConfig, nil, nil, charts, logger)
-			serviceCatalog := serviceBroker.Services(nil)
+			serviceCatalog, err := serviceBroker.Services(nil)
+			Expect(err).To(BeNil())
 
 			expectedPlans := []brokerapi.ServicePlan{
 				{

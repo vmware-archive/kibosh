@@ -71,7 +71,7 @@ func (broker *PksServiceBroker) GetCharts() map[string]*my_helm.MyChart {
 	return broker.chartsMap
 }
 
-func (broker *PksServiceBroker) Services(ctx context.Context) []brokerapi.Service {
+func (broker *PksServiceBroker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 	serviceCatalog := []brokerapi.Service{}
 
 	for _, chart := range broker.chartsMap {
@@ -95,7 +95,7 @@ func (broker *PksServiceBroker) Services(ctx context.Context) []brokerapi.Servic
 		})
 	}
 
-	return serviceCatalog
+	return serviceCatalog, nil
 }
 
 func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string, details brokerapi.ProvisionDetails, asyncAllowed bool) (brokerapi.ProvisionedServiceSpec, error) {

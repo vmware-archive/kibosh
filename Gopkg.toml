@@ -6,13 +6,29 @@ required = [
     "github.com/emicklei/go-restful"
 ]
 
-ignored = [
-    "k8s.io/client-go/pkg/*"
-]
-
 [[override]]
   name = "k8s.io/kubernetes"
-  version = "=v1.9.2"
+  version = "v1.10.0"
+
+[[override]]
+  name = "k8s.io/client-go"
+  version = "kubernetes-1.10.0"
+
+[[override]]
+  name = "k8s.io/api"
+  version = "kubernetes-1.10.0"
+
+[[override]]
+  name = "k8s.io/apimachinery"
+  version = "kubernetes-1.10.0"
+
+[[override]]
+  name = "k8s.io/apiserver"
+  version = "kubernetes-1.10.0"
+
+[[override]]
+  name = "k8s.io/apiextensions-apiserver"
+  version = "kubernetes-1.10.0"
 
 [[override]]
   name = "github.com/russross/blackfriday"
@@ -20,7 +36,7 @@ ignored = [
 
 [[constraint]]
   name = "k8s.io/helm"
-  version = "~v2.8.0"
+  version = "~v2.9.0"
 
 [[override]]
   name = "github.com/docker/distribution"
