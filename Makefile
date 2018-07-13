@@ -69,6 +69,8 @@ cleandep:
 HAS_DEP := $(shell command -v dep;)
 HAS_BINDATA := $(shell command -v go-bindata;)
 
+boostrap: bootstrap
+
 .PHONY: bootstrap
 bootstrap:
 ifndef HAS_DEP
