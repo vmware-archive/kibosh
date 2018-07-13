@@ -26,7 +26,7 @@ resources:
   type: docker-image
   source:
     repository: gcr.io/kubernetes-helm/tiller
-    tag: "v2.8.2"
+    tag: "v2.9.0"
 
 - name: tiller-image-fixed
   type: gcs-resource
