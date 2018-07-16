@@ -18,6 +18,7 @@ package broker_test
 import (
 	"encoding/json"
 	"errors"
+	"strings"
 
 	"code.cloudfoundry.org/lager"
 	. "github.com/cf-platform-eng/kibosh/pkg/broker"
@@ -284,7 +285,7 @@ var _ = Describe("Broker", func() {
 				Expect(chart).To(Equal(spacebearsChart))
 				Expect(namespaceName).To(Equal("kibosh-my-instance-guid"))
 				Expect(plan).To(Equal("small"))
-				Expect(opts).To(HaveLen(9))
+				Expect(strings.TrimSpace(string(opts))).To(Equal("foo: bar"))
 			})
 		})
 	})
@@ -797,9 +798,18 @@ var _ = Describe("Broker", func() {
 
 			resp, err := broker.Update(nil, "my-instance-guid", details, true)
 
+			chart, namespaceName, plan, opts := fakeMyHelmClient.UpdateChartArgsForCall(0)
+
 			Expect(err).To(BeNil())
 			Expect(resp.IsAsync).To(BeTrue())
 			Expect(resp.OperationData).To(Equal("update"))
+			Expect(fakeMyHelmClient.UpdateChartCallCount()).To(Equal(1))
+
+			Expect(chart).To(Equal(spacebearsChart))
+			Expect(namespaceName).To(Equal("kibosh-my-instance-guid"))
+			Expect(plan).To(Equal("my-plan-id"))
+			Expect(strings.TrimSpace(string(opts))).To(Equal("foo: bar"))
+
 		})
 	})
 })
