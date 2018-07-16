@@ -33,7 +33,7 @@ import (
 	"time"
 )
 
-const helmVersion = "v2.8.2"
+const helmVersion = "v2.9.0"
 
 var _ = Describe("KubeConfig", func() {
 	var logger lager.Logger
