@@ -7,6 +7,35 @@ When deployed with a Helm chart and added to the marketplace,
 * `cf create-service` calls to Kibosh will create the collection of Kubernetes resources described by the chart.
 * `cf bind-service` calls to Kibosh will expose back any services and secrets created by the chart
 
+Overriding/Setting values as defined in values.yaml via 'cf create-service' or 'cf update-service'.  The format of the json string is a nested format.  Also refer to the cf cli for an example of a valid JSON object.
+
+Example for setting the mysqlUser on `cf create-service` for the MySQL chart
+
+values.yaml
+
+```## Create a database user
+##
+# mysqlUser:
+# mysqlPassword:
+```
+
+`cf create-service mysql medium mysql-kibosh-service -c '{"mysqlUser”:”admin”}'`
+
+Example for setting the resources.requests.memory on `cf update-service` for the MySQL chart
+
+values.yaml
+
+```## Configure resource requests and limits
+## ref: http://kubernetes.io/docs/user-guide/compute-resources/
+##
+resources:
+  requests:
+    memory: 256Mi
+    cpu: 100m
+```
+
+`cf update-service mysql-kibosh-service  -c '{"resources": {"requests": {"memory": "256Mi"}}}'`
+
 For some in depth discussion, see this blog post:
 [Use Kubernetes Helm Packages to Build Pivotal Cloud Foundry tiles](https://content.pivotal.io/blog/use-kubernetes-helm-packages-to-build-pivotal-cloud-foundry-tiles-kibosh-a-new-service-broker-makes-it-simple)
 
