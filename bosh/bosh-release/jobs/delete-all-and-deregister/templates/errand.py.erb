@@ -1,5 +1,5 @@
 import json
-import os
+import sys
 import base64
 import urllib.request
 import subprocess
@@ -12,6 +12,7 @@ auth = "Basic {}".format(creds.decode())
 url = 'http://<%= link('kibosh_broker').instances[0].address %>:<%= link('kibosh_broker').p('kibosh.port') %>/v2/catalog'
 request = urllib.request.Request(url)
 request.add_header("Authorization", auth)
+request.add_header("X-Broker-API-Version", "2.13")
 
 with urllib.request.urlopen(request) as response:
     services_json = response.read().decode()
@@ -39,6 +40,15 @@ cf:
         with open(config_file_name, "w+") as file:
             file.write(contents)
         binary_path = "/var/vcap/packages/delete-all-and-deregister/delete_all_and_deregister.linux"
-        status = subprocess.call("{} -configFilePath {} -brokerName <%= p('broker_name') %>".format(binary_path, config_file_name), shell=True,  stdout=subprocess.PIPE)
-        if status:
-            os.exit(status)
+        process = subprocess.Popen("{} -configFilePath {} -brokerName spacebears-broker".format(binary_path, config_file_name), shell=True,  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        raw_stdout, raw_stderr = process.communicate()
+        stdout = raw_stdout.decode('utf-8')
+        stderr = raw_stderr.decode('utf-8')
+        print(stdout, file=sys.stdout)
+        print(stderr, file=sys.stderr)
+
+        if process.returncode:
+            if "Failed to find broker with name: <%= p('broker_name') %>" in stdout:
+                sys.exit(0)
+            else:
+                sys.exit(process.returncode)
