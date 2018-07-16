@@ -188,9 +188,9 @@ To update a dependency:
 dep ensure -update github.com/pkg/errors
 ```
 
-Dependency vendoring wrt to helm & k8s is trickier. `dep` isn't able to build the
+Dependency vendoring with respect to helm & k8s is trickier. `dep` isn't able to build the
 tree without significant help. The `Gopkg.tml` has several overrides needed to get everything
-to compile (which work in conjunction with `setup-apimmachinery.sh`).
+to compile.
 
 Updating to a new version of helm/k8s will probably require re-visiting the override & constraint
 matrix built. Useful inputs into this process are:
@@ -199,6 +199,9 @@ matrix built. Useful inputs into this process are:
 * Helm's Glide dependencies and dependency lock file
     - https://github.com/kubernetes/helm/blob/master/glide.yaml
     - https://github.com/kubernetes/helm/blob/master/glide.lock
+* Draft's `Gopkg.toml` file (they're doing the same thing we are, pulling in Helm as a library)
+    - https://github.com/cf-platform-eng/kibosh
+* This [helm tracker issue](https://github.com/kubernetes/helm/issues/3031) also has some useful context
 
 Also run the make target `cleandep` to wipe out the lock file an any local state when upgrading
 helm/k8s, to make sure it can be rebuilt cleanly from the specified constraints.
