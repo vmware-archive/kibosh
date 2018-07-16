@@ -6,6 +6,9 @@ required = [
     "github.com/emicklei/go-restful"
 ]
 
+[prune]
+  unused-packages = true
+
 [[override]]
   name = "k8s.io/kubernetes"
   version = "v1.10.0"
