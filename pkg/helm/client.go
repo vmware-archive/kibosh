@@ -197,19 +197,19 @@ func (c myHelmClient) MergeValueBytes(base []byte, override []byte) ([]byte, err
 	baseVals := map[string]interface{}{}
 	err := yaml.Unmarshal(base, &baseVals)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	overrideVals := map[string]interface{}{}
 	err = yaml.Unmarshal(override, &overrideVals)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	mergeValueMaps(baseVals, overrideVals)
 
 	merged, err := yaml.Marshal(baseVals)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	return merged, nil
