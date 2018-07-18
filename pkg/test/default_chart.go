@@ -26,6 +26,7 @@ type TestChart struct {
 	ValuesYaml   []byte
 	PlansYaml    []byte
 	PlanContents map[string][]byte
+	HasPlans     bool
 }
 
 func DefaultChart() *TestChart {
@@ -60,8 +61,27 @@ persistence:
 	return &TestChart{
 		ChartYaml:    chartYaml,
 		ValuesYaml:   valuesYaml,
+		HasPlans:     true,
 		PlansYaml:    plansYaml,
 		PlanContents: planContents,
+	}
+}
+
+func PlainChart() *TestChart {
+	chartYaml := []byte(`
+name: spacebears
+description: spacebears service and spacebears broker helm chart
+version: 0.0.1
+`)
+
+	valuesYaml := []byte(`
+name: value
+`)
+
+	return &TestChart{
+		ChartYaml:  chartYaml,
+		ValuesYaml: valuesYaml,
+		HasPlans:   false,
 	}
 }
 
@@ -83,15 +103,18 @@ func (t *TestChart) WriteChart(chartPath string) error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(filepath.Join(chartPath, "plans.yaml"), t.PlansYaml, 0666)
-	if err != nil {
-		return err
-	}
-	for key, value := range t.PlanContents {
-		path := filepath.Join(chartPath, "plans", key+".yaml")
-		err = ioutil.WriteFile(path, value, 0666)
+
+	if t.HasPlans {
+		err = ioutil.WriteFile(filepath.Join(chartPath, "plans.yaml"), t.PlansYaml, 0666)
 		if err != nil {
 			return err
+		}
+		for key, value := range t.PlanContents {
+			path := filepath.Join(chartPath, "plans", key+".yaml")
+			err = ioutil.WriteFile(path, value, 0666)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

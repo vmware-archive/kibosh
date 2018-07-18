@@ -47,7 +47,7 @@ func main() {
 		brokerLogger.Fatal("Error setting up k8s cluster", err)
 	}
 
-	repo := repository.NewRepository(conf.HelmChartDir, conf.RegistryConfig.Server, brokerLogger)
+	repo := repository.NewRepository(conf.HelmChartDir, conf.RegistryConfig.Server, true, brokerLogger)
 	charts, err := repo.LoadCharts()
 	if err != nil {
 		brokerLogger.Fatal("Unable to load charts", err)
@@ -67,7 +67,7 @@ func main() {
 		}
 	}
 
-	operatorRepo := repository.NewRepository(conf.OperatorDir, conf.RegistryConfig.Server, brokerLogger)
+	operatorRepo := repository.NewRepository(conf.OperatorDir, conf.RegistryConfig.Server, false, brokerLogger)
 	operatorCharts, err := operatorRepo.LoadCharts()
 	if err != nil {
 		if !os.IsNotExist(err) {

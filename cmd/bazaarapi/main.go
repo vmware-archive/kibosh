@@ -36,7 +36,7 @@ func main() {
 		bazaarLogger.Fatal("Loading config file", err)
 	}
 
-	repo := repository.NewRepository(conf.HelmChartDir, conf.RegistryConfig.Server, bazaarLogger)
+	repo := repository.NewRepository(conf.HelmChartDir, conf.RegistryConfig.Server, true, bazaarLogger)
 	bazaarAPI := bazaar.NewAPI(repo, conf.KiboshConfig, bazaarLogger)
 	authFilter := httphelpers.NewAuthFilter(conf.AdminUsername, conf.AdminPassword)
 

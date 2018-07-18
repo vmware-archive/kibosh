@@ -37,13 +37,15 @@ type Repository interface {
 type repository struct {
 	helmChartDir          string
 	privateRegistryServer string
+	expectOSBAPICharts    bool
 	logger                lager.Logger
 }
 
-func NewRepository(chartPath string, privateRegistryServer string, logger lager.Logger) Repository {
+func NewRepository(chartPath string, privateRegistryServer string, expectOSBAPICharts bool, logger lager.Logger) Repository {
 	return &repository{
 		helmChartDir:          chartPath,
 		privateRegistryServer: privateRegistryServer,
+		expectOSBAPICharts:    expectOSBAPICharts,
 		logger:                logger,
 	}
 }
@@ -57,7 +59,7 @@ func (r *repository) LoadCharts() ([]*helm.MyChart, error) {
 	}
 
 	if chartExists {
-		myChart, err := helm.NewChart(r.helmChartDir, r.privateRegistryServer)
+		myChart, err := helm.NewChart(r.helmChartDir, r.privateRegistryServer, r.expectOSBAPICharts)
 		if err != nil {
 			return charts, err
 		}
@@ -79,7 +81,7 @@ func (r *repository) LoadCharts() ([]*helm.MyChart, error) {
 					return charts, err
 				}
 				if subdirChartExists {
-					myChart, err := helm.NewChart(filepath.Join(subChartPath), r.privateRegistryServer)
+					myChart, err := helm.NewChart(filepath.Join(subChartPath), r.privateRegistryServer, r.expectOSBAPICharts)
 					if err != nil {
 						return charts, err
 					}
@@ -128,7 +130,7 @@ func (r *repository) SaveChart(path string) error {
 	}
 
 	chartPath := filepath.Join(expandedTarPath, chartPathInfo.Name())
-	chart, err := helm.NewChart(chartPath, r.privateRegistryServer)
+	chart, err := helm.NewChart(chartPath, r.privateRegistryServer, r.expectOSBAPICharts)
 	if err != nil {
 		return err
 	}
