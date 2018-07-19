@@ -13,7 +13,7 @@ export PORT=<%= p("kibosh.port", "8080") %>
 export HELM_CHART_DIR=<%= p("kibosh.helm_chart_dir", "charts") %>
 export CA_DATA=<%= Shellwords.escape p("kibosh.ca_data") %>
 export SERVER=<%= p("kibosh.server", "https://127.0.0.1") %>
-export TOKEN=<%= p("kibosh.token", "bXktdG9rZW4=") %>
+export TOKEN=<%= p("kibosh.token") %>
 
 <% if p("registry.server", "") != "" %>
 echo "'registry.server' is configured"
