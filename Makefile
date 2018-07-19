@@ -79,8 +79,6 @@ endif
 ifndef HAS_BINDATA
 	go get github.com/jteeuwen/go-bindata/...
 endif
-	rm -rf vendor
-	rm -rf Gopkg.lock
 	dep ensure -v
 
 all: fmt test build build-loader build-bazaar build-bazaar-cli
