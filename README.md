@@ -161,6 +161,8 @@ charts
 ...
 ```
 
+We have modified [some example charts](https://github.com/cf-platform-eng/kibosh-sample/tree/master/sample-charts) from stable helm repository.
+ 
 #### Test
 ```bash
 make test
