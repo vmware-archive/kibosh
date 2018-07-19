@@ -173,7 +173,7 @@ To generate the test-doubles, after any interface change run:
 make generate
 ```
 
-### ci
+### CI
 * https://concourse.cfplatformeng.com/teams/main/pipelines/kibosh
 
 The pipeline is backed by a cluster in the shared GKE account. The default admin
@@ -240,6 +240,30 @@ helm/k8s, to make sure it can be rebuilt cleanly from the specified constraints.
 More dep links:
 * Common dep commands: https://golang.github.io/dep/docs/daily-dep.html
 * `Gopks.toml` details: https://github.com/golang/dep/blob/master/docs/Gopkg.toml.md
+
+## Bazaar
+Kibosh can also manage multiple charts more dynamically (without redeployment),
+when configured differently, see
+[lite-bazaar-manifest.yml](bosh/bosh-release/manifests/lite-bazaar-manifest.yml)
+
+This allows customers to add any available helm chart to their cf marketplace with 
+minimal effort and cycle time.
+
+There is also a corresponding cli (`bazaarcli`) to manage these charts.
+
+```bash
+./bazaarcli.mac -t http://bazaar.v3.pcfdev.io -u admin -p 'monkey123' list
+./bazaarcli.mac -t http://bazaar.v3.pcfdev.io -u admin -p 'monkey123' save ~/workspace/kibosh-sample/sample-charts/mysql-0.8.2.tgz
+./bazaarcli.mac -t http://bazaar.v3.pcfdev.io -u admin -p 'monkey123' save ~/workspace/kibosh-sample/sample-charts/rabbitmq-1.1.9.tgz
+./bazaarcli.mac -t http://bazaar.v3.pcfdev.io -u admin -p 'monkey123' list
+
+cf enable-service-access mysql
+cf enable-service-access rabbitmq
+cf marketplace
+
+./bazaarcli.mac -t http://bazaar.v3.pcfdev.io -u admin -p 'monkey123' delete rabbitmq
+cf marketplace
+```
 
 ## Notes
 
