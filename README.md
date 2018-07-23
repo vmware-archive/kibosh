@@ -19,7 +19,7 @@ values.yaml
 # mysqlPassword:
 ```
 
-`cf create-service mysql medium mysql-kibosh-service -c '{"mysqlUser”:”admin”}'`
+`cf create-service mysql medium mysql-kibosh-service -c '{"mysqlUser":"admin"}'`
 
 Example for setting the resources.requests.memory on `cf update-service` for the MySQL chart
 
