@@ -210,6 +210,12 @@ func (broker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID 
 
 	servicesMap := []map[string]interface{}{}
 	for _, service := range services.Items {
+    if service.Spec.Type == "NodePort"{
+      nodes, _ := broker.cluster.GetClient().CoreV1().Nodes().List(meta_v1.ListOptions{})
+      for _, node:= range nodes.Items {
+        service.Spec.ExternalIPs = append( service.Spec.ExternalIPs, node.ObjectMeta.Labels["spec.ip"])
+      }
+    }
 		credentialService := map[string]interface{}{
 			"name":   service.ObjectMeta.Name,
 			"spec":   service.Spec,
