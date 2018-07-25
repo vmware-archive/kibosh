@@ -115,6 +115,23 @@ the following ways to contribute:
 pull request to the master branch of Kibosh. We strongly suggest that you first file an issue to
 let us know of your intent, or comment on the issue you are planning to address.
 
+## Deploying
+To deploy a single chart via a 
+[Pivotal tile](https://docs.pivotal.io/tiledev/),
+see tile-generator's [kibosh package type](https://docs.pivotal.io/tiledev/tile-generator.html#-helm-charts-with-kibosh).
+
+To manually deploy the BOSH release, get the latest BOSH release (`kibosh-release-X.X.XX.tgz`)
+from the  [Github releases](https://github.com/cf-platform-eng/kibosh/releases) and upload
+to your director.
+
+Build a manifest by starting from the example bosh-lite manifest 
+[lite-manifest.yml](bosh/bosh-release/manifests/lite-bazaar-manifest.yml)
+and customize the cloud specific settings (`az`, `vm_type`, etc). This manifest
+uses a set of [input variables](https://bosh.io/docs/cli-int/).
+See
+[values-sample.yml](bosh/bosh-release/manifests/values-sample.yml)
+for example values.
+
 ## Dev
 #### Setup
 
@@ -242,10 +259,7 @@ More dep links:
 * `Gopks.toml` details: https://github.com/golang/dep/blob/master/docs/Gopkg.toml.md
 
 ## Bazaar
-Kibosh can also manage multiple charts more dynamically (without redeployment),
-when configured differently, see
-[lite-bazaar-manifest.yml](bosh/bosh-release/manifests/lite-bazaar-manifest.yml)
-
+Kibosh can also manage multiple charts more dynamically (without redeployment).
 This allows customers to add any available helm chart to their cf marketplace with 
 minimal effort and cycle time.
 
@@ -264,6 +278,11 @@ cf marketplace
 ./bazaarcli.mac -t http://bazaar.v3.pcfdev.io -u admin -p 'monkey123' delete rabbitmq
 cf marketplace
 ```
+
+To deploy in this way, start from the example bosh-lite manifest 
+[lite-bazaar-manifest.yml](bosh/bosh-release/manifests/lite-bazaar-manifest.yml)
+and customize the cloud specific settings (`az`, `vm_type`, etc). See the deploying section
+for more details.
 
 ## Notes
 
