@@ -139,11 +139,23 @@ var _ = Describe("Broker", func() {
 					ID:          "37b7acb6-6755-56fe-a17f-2307657023ef-small",
 					Name:        "small",
 					Description: "default (small) plan for spacebears",
+					Metadata: &brokerapi.ServicePlanMetadata{
+						DisplayName: "small",
+						Bullets: []string{
+							"default (small) plan for spacebears",
+						},
+					},
 				},
 				{
 					ID:          "37b7acb6-6755-56fe-a17f-2307657023ef-medium",
 					Name:        "medium",
 					Description: "medium plan for spacebears",
+					Metadata: &brokerapi.ServicePlanMetadata{
+						DisplayName: "medium",
+						Bullets: []string{
+							"medium plan for spacebears",
+						},
+					},
 				},
 			}
 

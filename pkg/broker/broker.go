@@ -82,6 +82,12 @@ func (broker *PksServiceBroker) Services(ctx context.Context) ([]brokerapi.Servi
 				ID:          broker.getServiceID(chart) + "-" + plan.Name,
 				Name:        plan.Name,
 				Description: plan.Description,
+				Metadata: &brokerapi.ServicePlanMetadata{
+					DisplayName: plan.Name,
+					Bullets: []string{
+						plan.Description,
+					},
+				},
 			})
 		}
 
@@ -90,6 +96,11 @@ func (broker *PksServiceBroker) Services(ctx context.Context) ([]brokerapi.Servi
 			Name:        broker.getServiceName(chart),
 			Description: chart.Metadata.Description,
 			Bindable:    true,
+			Metadata: &brokerapi.ServiceMetadata{
+				DisplayName:      broker.getServiceName(chart),
+				ImageUrl:         chart.Metadata.Icon,
+				DocumentationUrl: chart.Metadata.Home,
+			},
 
 			Plans: plans,
 		})
