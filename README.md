@@ -313,3 +313,4 @@ MVP architecture, including Kibosh packaged by
 [tile-generator](https://github.com/cf-platform-eng/tile-generator/)
 
 ![](docs/mvp_architecture.jpg)
+

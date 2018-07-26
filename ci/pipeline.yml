@@ -104,6 +104,20 @@ resources:
     json_key: {{gcp_service_account_key}}
     regexp: delete_all_and_deregister.linux
 
+- name: bazaarcli-linux
+  type: gcs-resource
+  source:
+    bucket: kibosh
+    json_key: {{gcp_service_account_key}}
+    regexp: bazaarcli-(?P<version>.*).linux
+
+- name: bazaarcli-mac
+  type: gcs-resource
+  source:
+    bucket: kibosh
+    json_key: {{gcp_service_account_key}}
+    regexp: bazaarcli-(?P<version>.*).mac
+
 - name: cf-cli-release
   type: github-release
   source:
@@ -358,6 +372,8 @@ jobs:
           cp $SRC/kibosh.linux output/kibosh-${VERSION}.linux
           cp $SRC/loader.linux output/loader-${VERSION}.linux
           cp $SRC/bazaar.linux output/bazaar-${VERSION}.linux
+          cp $SRC/bazaarcli.mac output/bazaarcli-${VERSION}.mac
+          cp $SRC/bazaarcli.linux output/bazaarcli-${VERSION}.linux
   - put: kibosh-linux
     params:
       file: output/kibosh-*.linux
@@ -370,6 +386,12 @@ jobs:
   - put: bazaar-linux
     params:
       file: output/bazaar-*.linux
+  - put: bazaarcli-linux
+    params:
+      file: output/bazaarcli-*.linux
+  - put: bazaarcli-mac
+    params:
+      file: output/bazaarcli-*.mac
   - put: version
     params:
       bump: patch
@@ -647,6 +669,8 @@ jobs:
       passed: [push-image-errand]
     - get: kibosh-linux
     - get: kibosh-darwin
+    - get: bazaarcli-linux
+    - get: bazaarcli-mac
     - get: kibosh-release
       passed: [push-image-errand]
     - get: version
@@ -663,6 +687,8 @@ jobs:
       - name: source-repo
       - name: kibosh-linux
       - name: kibosh-darwin
+      - name: bazaarcli-linux
+      - name: bazaarcli-mac
       - name: kibosh-release
       - name: version
       - name: tiller-image
@@ -684,6 +710,8 @@ jobs:
 
           mv kibosh-linux/kibosh-*.linux output/
           mv kibosh-darwin/kibosh-*.darwin output/
+          mv bazaarcli-linux/bazaarcli-*.linux output/
+          mv bazaarcli-mac/bazaarcli-*.mac output/
           mv kibosh-release/kibosh*.tgz output/
           mv tiller-image-fixed/tiller-image.tar output/tiller-$(cat tiller-image/tag | tr -d '\n').tgz
   - put: release-repo
@@ -692,6 +720,7 @@ jobs:
       tag: version/version
       globs:
       - output/kibosh*.*
+      - output/bazaarcli*.*
       - output/tiller-*.tgz
 
 - name: delete-deployment
