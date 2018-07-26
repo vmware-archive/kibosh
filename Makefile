@@ -82,3 +82,4 @@ endif
 	dep ensure -v
 
 all: fmt test build build-loader build-bazaar build-bazaar-cli
+
