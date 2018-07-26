@@ -46,9 +46,7 @@ ISVs building out a tile should start there, rather than directly using this bin
 For documentation using Kibosh to build a tile, use the
 [tile-generator documentation](https://docs.pivotal.io/tiledev/tile-generator.html#-helm-charts-with-kibosh)
 
-We are still in early development, but do plan to provide migration for partners working directly with us.
-
- ![](docs/kibosh_logo_100.png)
+![](docs/kibosh_logo_100.png)
 
 ## Configuration
 ### Changes required in Chart
