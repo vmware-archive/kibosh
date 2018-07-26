@@ -37,21 +37,24 @@ const helmVersion = "v2.9.0"
 
 var _ = Describe("KubeConfig", func() {
 	var logger lager.Logger
-	var registryConfig config.RegistryConfig
 	var cluster k8sfakes.FakeCluster
 	var client helmfakes.FakeMyHelmClient
+	var conf *config.Config
 	var installer Installer
 
 	BeforeEach(func() {
 		logger = lager.NewLogger("test")
-		registryConfig = config.RegistryConfig{}
+		conf = &config.Config{
+			RegistryConfig:  &config.RegistryConfig{},
+			TillerTLSConfig: &config.TillerTLSConfig{},
+		}
 
 		k8sClient := test.FakeK8sInterface{}
 		cluster = k8sfakes.FakeCluster{}
 		cluster.GetClientReturns(&k8sClient)
 		client = helmfakes.FakeMyHelmClient{}
 
-		installer = NewInstaller(&registryConfig, &cluster, &client, logger)
+		installer = NewInstaller(conf, &cluster, &client, logger)
 	})
 
 	It("success", func() {
@@ -134,14 +137,17 @@ var _ = Describe("KubeConfig", func() {
 
 	Context("with private registry configured", func() {
 		BeforeEach(func() {
-			registryConfig = config.RegistryConfig{
-				Server: "registry.example.com",
-				User:   "k8s",
-				Pass:   "monkey123",
-				Email:  "k8s@example.com",
+			conf = &config.Config{
+				RegistryConfig: &config.RegistryConfig{
+					Server: "registry.example.com",
+					User:   "k8s",
+					Pass:   "monkey123",
+					Email:  "k8s@example.com",
+				},
+				TillerTLSConfig: &config.TillerTLSConfig{},
 			}
 
-			installer = NewInstaller(&registryConfig, &cluster, &client, logger)
+			installer = NewInstaller(conf, &cluster, &client, logger)
 		})
 
 		It("adds private registry to secret to default service account", func() {

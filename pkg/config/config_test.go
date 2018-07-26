@@ -23,6 +23,8 @@ import (
 
 	"encoding/json"
 	. "github.com/cf-platform-eng/kibosh/pkg/config"
+	"io/ioutil"
+	"path/filepath"
 )
 
 var _ = Describe("Config", func() {
@@ -171,6 +173,53 @@ my cert data
 
 			_, err := Parse()
 			Expect(err).NotTo(BeNil())
+		})
+
+		Context("tiller config", func() {
+			var tlsPath string
+
+			BeforeEach(func() {
+				var err error
+				tlsPath, err = ioutil.TempDir("", "")
+				Expect(err).To(BeNil())
+				tlsFile := filepath.Join(tlsPath, "tls_key_file.txt")
+				err = ioutil.WriteFile(tlsFile, []byte("foo key"), 0666)
+				Expect(err).To(BeNil())
+
+				tlsCertFile := filepath.Join(tlsPath, "tls_cert_file.txt")
+				err = ioutil.WriteFile(tlsCertFile, []byte("foo cert"), 0666)
+				Expect(err).To(BeNil())
+
+				tlsCAFile := filepath.Join(tlsPath, "tls_ca_file.txt")
+				err = ioutil.WriteFile(tlsCAFile, []byte("foo ca"), 0666)
+				Expect(err).To(BeNil())
+
+				os.Setenv("TILLER_TLS_KEY_FILE", tlsFile)
+				os.Setenv("TILLER_CERT_FILE", tlsCertFile)
+				os.Setenv("TILLER_TLS_CA_CERT_FILE", tlsCAFile)
+			})
+
+			AfterEach(func() {
+				os.RemoveAll(tlsPath)
+			})
+
+			It("parse tls config", func() {
+				c, err := Parse()
+				Expect(err).To(BeNil())
+
+				Expect(c.TillerTLSConfig.TLSKeyFile).NotTo(BeEmpty())
+				Expect(c.TillerTLSConfig.TLSCertFile).NotTo(BeEmpty())
+				Expect(c.TillerTLSConfig.TLSCaCertFile).NotTo(BeEmpty())
+			})
+
+			It("error when files don't exists", func() {
+				os.RemoveAll(tlsPath)
+
+				_, err := Parse()
+				Expect(err).NotTo(BeNil())
+
+				Expect(err.Error()).To(ContainSubstring("tls_"))
+			})
 		})
 	})
 })

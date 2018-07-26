@@ -364,6 +364,7 @@ jobs:
           make build
           make build-loader
           make build-bazaar
+          make build-bazaar-cli
           popd
 
           export VERSION=`cat version/version`

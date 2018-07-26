@@ -21,6 +21,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"os"
 	"strings"
 )
 
@@ -47,6 +49,12 @@ type CFClientConfig struct {
 	SkipSslValidation bool   `envconfig:"CF_SKIP_SSL_VALIDATION"`
 }
 
+type TillerTLSConfig struct {
+	TLSKeyFile    string `envconfig:"TILLER_TLS_KEY_FILE"`
+	TLSCertFile   string `envconfig:"TILLER_CERT_FILE"`
+	TLSCaCertFile string `envconfig:"TILLER_TLS_CA_CERT_FILE"`
+}
+
 type Config struct {
 	AdminUsername string `envconfig:"SECURITY_USER_NAME" required:"true"`
 	AdminPassword string `envconfig:"SECURITY_USER_PASSWORD" required:"true"`
@@ -58,6 +66,7 @@ type Config struct {
 	ClusterCredentials *ClusterCredentials
 	RegistryConfig     *RegistryConfig
 	CFClientConfig     *CFClientConfig
+	TillerTLSConfig    *TillerTLSConfig
 }
 
 func (r RegistryConfig) HasRegistryConfig() bool {
@@ -102,6 +111,10 @@ func Parse() (*Config, error) {
 		return nil, err
 	}
 
+	err = c.TillerTLSConfig.validateTillerParameters()
+	if err != nil {
+		return nil, err
+	}
 	return c, nil
 }
 
@@ -119,4 +132,35 @@ func (c *ClusterCredentials) parseCAData() error {
 	}
 
 	return nil
+}
+
+func (t *TillerTLSConfig) validateTillerParameters() error {
+	files := []string{
+		t.TLSCertFile, t.TLSKeyFile, t.TLSCaCertFile,
+	}
+	for _, file := range files {
+		if file != "" {
+			exists, err := fileExists(file)
+			if !exists {
+				return errors.New(fmt.Sprintf("Tiller file [%s] does not exist", file))
+			}
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func fileExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	} else {
+		if os.IsNotExist(err) {
+			return false, nil
+		} else {
+			return false, err
+		}
+	}
 }
