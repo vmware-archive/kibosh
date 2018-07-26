@@ -36,7 +36,8 @@ if [ -f "${delete_all_and_deregister_path}" ]; then
     echo "delete_all_and_deregister.linux already exists, skipping download"
 else
     echo "delete_all_and_deregister.linux doesn't exists, downloading"
-    gsutil cp gs://kibosh/delete_all_and_deregister.linux ${delete_all_and_deregister_path}
+    url=https://storage.googleapis.com/kibosh-public/delete_all_and_deregister.linux
+    wget ${url} -O "${delete_all_and_deregister_path}"
 fi
 
 echo "Adding blobs"

@@ -100,7 +100,7 @@ resources:
 - name: delete-all-and-deregister
   type: gcs-resource
   source:
-    bucket: kibosh
+    bucket: kibosh-public
     json_key: {{gcp_service_account_key}}
     regexp: delete_all_and_deregister.linux
 
@@ -273,6 +273,7 @@ jobs:
   - put: delete-all-and-deregister
     params:
       file: output/delete_all_and_deregister.linux
+      predefined_acl: publicRead
 
 
 - name: tiller-version-check
