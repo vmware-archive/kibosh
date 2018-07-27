@@ -31,5 +31,5 @@ into a working errand and broker deployment.
 
 ### build
 
-`deploy.sh` will cycle locally using the `lite-manifest.yaml`. This manifest assumes
+`kibosh_deploy.sh` will cycle locally using the `lite-manifest.yaml`. This manifest assumes
 a default cloud-config.
