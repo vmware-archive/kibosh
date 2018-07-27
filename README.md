@@ -282,6 +282,8 @@ To deploy in this way, start from the example bosh-lite manifest
 and customize the cloud specific settings (`az`, `vm_type`, etc). See the deploying section
 for more details.
 
+Alternatively, you can also deploy Bazaar as a [tile](https://github.com/cf-platform-eng/kibosh-sample/tree/master/bazaar-tile).  Follow the README on that page.
+
 ## Notes
 
 Inline-style: 
