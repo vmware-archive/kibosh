@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"code.cloudfoundry.org/lager"
+	"fmt"
 	. "github.com/cf-platform-eng/kibosh/pkg/broker"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
@@ -614,6 +615,52 @@ var _ = Describe("Broker", func() {
 			Expect(string(secretsJson)).To(Equal(`[{"data":{"db-password":"abc123"},"name":"passwords"}]`))
 		})
 
+		// NodePort Test
+		It("bind returns externalIPs field when Service Type NodePort is used", func() {
+			nodeList := api_v1.NodeList{
+				Items: []api_v1.Node{
+					{
+						ObjectMeta: meta_v1.ObjectMeta{
+							Labels: map[string]string{
+								"spec.ip": "1.1.1.1",
+							},
+						},
+					},
+				},
+			}
+			secretsList := api_v1.SecretList{
+				Items: []api_v1.Secret{
+					{
+						ObjectMeta: meta_v1.ObjectMeta{Name: "passwords"},
+						Data:       map[string][]byte{"db-password": []byte("abc123")},
+						Type:       api_v1.SecretTypeOpaque,
+					},
+				},
+			}
+			serviceList := api_v1.ServiceList{
+				Items: []api_v1.Service{
+					{
+						ObjectMeta: meta_v1.ObjectMeta{Name: "kibosh-my-mysql-db-instance"},
+						Spec: api_v1.ServiceSpec{
+							Ports: []api_v1.ServicePort{},
+							Type:  "NodePort",
+						},
+					},
+				},
+			}
+			fakeCluster.ListNodesReturns(&nodeList, nil)
+			fakeCluster.ListServicesReturns(&serviceList, nil)
+			fakeCluster.ListSecretsReturns(&secretsList, nil)
+			binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{})
+			Expect(err).To(BeNil())
+			creds := binding.Credentials
+
+			services := creds.(map[string]interface{})["services"]
+			spec := services.([]map[string]interface{})[0]["spec"]
+			externalIPs := spec.(api_v1.ServiceSpec).ExternalIPs
+			Expect(externalIPs[0]).To(Equal("1.1.1.1"))
+		})
+		//
 		It("bind filters to only opaque secrets", func() {
 			serviceList := api_v1.ServiceList{Items: []api_v1.Service{}}
 			fakeCluster.ListServicesReturns(&serviceList, nil)
