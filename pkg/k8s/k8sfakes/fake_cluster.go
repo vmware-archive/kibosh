@@ -86,7 +86,7 @@ type FakeCluster struct {
 		result1 *api_v1.PodList
 		result2 error
 	}
-//----
+	//----
 	ListNodesStub        func(listOptions meta_v1.ListOptions) (*api_v1.NodeList, error)
 	listNodesMutex       sync.RWMutex
 	listNodesArgsForCall []struct {
@@ -100,7 +100,7 @@ type FakeCluster struct {
 		result1 *api_v1.NodeList
 		result2 error
 	}
-//---
+	//---
 	GetDeploymentStub        func(string, string, meta_v1.GetOptions) (*v1_beta1.Deployment, error)
 	getDeploymentMutex       sync.RWMutex
 	getDeploymentArgsForCall []struct {
@@ -545,6 +545,7 @@ func (fake *FakeCluster) ListPodsReturnsOnCall(i int, result1 *api_v1.PodList, r
 		result2 error
 	}{result1, result2}
 }
+
 //-----
 func (fake *FakeCluster) ListNodes(listOptions meta_v1.ListOptions) (*api_v1.NodeList, error) {
 	fake.listNodesMutex.Lock()
@@ -568,7 +569,7 @@ func (fake *FakeCluster) ListNodesCallCount() int {
 	return len(fake.listNodesArgsForCall)
 }
 
-func (fake *FakeCluster) ListNodesArgsForCall(i int) (meta_v1.ListOptions) {
+func (fake *FakeCluster) ListNodesArgsForCall(i int) meta_v1.ListOptions {
 	fake.listNodesMutex.RLock()
 	defer fake.listNodesMutex.RUnlock()
 	return fake.listNodesArgsForCall[i].listOptions
@@ -595,6 +596,7 @@ func (fake *FakeCluster) ListNodesReturnsOnCall(i int, result1 *api_v1.NodeList,
 		result2 error
 	}{result1, result2}
 }
+
 // -------------
 func (fake *FakeCluster) GetDeployment(arg1 string, arg2 string, arg3 meta_v1.GetOptions) (*v1_beta1.Deployment, error) {
 	fake.getDeploymentMutex.Lock()
