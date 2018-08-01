@@ -22,9 +22,10 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	. "github.com/cf-platform-eng/kibosh/pkg/broker"
-	"github.com/cf-platform-eng/kibosh/pkg/config"
+	my_config "github.com/cf-platform-eng/kibosh/pkg/config"
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/helm/helmfakes"
+	"github.com/cf-platform-eng/kibosh/pkg/k8s"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s/k8sfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -36,6 +37,42 @@ import (
 	hapi_services "k8s.io/helm/pkg/proto/hapi/services"
 )
 
+type FakeClusterFactory struct {
+	fakeCluster *k8sfakes.FakeCluster
+}
+
+func NewFakeClusterFactory() *FakeClusterFactory {
+	return &FakeClusterFactory{&k8sfakes.FakeCluster{}}
+}
+
+func (cf FakeClusterFactory) DefaultCluster() (k8s.Cluster, error) {
+	return cf.fakeCluster, nil
+}
+
+type FakeHelmClientFactory struct {
+	fakeHelmClient *helmfakes.FakeMyHelmClient
+}
+
+func NewFakeHelmClientFactory() *FakeHelmClientFactory {
+	return &FakeHelmClientFactory{&helmfakes.FakeMyHelmClient{}}
+}
+
+func (hcf FakeHelmClientFactory) HelmClient(cluster k8s.Cluster) my_helm.MyHelmClient {
+	return hcf.fakeHelmClient
+}
+
+type FakeServiceAccountInstallerFactory struct {
+	fakeServiceAccountInstaller *k8sfakes.FakeServiceAccountInstaller
+}
+
+func NewFakeServiceAccountInstallerFactory() *FakeServiceAccountInstallerFactory {
+	return &FakeServiceAccountInstallerFactory{&k8sfakes.FakeServiceAccountInstaller{}}
+}
+
+func (fsaif FakeServiceAccountInstallerFactory) ServiceAccountInstaller(cluster k8s.Cluster) k8s.ServiceAccountInstaller {
+	return fsaif.fakeServiceAccountInstaller
+}
+
 var _ = Describe("Broker", func() {
 	const spacebearsServiceGUID = "37b7acb6-6755-56fe-a17f-2307657023ef"
 	const mysqlServiceGUID = "c76ed0a4-9a04-5710-90c2-75e955697b08"
@@ -46,15 +83,17 @@ var _ = Describe("Broker", func() {
 	var mysqlChart *my_helm.MyChart
 	var charts []*my_helm.MyChart
 
-	var registryConfig *config.RegistryConfig
+	var config *my_config.Config
 
 	BeforeEach(func() {
 		logger = lager.NewLogger("test")
-		registryConfig = &config.RegistryConfig{
-			Server: "127.0.0.1",
-			User:   "k8s",
-			Pass:   "monkey123",
-			Email:  "k8s@example.com",
+		config = &my_config.Config{
+			RegistryConfig: &my_config.RegistryConfig{
+				Server: "127.0.0.1",
+				User:   "k8s",
+				Pass:   "monkey123",
+				Email:  "k8s@example.com"},
+			TillerTLSConfig: &my_config.TillerTLSConfig{},
 		}
 		spacebearsChart = &my_helm.MyChart{
 			Chart: &hapi_chart.Chart{
@@ -102,7 +141,7 @@ var _ = Describe("Broker", func() {
 
 	Context("catalog", func() {
 		It("Provides a catalog with correct service", func() {
-			serviceBroker := NewPksServiceBroker(registryConfig, nil, nil, charts, logger)
+			serviceBroker := NewPksServiceBroker(config, nil, nil, nil, charts, logger)
 			serviceCatalog, err := serviceBroker.Services(nil)
 			Expect(err).To(BeNil())
 
@@ -130,7 +169,7 @@ var _ = Describe("Broker", func() {
 		})
 
 		It("Provides a catalog with correct plans", func() {
-			serviceBroker := NewPksServiceBroker(registryConfig, nil, nil, charts, logger)
+			serviceBroker := NewPksServiceBroker(config, nil, nil, nil, charts, logger)
 			serviceCatalog, err := serviceBroker.Services(nil)
 			Expect(err).To(BeNil())
 
@@ -172,18 +211,20 @@ var _ = Describe("Broker", func() {
 
 	Context("provision", func() {
 		var details brokerapi.ProvisionDetails
-		var fakeMyHelmClient *helmfakes.FakeMyHelmClient
-		var fakeCluster *k8sfakes.FakeCluster
+		var fakeHelmClientFactory *FakeHelmClientFactory
+		var fakeClusterFactory *FakeClusterFactory
+		var fakeServiceInstallerAccountInstallerFactory *FakeServiceAccountInstallerFactory
 		var broker *PksServiceBroker
 
 		BeforeEach(func() {
-			fakeMyHelmClient = &helmfakes.FakeMyHelmClient{}
-			fakeCluster = &k8sfakes.FakeCluster{}
+			fakeHelmClientFactory = NewFakeHelmClientFactory()
+			fakeClusterFactory = NewFakeClusterFactory()
+			fakeServiceInstallerAccountInstallerFactory = NewFakeServiceAccountInstallerFactory()
 			details = brokerapi.ProvisionDetails{
 				ServiceID: spacebearsServiceGUID,
 			}
 
-			broker = NewPksServiceBroker(registryConfig, fakeCluster, fakeMyHelmClient, charts, logger)
+			broker = NewPksServiceBroker(config, fakeClusterFactory, fakeHelmClientFactory, fakeServiceInstallerAccountInstallerFactory, charts, logger)
 		})
 
 		It("requires async", func() {
@@ -208,15 +249,35 @@ var _ = Describe("Broker", func() {
 
 				Expect(err).To(BeNil())
 
-				Expect(fakeCluster.CreateNamespaceCallCount()).To(Equal(1))
+				Expect(fakeClusterFactory.fakeCluster.CreateNamespaceCallCount()).To(Equal(1))
 
-				namespace := fakeCluster.CreateNamespaceArgsForCall(0)
+				namespace := fakeClusterFactory.fakeCluster.CreateNamespaceArgsForCall(0)
 				Expect(namespace.Name).To(Equal("kibosh-my-instance-guid"))
 			})
 
 			It("returns error on namespace creation failure", func() {
 				errorMessage := "namespace already taken or something"
-				fakeCluster.CreateNamespaceReturns(nil, errors.New(errorMessage))
+				fakeClusterFactory.fakeCluster.CreateNamespaceReturns(nil, errors.New(errorMessage))
+
+				_, err := broker.Provision(nil, "my-instance-guid", details, true)
+
+				Expect(err).NotTo(BeNil())
+				Expect(err.Error()).To(ContainSubstring(errorMessage))
+			})
+		})
+
+		Context("service account", func() {
+			It("creates service account", func() {
+				_, err := broker.Provision(nil, "my-instance-guid", details, true)
+
+				Expect(err).To(BeNil())
+
+				Expect(fakeServiceInstallerAccountInstallerFactory.fakeServiceAccountInstaller.InstallCallCount()).To(Equal(1))
+			})
+
+			It("returns error on service account installation failure", func() {
+				errorMessage := "could not create service account"
+				fakeServiceInstallerAccountInstallerFactory.fakeServiceAccountInstaller.InstallReturns(errors.New(errorMessage))
 
 				_, err := broker.Provision(nil, "my-instance-guid", details, true)
 
@@ -227,15 +288,15 @@ var _ = Describe("Broker", func() {
 
 		Context("registry secrets", func() {
 			It("doesn't mess with secrets when not configured", func() {
-				registryConfig = &config.RegistryConfig{}
-				broker = NewPksServiceBroker(registryConfig, fakeCluster, fakeMyHelmClient, charts, logger)
+				config = &my_config.Config{RegistryConfig: &my_config.RegistryConfig{}, TillerTLSConfig: &my_config.TillerTLSConfig{}}
+				broker = NewPksServiceBroker(config, fakeClusterFactory, fakeHelmClientFactory, fakeServiceInstallerAccountInstallerFactory, charts, logger)
 
 				_, err := broker.Provision(nil, "my-instance-guid", details, true)
 
 				Expect(err).To(BeNil())
 
-				Expect(fakeCluster.UpdateSecretCallCount()).To(Equal(0))
-				Expect(fakeCluster.PatchCallCount()).To(Equal(0))
+				Expect(fakeClusterFactory.fakeCluster.UpdateSecretCallCount()).To(Equal(0))
+				Expect(fakeClusterFactory.fakeCluster.PatchCallCount()).To(Equal(0))
 			})
 		})
 
@@ -249,8 +310,8 @@ var _ = Describe("Broker", func() {
 
 				Expect(err).To(BeNil())
 
-				Expect(fakeMyHelmClient.InstallChartCallCount()).To(Equal(1))
-				chart, namespaceName, plan, opts := fakeMyHelmClient.InstallChartArgsForCall(0)
+				Expect(fakeHelmClientFactory.fakeHelmClient.InstallChartCallCount()).To(Equal(1))
+				chart, namespaceName, plan, opts := fakeHelmClientFactory.fakeHelmClient.InstallChartArgsForCall(0)
 				Expect(chart).To(Equal(spacebearsChart))
 				Expect(namespaceName).To(Equal("kibosh-my-instance-guid"))
 				Expect(plan).To(Equal("small"))
@@ -259,7 +320,7 @@ var _ = Describe("Broker", func() {
 
 			It("returns error on helm chart creation failure", func() {
 				errorMessage := "no helm for you"
-				fakeMyHelmClient.InstallChartReturns(nil, errors.New(errorMessage))
+				fakeHelmClientFactory.fakeHelmClient.InstallChartReturns(nil, errors.New(errorMessage))
 
 				_, err := broker.Provision(nil, "my-instance-guid", details, true)
 
@@ -275,8 +336,8 @@ var _ = Describe("Broker", func() {
 
 				Expect(err).To(BeNil())
 
-				Expect(fakeMyHelmClient.InstallChartCallCount()).To(Equal(1))
-				chart, _, _, _ := fakeMyHelmClient.InstallChartArgsForCall(0)
+				Expect(fakeHelmClientFactory.fakeHelmClient.InstallChartCallCount()).To(Equal(1))
+				chart, _, _, _ := fakeHelmClientFactory.fakeHelmClient.InstallChartArgsForCall(0)
 				Expect(chart).To(Equal(mysqlChart))
 			})
 
@@ -292,8 +353,8 @@ var _ = Describe("Broker", func() {
 
 				Expect(err).To(BeNil())
 
-				Expect(fakeMyHelmClient.InstallChartCallCount()).To(Equal(1))
-				chart, namespaceName, plan, opts := fakeMyHelmClient.InstallChartArgsForCall(0)
+				Expect(fakeHelmClientFactory.fakeHelmClient.InstallChartCallCount()).To(Equal(1))
+				chart, namespaceName, plan, opts := fakeHelmClientFactory.fakeHelmClient.InstallChartArgsForCall(0)
 				Expect(chart).To(Equal(spacebearsChart))
 				Expect(namespaceName).To(Equal("kibosh-my-instance-guid"))
 				Expect(plan).To(Equal("small"))
@@ -303,15 +364,17 @@ var _ = Describe("Broker", func() {
 	})
 
 	Context("last operation", func() {
-		var fakeMyHelmClient *helmfakes.FakeMyHelmClient
-		var fakeCluster *k8sfakes.FakeCluster
+		var fakeHelmClientFactory *FakeHelmClientFactory
+		var fakeClusterFactory *FakeClusterFactory
+		var fakeServiceInstallerAccountInstallerFactory *FakeServiceAccountInstallerFactory
 		var broker *PksServiceBroker
 
 		BeforeEach(func() {
-			fakeMyHelmClient = &helmfakes.FakeMyHelmClient{}
-			fakeCluster = &k8sfakes.FakeCluster{}
+			fakeHelmClientFactory = NewFakeHelmClientFactory()
+			fakeClusterFactory = NewFakeClusterFactory()
+			fakeServiceInstallerAccountInstallerFactory = NewFakeServiceAccountInstallerFactory()
 
-			broker = NewPksServiceBroker(registryConfig, fakeCluster, fakeMyHelmClient, charts, logger)
+			broker = NewPksServiceBroker(config, fakeClusterFactory, fakeHelmClientFactory, fakeServiceInstallerAccountInstallerFactory, charts, logger)
 
 			serviceList := api_v1.ServiceList{
 				Items: []api_v1.Service{
@@ -331,17 +394,17 @@ var _ = Describe("Broker", func() {
 					},
 				},
 			}
-			fakeCluster.ListServicesReturns(&serviceList, nil)
+			fakeClusterFactory.fakeCluster.ListServicesReturns(&serviceList, nil)
 			podList := api_v1.PodList{
 				Items: []api_v1.Pod{},
 			}
-			fakeCluster.ListPodsReturns(&podList, nil)
+			fakeClusterFactory.fakeCluster.ListPodsReturns(&podList, nil)
 
 		})
 
 		It("elevates error from helm", func() {
 			errMessage := "helm communication failure or something"
-			fakeMyHelmClient.ReleaseStatusReturns(nil, errors.New(errMessage))
+			fakeHelmClientFactory.fakeHelmClient.ReleaseStatusReturns(nil, errors.New(errMessage))
 
 			_, err := broker.LastOperation(nil, "my-instance-guid", "???")
 
@@ -350,7 +413,7 @@ var _ = Describe("Broker", func() {
 		})
 
 		It("returns success if deployed", func() {
-			fakeMyHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
+			fakeHelmClientFactory.fakeHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
 				Info: &hapi_release.Info{
 					Status: &hapi_release.Status{
 						Code: hapi_release.Status_DEPLOYED,
@@ -366,7 +429,7 @@ var _ = Describe("Broker", func() {
 		})
 
 		It("returns pending install", func() {
-			fakeMyHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
+			fakeHelmClientFactory.fakeHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
 				Info: &hapi_release.Info{
 					Status: &hapi_release.Status{
 						Code: hapi_release.Status_PENDING_INSTALL,
@@ -382,7 +445,7 @@ var _ = Describe("Broker", func() {
 		})
 
 		It("returns success if updated", func() {
-			fakeMyHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
+			fakeHelmClientFactory.fakeHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
 				Info: &hapi_release.Info{
 					Status: &hapi_release.Status{
 						Code: hapi_release.Status_DEPLOYED,
@@ -398,7 +461,7 @@ var _ = Describe("Broker", func() {
 		})
 
 		It("returns pending upgrade", func() {
-			fakeMyHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
+			fakeHelmClientFactory.fakeHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
 				Info: &hapi_release.Info{
 					Status: &hapi_release.Status{
 						Code: hapi_release.Status_PENDING_UPGRADE,
@@ -414,7 +477,7 @@ var _ = Describe("Broker", func() {
 		})
 
 		It("returns ok when instance is gone ", func() {
-			fakeMyHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
+			fakeHelmClientFactory.fakeHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
 				Info: &hapi_release.Info{
 					Status: &hapi_release.Status{
 						Code: hapi_release.Status_DELETED,
@@ -430,7 +493,7 @@ var _ = Describe("Broker", func() {
 		})
 
 		It("returns error when instance is gone when trying to create", func() {
-			fakeMyHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
+			fakeHelmClientFactory.fakeHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
 				Info: &hapi_release.Info{
 					Status: &hapi_release.Status{
 						Code: hapi_release.Status_DELETED,
@@ -444,7 +507,7 @@ var _ = Describe("Broker", func() {
 		})
 
 		It("returns delete in progress", func() {
-			fakeMyHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
+			fakeHelmClientFactory.fakeHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
 				Info: &hapi_release.Info{
 					Status: &hapi_release.Status{
 						Code: hapi_release.Status_DELETING,
@@ -460,7 +523,7 @@ var _ = Describe("Broker", func() {
 		})
 
 		It("returns failed", func() {
-			fakeMyHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
+			fakeHelmClientFactory.fakeHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
 				Info: &hapi_release.Info{
 					Status: &hapi_release.Status{
 						Code: hapi_release.Status_FAILED,
@@ -488,9 +551,9 @@ var _ = Describe("Broker", func() {
 					},
 				},
 			}
-			fakeCluster.ListServicesReturns(&serviceList, nil)
+			fakeClusterFactory.fakeCluster.ListServicesReturns(&serviceList, nil)
 
-			fakeMyHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
+			fakeHelmClientFactory.fakeHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
 				Info: &hapi_release.Info{
 					Status: &hapi_release.Status{
 						Code: hapi_release.Status_DEPLOYED,
@@ -506,7 +569,7 @@ var _ = Describe("Broker", func() {
 		})
 
 		It("waits until pods are running", func() {
-			fakeMyHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
+			fakeHelmClientFactory.fakeHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
 				Info: &hapi_release.Info{
 					Status: &hapi_release.Status{
 						Code: hapi_release.Status_DEPLOYED,
@@ -533,7 +596,7 @@ var _ = Describe("Broker", func() {
 					},
 				},
 			}
-			fakeCluster.ListPodsReturns(&podList, nil)
+			fakeClusterFactory.fakeCluster.ListPodsReturns(&podList, nil)
 
 			resp, err := broker.LastOperation(nil, "my-instance-guid", "provision")
 
@@ -543,7 +606,7 @@ var _ = Describe("Broker", func() {
 		})
 
 		It("returns error when unable to list pods", func() {
-			fakeMyHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
+			fakeHelmClientFactory.fakeHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
 				Info: &hapi_release.Info{
 					Status: &hapi_release.Status{
 						Code: hapi_release.Status_DEPLOYED,
@@ -551,16 +614,16 @@ var _ = Describe("Broker", func() {
 				},
 			}, nil)
 
-			fakeCluster.ListPodsReturns(nil, errors.New("nope"))
+			fakeClusterFactory.fakeCluster.ListPodsReturns(nil, errors.New("nope"))
 
 			_, err := broker.LastOperation(nil, "my-instance-guid", "provision")
 			Expect(err).NotTo(BeNil())
 		})
 
 		It("bubbles up error on list service failure", func() {
-			fakeCluster.ListServicesReturns(&api_v1.ServiceList{}, errors.New("no services for you"))
+			fakeClusterFactory.fakeCluster.ListServicesReturns(&api_v1.ServiceList{}, errors.New("no services for you"))
 
-			fakeMyHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
+			fakeHelmClientFactory.fakeHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
 				Info: &hapi_release.Info{
 					Status: &hapi_release.Status{
 						Code: hapi_release.Status_DEPLOYED,
@@ -575,20 +638,22 @@ var _ = Describe("Broker", func() {
 	})
 
 	Context("bind", func() {
-		var fakeMyHelmClient *helmfakes.FakeMyHelmClient
-		var fakeCluster *k8sfakes.FakeCluster
+		var fakeHelmClientFactory *FakeHelmClientFactory
+		var fakeClusterFactory *FakeClusterFactory
+		var fakeServiceInstallerAccountInstallerFactory *FakeServiceAccountInstallerFactory
 		var broker *PksServiceBroker
 
 		BeforeEach(func() {
-			fakeMyHelmClient = &helmfakes.FakeMyHelmClient{}
-			fakeCluster = &k8sfakes.FakeCluster{}
+			fakeHelmClientFactory = NewFakeHelmClientFactory()
+			fakeClusterFactory = NewFakeClusterFactory()
+			fakeServiceInstallerAccountInstallerFactory = NewFakeServiceAccountInstallerFactory()
 
-			broker = NewPksServiceBroker(registryConfig, fakeCluster, fakeMyHelmClient, charts, logger)
+			broker = NewPksServiceBroker(config, fakeClusterFactory, fakeHelmClientFactory, fakeServiceInstallerAccountInstallerFactory, charts, logger)
 		})
 
 		It("bind returns cluster secrets", func() {
 			serviceList := api_v1.ServiceList{Items: []api_v1.Service{}}
-			fakeCluster.ListServicesReturns(&serviceList, nil)
+			fakeClusterFactory.fakeCluster.ListServicesReturns(&serviceList, nil)
 
 			secretsList := api_v1.SecretList{
 				Items: []api_v1.Secret{
@@ -599,12 +664,12 @@ var _ = Describe("Broker", func() {
 					},
 				},
 			}
-			fakeCluster.ListSecretsReturns(&secretsList, nil)
+			fakeClusterFactory.fakeCluster.ListSecretsReturns(&secretsList, nil)
 
 			binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{})
 
 			Expect(err).To(BeNil())
-			Expect(fakeCluster.ListSecretsCallCount()).To(Equal(1))
+			Expect(fakeClusterFactory.fakeCluster.ListSecretsCallCount()).To(Equal(1))
 
 			Expect(binding).NotTo(BeNil())
 
@@ -616,7 +681,7 @@ var _ = Describe("Broker", func() {
 
 		It("bind filters to only opaque secrets", func() {
 			serviceList := api_v1.ServiceList{Items: []api_v1.Service{}}
-			fakeCluster.ListServicesReturns(&serviceList, nil)
+			fakeClusterFactory.fakeCluster.ListServicesReturns(&serviceList, nil)
 
 			secretsList := api_v1.SecretList{
 				Items: []api_v1.Secret{
@@ -631,12 +696,12 @@ var _ = Describe("Broker", func() {
 					},
 				},
 			}
-			fakeCluster.ListSecretsReturns(&secretsList, nil)
+			fakeClusterFactory.fakeCluster.ListSecretsReturns(&secretsList, nil)
 
 			binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{})
 
 			Expect(err).To(BeNil())
-			Expect(fakeCluster.ListSecretsCallCount()).To(Equal(1))
+			Expect(fakeClusterFactory.fakeCluster.ListSecretsCallCount()).To(Equal(1))
 
 			Expect(binding).NotTo(BeNil())
 
@@ -648,18 +713,18 @@ var _ = Describe("Broker", func() {
 
 		It("bubbles up list secrets errors", func() {
 			serviceList := api_v1.ServiceList{Items: []api_v1.Service{}}
-			fakeCluster.ListServicesReturns(&serviceList, nil)
+			fakeClusterFactory.fakeCluster.ListServicesReturns(&serviceList, nil)
 
-			fakeCluster.ListSecretsReturns(nil, errors.New("foo failed"))
+			fakeClusterFactory.fakeCluster.ListSecretsReturns(nil, errors.New("foo failed"))
 			_, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{})
 
 			Expect(err).NotTo(BeNil())
-			Expect(fakeCluster.ListSecretsCallCount()).To(Equal(1))
+			Expect(fakeClusterFactory.fakeCluster.ListSecretsCallCount()).To(Equal(1))
 		})
 
 		It("returns services (load balancer stuff)", func() {
 			secretList := api_v1.SecretList{Items: []api_v1.Secret{}}
-			fakeCluster.ListSecretsReturns(&secretList, nil)
+			fakeClusterFactory.fakeCluster.ListSecretsReturns(&secretList, nil)
 
 			serviceList := api_v1.ServiceList{
 				Items: []api_v1.Service{
@@ -685,12 +750,12 @@ var _ = Describe("Broker", func() {
 					},
 				},
 			}
-			fakeCluster.ListServicesReturns(&serviceList, nil)
+			fakeClusterFactory.fakeCluster.ListServicesReturns(&serviceList, nil)
 
 			binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{})
 
 			Expect(err).To(BeNil())
-			Expect(fakeCluster.ListServicesCallCount()).To(Equal(1))
+			Expect(fakeClusterFactory.fakeCluster.ListServicesCallCount()).To(Equal(1))
 
 			Expect(binding).NotTo(BeNil())
 
@@ -710,9 +775,9 @@ var _ = Describe("Broker", func() {
 
 		It("bubbles up list services errors", func() {
 			secretList := api_v1.SecretList{Items: []api_v1.Secret{}}
-			fakeCluster.ListSecretsReturns(&secretList, nil)
+			fakeClusterFactory.fakeCluster.ListSecretsReturns(&secretList, nil)
 
-			fakeCluster.ListServicesReturns(nil, errors.New("no services for you"))
+			fakeClusterFactory.fakeCluster.ListServicesReturns(nil, errors.New("no services for you"))
 
 			_, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{})
 
@@ -721,19 +786,21 @@ var _ = Describe("Broker", func() {
 	})
 
 	Context("delete", func() {
-		var fakeMyHelmClient *helmfakes.FakeMyHelmClient
-		var fakeCluster *k8sfakes.FakeCluster
+		var fakeHelmClientFactory *FakeHelmClientFactory
+		var fakeClusterFactory *FakeClusterFactory
+		var fakeServiceInstallerAccountInstallerFactory *FakeServiceAccountInstallerFactory
 		var broker *PksServiceBroker
 
 		BeforeEach(func() {
-			fakeMyHelmClient = &helmfakes.FakeMyHelmClient{}
-			fakeCluster = &k8sfakes.FakeCluster{}
+			fakeHelmClientFactory = NewFakeHelmClientFactory()
+			fakeClusterFactory = NewFakeClusterFactory()
+			fakeServiceInstallerAccountInstallerFactory = NewFakeServiceAccountInstallerFactory()
 
-			broker = NewPksServiceBroker(registryConfig, fakeCluster, fakeMyHelmClient, charts, logger)
+			broker = NewPksServiceBroker(config, fakeClusterFactory, fakeHelmClientFactory, fakeServiceInstallerAccountInstallerFactory, charts, logger)
 		})
 
 		It("bubbles up delete chart errors", func() {
-			fakeMyHelmClient.DeleteReleaseReturns(nil, errors.New("Failed"))
+			fakeHelmClientFactory.fakeHelmClient.DeleteReleaseReturns(nil, errors.New("Failed"))
 
 			details := brokerapi.DeprovisionDetails{
 				PlanID:    "my-plan-id",
@@ -742,12 +809,12 @@ var _ = Describe("Broker", func() {
 			_, err := broker.Deprovision(nil, "my-instance-guid", details, true)
 
 			Expect(err).NotTo(BeNil())
-			Expect(fakeMyHelmClient.DeleteReleaseCallCount()).To(Equal(1))
+			Expect(fakeHelmClientFactory.fakeHelmClient.DeleteReleaseCallCount()).To(Equal(1))
 
 		})
 
 		It("bubbles up delete namespace errors", func() {
-			fakeCluster.DeleteNamespaceReturns(errors.New("nope"))
+			fakeClusterFactory.fakeCluster.DeleteNamespaceReturns(errors.New("nope"))
 
 			details := brokerapi.DeprovisionDetails{
 				PlanID:    "my-plan-id",
@@ -756,7 +823,7 @@ var _ = Describe("Broker", func() {
 			_, err := broker.Deprovision(nil, "my-instance-guid", details, true)
 
 			Expect(err).NotTo(BeNil())
-			Expect(fakeCluster.DeleteNamespaceCallCount()).To(Equal(1))
+			Expect(fakeClusterFactory.fakeCluster.DeleteNamespaceCallCount()).To(Equal(1))
 
 		})
 
@@ -767,10 +834,10 @@ var _ = Describe("Broker", func() {
 			}
 			response, err := broker.Deprovision(nil, "my-instance-guid", details, true)
 
-			namespace, _ := fakeCluster.DeleteNamespaceArgsForCall(0)
+			namespace, _ := fakeClusterFactory.fakeCluster.DeleteNamespaceArgsForCall(0)
 			Expect(namespace).To(Equal("kibosh-my-instance-guid"))
 
-			releaseName, _ := fakeMyHelmClient.DeleteReleaseArgsForCall(0)
+			releaseName, _ := fakeHelmClientFactory.fakeHelmClient.DeleteReleaseArgsForCall(0)
 			Expect(releaseName).To(Equal("kibosh-my-instance-guid"))
 
 			Expect(err).To(BeNil())
@@ -780,15 +847,17 @@ var _ = Describe("Broker", func() {
 	})
 
 	Context("update", func() {
-		var fakeMyHelmClient *helmfakes.FakeMyHelmClient
-		var fakeCluster *k8sfakes.FakeCluster
+		var fakeHelmClientFactory *FakeHelmClientFactory
+		var fakeClusterFactory *FakeClusterFactory
+		var fakeServiceInstallerAccountInstallerFactory *FakeServiceAccountInstallerFactory
 		var broker *PksServiceBroker
 
 		BeforeEach(func() {
-			fakeMyHelmClient = &helmfakes.FakeMyHelmClient{}
-			fakeCluster = &k8sfakes.FakeCluster{}
+			fakeHelmClientFactory = NewFakeHelmClientFactory()
+			fakeClusterFactory = NewFakeClusterFactory()
+			fakeServiceInstallerAccountInstallerFactory = NewFakeServiceAccountInstallerFactory()
 
-			broker = NewPksServiceBroker(registryConfig, fakeCluster, fakeMyHelmClient, charts, logger)
+			broker = NewPksServiceBroker(config, fakeClusterFactory, fakeHelmClientFactory, fakeServiceInstallerAccountInstallerFactory, charts, logger)
 		})
 
 		It("requires async", func() {
@@ -810,12 +879,12 @@ var _ = Describe("Broker", func() {
 
 			resp, err := broker.Update(nil, "my-instance-guid", details, true)
 
-			chart, namespaceName, plan, opts := fakeMyHelmClient.UpdateChartArgsForCall(0)
+			chart, namespaceName, plan, opts := fakeHelmClientFactory.fakeHelmClient.UpdateChartArgsForCall(0)
 
 			Expect(err).To(BeNil())
 			Expect(resp.IsAsync).To(BeTrue())
 			Expect(resp.OperationData).To(Equal("update"))
-			Expect(fakeMyHelmClient.UpdateChartCallCount()).To(Equal(1))
+			Expect(fakeHelmClientFactory.fakeHelmClient.UpdateChartCallCount()).To(Equal(1))
 
 			Expect(chart).To(Equal(spacebearsChart))
 			Expect(namespaceName).To(Equal("kibosh-my-instance-guid"))

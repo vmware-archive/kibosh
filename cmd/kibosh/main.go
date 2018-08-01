@@ -26,11 +26,34 @@ import (
 	"github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/httphelpers"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
-	"github.com/cf-platform-eng/kibosh/pkg/operator"
 	"github.com/cf-platform-eng/kibosh/pkg/repository"
 	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/pivotal-cf/brokerapi"
 )
+
+type ClusterFactory struct {
+	ClusterCredentials config.ClusterCredentials
+}
+
+func (cf ClusterFactory) DefaultCluster() (k8s.Cluster, error) {
+	return k8s.NewCluster(&cf.ClusterCredentials)
+}
+
+type HelmClientFactory struct {
+	logger lager.Logger
+}
+
+func (hcf HelmClientFactory) HelmClient(cluster k8s.Cluster) helm.MyHelmClient {
+	return helm.NewMyHelmClient(cluster, hcf.logger)
+}
+
+type ServiceAccountInstallerFactory struct {
+	logger lager.Logger
+}
+
+func (saif ServiceAccountInstallerFactory) ServiceAccountInstaller(cluster k8s.Cluster) k8s.ServiceAccountInstaller {
+	return k8s.NewServiceAccountInstaller(cluster, saif.logger)
+}
 
 func main() {
 	brokerLogger := lager.NewLogger("kibosh")
@@ -40,11 +63,6 @@ func main() {
 	conf, err := config.Parse()
 	if err != nil {
 		brokerLogger.Fatal("Loading config file", err)
-	}
-
-	cluster, err := k8s.NewCluster(conf.ClusterCredentials)
-	if err != nil {
-		brokerLogger.Fatal("Error setting up k8s cluster", err)
 	}
 
 	repo := repository.NewRepository(conf.HelmChartDir, conf.RegistryConfig.Server, true, brokerLogger)
@@ -76,30 +94,14 @@ func main() {
 	}
 	brokerLogger.Info(fmt.Sprintf("Installing operators %s", operatorCharts))
 
-	myHelmClient := helm.NewMyHelmClient(cluster, brokerLogger)
-	serviceBroker := broker.NewPksServiceBroker(conf.RegistryConfig, cluster, myHelmClient, charts, brokerLogger)
+	clusterFactory := ClusterFactory{*conf.ClusterCredentials}
+	helmClientFactory := HelmClientFactory{brokerLogger}
+	serviceAccountInstallerFactory := ServiceAccountInstallerFactory{brokerLogger}
+
+	serviceBroker := broker.NewPksServiceBroker(conf, clusterFactory, helmClientFactory, serviceAccountInstallerFactory, charts, brokerLogger)
 	brokerCredentials := brokerapi.BrokerCredentials{
 		Username: conf.AdminUsername,
 		Password: conf.AdminPassword,
-	}
-
-	myServiceAccountInstaller := k8s.NewServiceAccountInstaller(cluster, brokerLogger)
-	err = myServiceAccountInstaller.Install()
-	if err != nil {
-		brokerLogger.Fatal("Error creating service account", err)
-	}
-
-	helmInstaller := helm.NewInstaller(conf, cluster, myHelmClient, brokerLogger)
-	err = helmInstaller.Install()
-	if err != nil {
-		brokerLogger.Fatal("Error installing helm", err)
-	}
-
-	// Install each operator chart.
-	operatorInstaller := operator.NewInstaller(conf.RegistryConfig, cluster, myHelmClient, brokerLogger)
-	err = operatorInstaller.InstallCharts(operatorCharts)
-	if err != nil {
-		brokerLogger.Fatal("Error installing operator", err)
 	}
 
 	brokerAPI := brokerapi.New(serviceBroker, brokerLogger, brokerCredentials)
