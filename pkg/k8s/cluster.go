@@ -44,6 +44,7 @@ type Cluster interface {
 	CreateSecret(nameSpace string, secret *api_v1.Secret) (*api_v1.Secret, error)
 	UpdateSecret(nameSpace string, secret *api_v1.Secret) (*api_v1.Secret, error)
 	GetSecret(nameSpace string, name string, getOptions meta_v1.GetOptions) (*api_v1.Secret, error)
+	ListNodes(listOptions meta_v1.ListOptions) (*api_v1.NodeList, error)
 	ListSecrets(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.SecretList, error)
 	ListServices(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.ServiceList, error)
 	Patch(nameSpace string, name string, pt types.PatchType, data []byte, subresources ...string) (result *api_v1.ServiceAccount, err error)
@@ -115,6 +116,10 @@ func (cluster *cluster) ListPods(nameSpace string, listOptions meta_v1.ListOptio
 
 func (cluster *cluster) GetDeployment(nameSpace string, deploymentName string, getOptions meta_v1.GetOptions) (*v1_beta1.Deployment, error) {
 	return cluster.GetClient().ExtensionsV1beta1().Deployments(nameSpace).Get(deploymentName, meta_v1.GetOptions{})
+}
+
+func (cluster *cluster) ListNodes(listOptions meta_v1.ListOptions) (*api_v1.NodeList, error) {
+	return cluster.GetClient().CoreV1().Nodes().List(listOptions)
 }
 
 func (cluster *cluster) ListServiceAccounts(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.ServiceAccountList, error) {
