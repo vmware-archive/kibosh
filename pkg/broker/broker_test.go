@@ -21,7 +21,7 @@ import (
 	"strings"
 
 	"code.cloudfoundry.org/lager"
-	"fmt"
+
 	. "github.com/cf-platform-eng/kibosh/pkg/broker"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
