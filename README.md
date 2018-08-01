@@ -90,7 +90,7 @@ on the `values.yaml` file structure
 
 * When defining a `Service`, to expose this back to any applications that are bound,
   `type: LoadBalancer` is a current requirement.
-   Alternatively set type: NodePort; Kibosh will add externalIPs and nodePort to bind json
+   `NodePort` is also an option and Kibosh will add externalIPs and nodePort to bind json, but `NodePort` does carry significant risks in production; is not robust to cluster scaling events or IP changes.
 * Resizing disks has limitiations. To support upgrade:
     - You can't resize a persistent volume claim (currently behind an [alpha feature gate](https://kubernetes.io/docs/reference/feature-gates/))
 * Selectors are [immutable](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#selector)
