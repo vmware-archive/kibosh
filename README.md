@@ -146,12 +146,26 @@ go get -u github.com/gosuri/uitable
 Run `make bootstrap` from a clean checkout to setup initial dependencies. This will restore
 the locked dependency set specified by `Gopkg.toml` (we're no longer checking in `vendor`).
 
+##### For a remote K8s Cluster
 Copy `local_dev.sh.template` to `local_dev.sh` (which is in `.gitignore`) and 
 configure the values (`cluster.certificate-authority-data`, `cluster.server`, and `user.token`)
-for a working cluster (minikube instructions below). Then run:
+for a working cluster. Then run:
 
 ```bash
 ./local_dev.sh
+```
+
+##### For minikube
+Make sure minikube is running:
+
+```bash
+minikube start --vm-driver=hyperkit
+```
+
+Use `local_dev_minikube` to set up all the secrets:
+
+```bash
+minikube start --vm-driver=hyperkit
 ```
 
 #### Charts
