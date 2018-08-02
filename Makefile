@@ -56,12 +56,6 @@ generate:
 	#sed -i '' 's/FakeInterface/FakeK8sInterface/g' test/fake_kubernetes_client.go
 	go generate ./...
 
-run:
-	VCAP_SERVICES='{"kubo-odb":[{"credentials":{"kubeconfig":{"apiVersion":"v1","clusters":[{"cluster":{"certificate-authority-data":"bXktZmFrZWNlcnQ="}}],"users":[{"user":{"token":"bXktZmFrZWNlcnQ="}}]}}}]}' \
-	SECURITY_USER_NAME=admin \
-	SECURITY_USER_PASSWORD=pass \
-	go run -ldflags ${LDFLAGS} main.go
-
 cleandep:
 	rm -rf vendor
 	rm -f Gopkg.lock
