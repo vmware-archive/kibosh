@@ -162,10 +162,10 @@ Make sure minikube is running:
 minikube start --vm-driver=hyperkit
 ```
 
-Use `local_dev_minikube` to set up all the secrets:
+Use `local_dev_minikube` to set up all the secrets and start kibosh:
 
 ```bash
-minikube start --vm-driver=hyperkit
+local_dev_minikube.sh
 ```
 
 #### Charts
