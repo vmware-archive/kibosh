@@ -26,7 +26,7 @@ resources:
   type: docker-image
   source:
     repository: gcr.io/kubernetes-helm/tiller
-    tag: "v2.8.2"
+    tag: "v2.9.0"
 
 - name: tiller-image-fixed
   type: gcs-resource
@@ -90,12 +90,33 @@ resources:
     json_key: {{gcp_service_account_key}}
     regexp: loader-(?P<version>.*).linux
 
-- name: delete-all-and-deregister
+- name: bazaar-linux
   type: gcs-resource
   source:
     bucket: kibosh
     json_key: {{gcp_service_account_key}}
+    regexp: bazaar-(?P<version>.*).linux
+
+- name: delete-all-and-deregister
+  type: gcs-resource
+  source:
+    bucket: kibosh-public
+    json_key: {{gcp_service_account_key}}
     regexp: delete_all_and_deregister.linux
+
+- name: bazaarcli-linux
+  type: gcs-resource
+  source:
+    bucket: kibosh
+    json_key: {{gcp_service_account_key}}
+    regexp: bazaarcli-(?P<version>.*).linux
+
+- name: bazaarcli-mac
+  type: gcs-resource
+  source:
+    bucket: kibosh
+    json_key: {{gcp_service_account_key}}
+    regexp: bazaarcli-(?P<version>.*).mac
 
 - name: cf-cli-release
   type: github-release
@@ -266,6 +287,7 @@ jobs:
   - put: delete-all-and-deregister
     params:
       file: output/delete_all_and_deregister.linux
+      predefined_acl: publicRead
 
 
 - name: tiller-version-check
@@ -336,10 +358,13 @@ jobs:
           cp -r source-repo/* $SRC
 
           pushd $SRC
+          make cleandep
           make bootstrap
           make test
           make build
           make build-loader
+          make build-bazaar
+          make build-bazaar-cli
           popd
 
           export VERSION=`cat version/version`
@@ -347,6 +372,9 @@ jobs:
           cp $SRC/kibosh.darwin output/kibosh-${VERSION}.darwin
           cp $SRC/kibosh.linux output/kibosh-${VERSION}.linux
           cp $SRC/loader.linux output/loader-${VERSION}.linux
+          cp $SRC/bazaar.linux output/bazaar-${VERSION}.linux
+          cp $SRC/bazaarcli.mac output/bazaarcli-${VERSION}.mac
+          cp $SRC/bazaarcli.linux output/bazaarcli-${VERSION}.linux
   - put: kibosh-linux
     params:
       file: output/kibosh-*.linux
@@ -356,6 +384,15 @@ jobs:
   - put: loader-linux
     params:
       file: output/loader-*.linux
+  - put: bazaar-linux
+    params:
+      file: output/bazaar-*.linux
+  - put: bazaarcli-linux
+    params:
+      file: output/bazaarcli-*.linux
+  - put: bazaarcli-mac
+    params:
+      file: output/bazaarcli-*.mac
   - put: version
     params:
       bump: patch
@@ -371,6 +408,8 @@ jobs:
       passed: [unit-tests]
     - get: loader-linux
       passed: [unit-tests]
+    - get: bazaar-linux
+      passed: [unit-tests]
     - get: delete-all-and-deregister
       passed: [build-delete-all-and-deregister]
     - get: cf-cli-binary
@@ -381,6 +420,7 @@ jobs:
       - name: source-repo
       - name: kibosh-linux
       - name: loader-linux
+      - name: bazaar-linux
       - name: delete-all-and-deregister
       - name: cf-cli-binary
       - name: version
@@ -405,6 +445,7 @@ jobs:
 
           bosh add-blob ../../../kibosh-linux/kibosh-*.linux kibosh.linux
           bosh add-blob ../../../loader-linux/loader-*.linux loader.linux
+          bosh add-blob ../../../bazaar-linux/bazaar-*.linux bazaar.linux
           bosh add-blob ../../../delete-all-and-deregister/delete_all_and_deregister.linux delete_all_and_deregister.linux
           bosh add-blob ../../../cf-cli-binary/cf-cli.tgz cf-cli.tgz
 
@@ -629,6 +670,8 @@ jobs:
       passed: [push-image-errand]
     - get: kibosh-linux
     - get: kibosh-darwin
+    - get: bazaarcli-linux
+    - get: bazaarcli-mac
     - get: kibosh-release
       passed: [push-image-errand]
     - get: version
@@ -645,6 +688,8 @@ jobs:
       - name: source-repo
       - name: kibosh-linux
       - name: kibosh-darwin
+      - name: bazaarcli-linux
+      - name: bazaarcli-mac
       - name: kibosh-release
       - name: version
       - name: tiller-image
@@ -666,6 +711,8 @@ jobs:
 
           mv kibosh-linux/kibosh-*.linux output/
           mv kibosh-darwin/kibosh-*.darwin output/
+          mv bazaarcli-linux/bazaarcli-*.linux output/
+          mv bazaarcli-mac/bazaarcli-*.mac output/
           mv kibosh-release/kibosh*.tgz output/
           mv tiller-image-fixed/tiller-image.tar output/tiller-$(cat tiller-image/tag | tr -d '\n').tgz
   - put: release-repo
@@ -674,6 +721,7 @@ jobs:
       tag: version/version
       globs:
       - output/kibosh*.*
+      - output/bazaarcli*.*
       - output/tiller-*.tgz
 
 - name: delete-deployment

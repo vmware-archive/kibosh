@@ -21,13 +21,14 @@ import (
 	"os"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/cf-platform-eng/kibosh/pkg/auth"
 	"github.com/cf-platform-eng/kibosh/pkg/broker"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	"github.com/cf-platform-eng/kibosh/pkg/helm"
+	"github.com/cf-platform-eng/kibosh/pkg/httphelpers"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
 	"github.com/cf-platform-eng/kibosh/pkg/operator"
 	"github.com/cf-platform-eng/kibosh/pkg/repository"
+	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/pivotal-cf/brokerapi"
 )
 
@@ -46,14 +47,28 @@ func main() {
 		brokerLogger.Fatal("Error setting up k8s cluster", err)
 	}
 
-	repo := repository.NewRepository(conf.HelmChartDir, conf.RegistryConfig.Server, brokerLogger)
+	repo := repository.NewRepository(conf.HelmChartDir, conf.RegistryConfig.Server, true, brokerLogger)
 	charts, err := repo.LoadCharts()
 	if err != nil {
 		brokerLogger.Fatal("Unable to load charts", err)
 	}
 	brokerLogger.Info(fmt.Sprintf("Brokering charts %s", charts))
 
-	operatorRepo := repository.NewRepository(conf.OperatorDir, conf.RegistryConfig.Server, brokerLogger)
+	var cfAPIClient *cfclient.Client
+	if conf.CFClientConfig.HasCFClientConfig() {
+		cfAPIClient, err = cfclient.NewClient(&cfclient.Config{
+			ApiAddress:        conf.CFClientConfig.ApiAddress,
+			Username:          conf.CFClientConfig.Username,
+			Password:          conf.CFClientConfig.Password,
+			SkipSslValidation: conf.CFClientConfig.SkipSslValidation,
+		})
+		if err != nil {
+			brokerLogger.Fatal("Unable to load charts", err)
+		}
+	}
+
+	operatorRepo := repository.NewRepository(conf.OperatorDir, conf.RegistryConfig.Server, false, brokerLogger)
+
 	operatorCharts, err := operatorRepo.LoadCharts()
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -75,7 +90,7 @@ func main() {
 		brokerLogger.Fatal("Error creating service account", err)
 	}
 
-	helmInstaller := helm.NewInstaller(conf.RegistryConfig, cluster, myHelmClient, brokerLogger)
+	helmInstaller := helm.NewInstaller(conf, cluster, myHelmClient, brokerLogger)
 	err = helmInstaller.Install()
 	if err != nil {
 		brokerLogger.Fatal("Error installing helm", err)
@@ -91,8 +106,8 @@ func main() {
 	brokerAPI := brokerapi.New(serviceBroker, brokerLogger, brokerCredentials)
 	http.Handle("/", brokerAPI)
 
-	repositoryAPI := repository.NewAPI(serviceBroker, repo, brokerLogger)
-	authFilter := auth.NewAuthFilter(conf.AdminUsername, conf.AdminPassword)
+	repositoryAPI := repository.NewAPI(serviceBroker, repo, cfAPIClient, conf, brokerLogger)
+	authFilter := httphelpers.NewAuthFilter(conf.AdminUsername, conf.AdminPassword)
 	http.Handle("/reload_charts", authFilter.Filter(
 		repositoryAPI.ReloadCharts(),
 	))

@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -ex
 
 TMPDIR="tmp"
 mkdir -p $TMPDIR
@@ -30,26 +29,24 @@ bosh upload-release ${cf_cli_bosh_pkg_path}
 
 cp ../../kibosh.linux ./${TMPDIR}
 cp ../../loader.linux ./${TMPDIR}
+cp ../../bazaar.linux ./${TMPDIR}
 
 delete_all_and_deregister_path=./${TMPDIR}/delete_all_and_deregister.linux
 if [ -f "${delete_all_and_deregister_path}" ]; then
     echo "delete_all_and_deregister.linux already exists, skipping download"
 else
     echo "delete_all_and_deregister.linux doesn't exists, downloading"
-    gsutil cp gs://kibosh/delete_all_and_deregister.linux ${delete_all_and_deregister_path}
+    url=https://storage.googleapis.com/kibosh-public/delete_all_and_deregister.linux
+    wget ${url} -O "${delete_all_and_deregister_path}"
 fi
 
 echo "Adding blobs"
 
 bosh add-blob ./${TMPDIR}/kibosh.linux kibosh.linux
 bosh add-blob ./${TMPDIR}/loader.linux loader.linux
+bosh add-blob ./${TMPDIR}/bazaar.linux bazaar.linux
 bosh add-blob ./${TMPDIR}/delete_all_and_deregister.linux delete_all_and_deregister.linux
 
 bosh create-release --name=kibosh --force
 
 bosh upload-release --name=kibosh
-
-yes | bosh -d kibosh deploy manifests/lite-manifest.yml --no-redact --vars-store=manifests/values.yml
-
-bosh -d kibosh run-errand load-image --keep-alive
-bosh -d kibosh run-errand registrar --keep-alive

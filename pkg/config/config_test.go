@@ -23,6 +23,8 @@ import (
 
 	"encoding/json"
 	. "github.com/cf-platform-eng/kibosh/pkg/config"
+	"io/ioutil"
+	"path/filepath"
 )
 
 var _ = Describe("Config", func() {
@@ -37,6 +39,12 @@ var _ = Describe("Config", func() {
 			os.Setenv("SECURITY_USER_PASSWORD", "abc123")
 			os.Setenv("PORT", "9001")
 			os.Setenv("HELM_CHART_DIR", "/home/somewhere")
+
+			os.Setenv("CF_API_ADDRESS", "https://api.mycf.example.com")
+			os.Setenv("CF_USERNAME", "admin")
+			os.Setenv("CF_PASSWORD", "monkey123")
+			os.Setenv("CF_SKIP_SSL_VALIDATION", "true")
+
 		})
 
 		It("parses config from environment", func() {
@@ -48,6 +56,15 @@ var _ = Describe("Config", func() {
 			Expect(c.Port).To(Equal(9001))
 
 			Expect(c.ClusterCredentials.Server).To(Equal("127.0.0.1/api"))
+		})
+
+		It("parses cf config", func() {
+			c, err := Parse()
+			Expect(err).To(BeNil())
+			Expect(c.CFClientConfig.ApiAddress).To(Equal("https://api.mycf.example.com"))
+			Expect(c.CFClientConfig.Username).To(Equal("admin"))
+			Expect(c.CFClientConfig.Password).To(Equal("monkey123"))
+			Expect(c.CFClientConfig.SkipSslValidation).To(BeTrue())
 		})
 
 		It("has registry config", func() {
@@ -156,6 +173,53 @@ my cert data
 
 			_, err := Parse()
 			Expect(err).NotTo(BeNil())
+		})
+
+		Context("tiller config", func() {
+			var tlsPath string
+
+			BeforeEach(func() {
+				var err error
+				tlsPath, err = ioutil.TempDir("", "")
+				Expect(err).To(BeNil())
+				tlsFile := filepath.Join(tlsPath, "tls_key_file.txt")
+				err = ioutil.WriteFile(tlsFile, []byte("foo key"), 0666)
+				Expect(err).To(BeNil())
+
+				tlsCertFile := filepath.Join(tlsPath, "tls_cert_file.txt")
+				err = ioutil.WriteFile(tlsCertFile, []byte("foo cert"), 0666)
+				Expect(err).To(BeNil())
+
+				tlsCAFile := filepath.Join(tlsPath, "tls_ca_file.txt")
+				err = ioutil.WriteFile(tlsCAFile, []byte("foo ca"), 0666)
+				Expect(err).To(BeNil())
+
+				os.Setenv("TILLER_TLS_KEY_FILE", tlsFile)
+				os.Setenv("TILLER_CERT_FILE", tlsCertFile)
+				os.Setenv("TILLER_TLS_CA_CERT_FILE", tlsCAFile)
+			})
+
+			AfterEach(func() {
+				os.RemoveAll(tlsPath)
+			})
+
+			It("parse tls config", func() {
+				c, err := Parse()
+				Expect(err).To(BeNil())
+
+				Expect(c.TillerTLSConfig.TLSKeyFile).NotTo(BeEmpty())
+				Expect(c.TillerTLSConfig.TLSCertFile).NotTo(BeEmpty())
+				Expect(c.TillerTLSConfig.TLSCaCertFile).NotTo(BeEmpty())
+			})
+
+			It("error when files don't exists", func() {
+				os.RemoveAll(tlsPath)
+
+				_, err := Parse()
+				Expect(err).NotTo(BeNil())
+
+				Expect(err.Error()).To(ContainSubstring("tls_"))
+			})
 		})
 	})
 })

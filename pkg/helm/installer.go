@@ -31,11 +31,11 @@ import (
 )
 
 type installer struct {
-	maxWait        time.Duration
-	registryConfig *config.RegistryConfig
-	cluster        k8s.Cluster
-	client         MyHelmClient
-	logger         lager.Logger
+	maxWait time.Duration
+	config  *config.Config
+	cluster k8s.Cluster
+	client  MyHelmClient
+	logger  lager.Logger
 }
 
 type Installer interface {
@@ -53,13 +53,13 @@ const (
 	deploymentName = "tiller-deploy"
 )
 
-func NewInstaller(registryConfig *config.RegistryConfig, cluster k8s.Cluster, client MyHelmClient, logger lager.Logger) Installer {
+func NewInstaller(c *config.Config, cluster k8s.Cluster, client MyHelmClient, logger lager.Logger) Installer {
 	return &installer{
-		maxWait:        60 * time.Second,
-		registryConfig: registryConfig,
-		cluster:        cluster,
-		client:         client,
-		logger:         logger,
+		maxWait: 60 * time.Second,
+		config:  c,
+		cluster: cluster,
+		client:  client,
+		logger:  logger,
 	}
 }
 
@@ -67,20 +67,23 @@ func (i *installer) Install() error {
 	i.logger.Debug(fmt.Sprintf("Installing helm with Tiller version %s", tillerTag))
 
 	tillerImage := "gcr.io/kubernetes-helm/tiller:" + tillerTag
-	if i.registryConfig.HasRegistryConfig() {
-		privateRegistrySetup := k8s.NewPrivateRegistrySetup("kube-system", serviceAccount, i.cluster, i.registryConfig)
+	if i.config.RegistryConfig.HasRegistryConfig() {
+		privateRegistrySetup := k8s.NewPrivateRegistrySetup("kube-system", serviceAccount, i.cluster, i.config.RegistryConfig)
 		err := privateRegistrySetup.Setup()
 		if err != nil {
 			return err
 		}
 
-		tillerImage = fmt.Sprintf("%s/tiller:%s", i.registryConfig.Server, tillerTag)
+		tillerImage = fmt.Sprintf("%s/tiller:%s", i.config.RegistryConfig.Server, tillerTag)
 	}
 
 	options := helmstaller.Options{
 		Namespace:      nameSpace,
 		ImageSpec:      tillerImage,
 		ServiceAccount: serviceAccount,
+		TLSCertFile:    i.config.TillerTLSConfig.TLSCertFile,
+		TLSKeyFile:     i.config.TillerTLSConfig.TLSKeyFile,
+		TLSCaCertFile:  i.config.TillerTLSConfig.TLSCaCertFile,
 	}
 
 	err := i.client.Install(&options)

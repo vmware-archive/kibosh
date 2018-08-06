@@ -86,6 +86,21 @@ type FakeCluster struct {
 		result1 *api_v1.PodList
 		result2 error
 	}
+	//----
+	ListNodesStub        func(listOptions meta_v1.ListOptions) (*api_v1.NodeList, error)
+	listNodesMutex       sync.RWMutex
+	listNodesArgsForCall []struct {
+		listOptions meta_v1.ListOptions
+	}
+	listNodesReturns struct {
+		result1 *api_v1.NodeList
+		result2 error
+	}
+	listNodesReturnsOnCall map[int]struct {
+		result1 *api_v1.NodeList
+		result2 error
+	}
+	//---
 	GetDeploymentStub        func(string, string, meta_v1.GetOptions) (*v1_beta1.Deployment, error)
 	getDeploymentMutex       sync.RWMutex
 	getDeploymentArgsForCall []struct {
@@ -531,6 +546,58 @@ func (fake *FakeCluster) ListPodsReturnsOnCall(i int, result1 *api_v1.PodList, r
 	}{result1, result2}
 }
 
+//-----
+func (fake *FakeCluster) ListNodes(listOptions meta_v1.ListOptions) (*api_v1.NodeList, error) {
+	fake.listNodesMutex.Lock()
+	ret, specificReturn := fake.listNodesReturnsOnCall[len(fake.listNodesArgsForCall)]
+	fake.listNodesArgsForCall = append(fake.listNodesArgsForCall, struct {
+		listOptions meta_v1.ListOptions
+	}{listOptions})
+	fake.recordInvocation("ListNodes", []interface{}{listOptions})
+	fake.listNodesMutex.Unlock()
+	if fake.ListNodesStub != nil {
+		return fake.ListNodesStub(listOptions)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.listNodesReturns.result1, fake.listNodesReturns.result2
+}
+func (fake *FakeCluster) ListNodesCallCount() int {
+	fake.listNodesMutex.RLock()
+	defer fake.listNodesMutex.RUnlock()
+	return len(fake.listNodesArgsForCall)
+}
+
+func (fake *FakeCluster) ListNodesArgsForCall(i int) meta_v1.ListOptions {
+	fake.listNodesMutex.RLock()
+	defer fake.listNodesMutex.RUnlock()
+	return fake.listNodesArgsForCall[i].listOptions
+}
+
+func (fake *FakeCluster) ListNodesReturns(result1 *api_v1.NodeList, result2 error) {
+	fake.ListNodesStub = nil
+	fake.listNodesReturns = struct {
+		result1 *api_v1.NodeList
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCluster) ListNodesReturnsOnCall(i int, result1 *api_v1.NodeList, result2 error) {
+	fake.ListNodesStub = nil
+	if fake.listNodesReturnsOnCall == nil {
+		fake.listNodesReturnsOnCall = make(map[int]struct {
+			result1 *api_v1.NodeList
+			result2 error
+		})
+	}
+	fake.listNodesReturnsOnCall[i] = struct {
+		result1 *api_v1.NodeList
+		result2 error
+	}{result1, result2}
+}
+
+// -------------
 func (fake *FakeCluster) GetDeployment(arg1 string, arg2 string, arg3 meta_v1.GetOptions) (*v1_beta1.Deployment, error) {
 	fake.getDeploymentMutex.Lock()
 	ret, specificReturn := fake.getDeploymentReturnsOnCall[len(fake.getDeploymentArgsForCall)]

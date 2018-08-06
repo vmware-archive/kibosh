@@ -46,7 +46,7 @@ var _ = Describe("Broker", func() {
 	})
 
 	It("should load chart", func() {
-		chart, err := helm.NewChart(chartPath, "")
+		chart, err := helm.NewChart(chartPath, "", true)
 
 		Expect(err).To(BeNil())
 		Expect(chart).NotTo(BeNil())
@@ -56,14 +56,14 @@ var _ = Describe("Broker", func() {
 		err := os.Remove(filepath.Join(chartPath, "values.yaml"))
 		Expect(err).To(BeNil())
 
-		_, err = helm.NewChart(chartPath, "")
+		_, err = helm.NewChart(chartPath, "", true)
 
 		Expect(err).NotTo(BeNil())
 		Expect(err.Error()).To(ContainSubstring("values.yaml"))
 	})
 
 	It("reading default vals should return parsed contents", func() {
-		chart, err := helm.NewChart(chartPath, "")
+		chart, err := helm.NewChart(chartPath, "", true)
 		Expect(err).To(BeNil())
 
 		Expect(strings.TrimSpace(string(chart.Values))).
@@ -74,14 +74,14 @@ var _ = Describe("Broker", func() {
 		err := ioutil.WriteFile(filepath.Join(chartPath, "values.yaml"), []byte(`:foo`), 0666)
 		Expect(err).To(BeNil())
 
-		_, err = helm.NewChart(chartPath, "")
+		_, err = helm.NewChart(chartPath, "", true)
 
 		Expect(err).NotTo(BeNil())
 	})
 
 	Context("ensure .helmignore", func() {
 		It("adds ignore file with images when not present", func() {
-			_, err := helm.NewChart(chartPath, "")
+			_, err := helm.NewChart(chartPath, "", true)
 			Expect(err).To(BeNil())
 
 			ignoreContents, err := ioutil.ReadFile(filepath.Join(chartPath, ".helmignore"))
@@ -93,7 +93,7 @@ var _ = Describe("Broker", func() {
 			err := ioutil.WriteFile(filepath.Join(chartPath, ".helmignore"), []byte(`secrets`), 0666)
 			Expect(err).To(BeNil())
 
-			_, err = helm.NewChart(chartPath, "")
+			_, err = helm.NewChart(chartPath, "", true)
 			Expect(err).To(BeNil())
 
 			ignoreContents, err := ioutil.ReadFile(filepath.Join(chartPath, ".helmignore"))
@@ -107,7 +107,7 @@ images
 foo`), 0666)
 			Expect(err).To(BeNil())
 
-			_, err = helm.NewChart(chartPath, "")
+			_, err = helm.NewChart(chartPath, "", true)
 			Expect(err).To(BeNil())
 
 			ignoreContents, err := ioutil.ReadFile(filepath.Join(chartPath, ".helmignore"))
@@ -126,7 +126,7 @@ foo: bar
 			err := testChart.WriteChart(chartPath)
 			Expect(err).To(BeNil())
 
-			chart, err := helm.NewChart(chartPath, "")
+			chart, err := helm.NewChart(chartPath, "", true)
 			Expect(err).To(BeNil())
 
 			Expect(strings.TrimSpace(string(chart.Values))).To(Equal(strings.TrimSpace(`
@@ -143,7 +143,7 @@ foo: bar
 			err := testChart.WriteChart(chartPath)
 			Expect(err).To(BeNil())
 
-			chart, err := helm.NewChart(chartPath, "docker.example.com/some-scope")
+			chart, err := helm.NewChart(chartPath, "docker.example.com/some-scope", true)
 
 			Expect(err).To(BeNil())
 			Expect(strings.TrimSpace(string(chart.Values))).To(Equal(strings.TrimSpace(`
@@ -160,7 +160,7 @@ foo: bar
 			err := testChart.WriteChart(chartPath)
 			Expect(err).To(BeNil())
 
-			chart, err := helm.NewChart(chartPath, "docker.example.com/some-scope")
+			chart, err := helm.NewChart(chartPath, "docker.example.com/some-scope", true)
 
 			Expect(err).To(BeNil())
 			Expect(strings.TrimSpace(string(chart.Values))).To(Equal(strings.TrimSpace(`
@@ -182,7 +182,7 @@ images:
 			err := testChart.WriteChart(chartPath)
 			Expect(err).To(BeNil())
 
-			chart, err := helm.NewChart(chartPath, "docker.example.com")
+			chart, err := helm.NewChart(chartPath, "docker.example.com", true)
 
 			Expect(err).To(BeNil())
 			Expect(strings.TrimSpace(string(chart.Values))).To(Equal(strings.TrimSpace(`
@@ -204,7 +204,7 @@ image:
 			err := testChart.WriteChart(chartPath)
 			Expect(err).To(BeNil())
 
-			_, err = helm.NewChart(chartPath, "docker.example.com")
+			_, err = helm.NewChart(chartPath, "docker.example.com", true)
 
 			Expect(err).NotTo(BeNil())
 		})
@@ -217,7 +217,7 @@ images:
 			err := testChart.WriteChart(chartPath)
 			Expect(err).To(BeNil())
 
-			_, err = helm.NewChart(chartPath, "docker.example.com")
+			_, err = helm.NewChart(chartPath, "docker.example.com", true)
 
 			Expect(err).NotTo(BeNil())
 		})
@@ -233,14 +233,14 @@ images:
 		err := testChart.WriteChart(chartPath)
 		Expect(err).To(BeNil())
 
-		_, err = helm.NewChart(chartPath, "docker.example.com")
+		_, err = helm.NewChart(chartPath, "docker.example.com", true)
 
 		Expect(err).NotTo(BeNil())
 	})
 
 	Context("plans", func() {
 		It("loads plan correctly", func() {
-			myChart, err := helm.NewChart(chartPath, "")
+			myChart, err := helm.NewChart(chartPath, "", true)
 
 			Expect(err).To(BeNil())
 			Expect(myChart.Plans["small"].Name).To(Equal("small"))
@@ -256,15 +256,25 @@ images:
 			err := os.Remove(filepath.Join(chartPath, "plans.yaml"))
 			Expect(err).To(BeNil())
 
-			_, err = helm.NewChart(chartPath, "")
+			_, err = helm.NewChart(chartPath, "", true)
 			Expect(err).NotTo(BeNil())
+		})
+
+		It("does not return an error on file read when not required", func() {
+			err := os.Remove(filepath.Join(chartPath, "plans.yaml"))
+			Expect(err).To(BeNil())
+
+			myChart, err := helm.NewChart(chartPath, "", false)
+			Expect(err).To(BeNil())
+
+			Expect(len(myChart.Plans)).To(Equal(0))
 		})
 
 		It("returns error on file marshal", func() {
 			err := ioutil.WriteFile(filepath.Join(chartPath, "plans.yaml"), []byte(`:foo`), 0666)
 			Expect(err).To(BeNil())
 
-			_, err = helm.NewChart(chartPath, "")
+			_, err = helm.NewChart(chartPath, "", true)
 
 			Expect(err).NotTo(BeNil())
 		})
@@ -278,7 +288,7 @@ images:
 `), 0666)
 			Expect(err).To(BeNil())
 
-			_, err = helm.NewChart(chartPath, "")
+			_, err = helm.NewChart(chartPath, "", true)
 
 			Expect(err).NotTo(BeNil())
 			Expect(err.Error()).To(ContainSubstring("invalid characters"))
@@ -292,7 +302,7 @@ images:
 `), 0666)
 			Expect(err).To(BeNil())
 
-			_, err = helm.NewChart(chartPath, "")
+			_, err = helm.NewChart(chartPath, "", true)
 
 			Expect(err).NotTo(BeNil())
 			Expect(err.Error()).To(ContainSubstring("invalid characters"))
@@ -307,7 +317,7 @@ images:
 `), 0666)
 			Expect(err).To(BeNil())
 
-			_, err = helm.NewChart(chartPath, "")
+			_, err = helm.NewChart(chartPath, "", true)
 
 			Expect(err).NotTo(BeNil())
 			Expect(err.Error()).To(ContainSubstring("invalid characters"))

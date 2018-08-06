@@ -1,3 +1,18 @@
+// kibosh
+//
+// Copyright (c) 2017-Present Pivotal Software, Inc. All Rights Reserved.
+//
+// This program and the accompanying materials are made available under the terms of the under the Apache License,
+// Version 2.0 (the "License”); you may not use this file except in compliance with the License. You may
+// obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software distributed under the
+// License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+// express or implied. See the License for the specific language governing permissions and
+// limitations under the License.
+
 package bazaar
 
 import (
@@ -10,7 +25,7 @@ import (
 	"path/filepath"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/cf-platform-eng/kibosh/pkg/auth"
+	"github.com/cf-platform-eng/kibosh/pkg/httphelpers"
 	"github.com/cf-platform-eng/kibosh/pkg/repository"
 	"github.com/pkg/errors"
 	"strings"
@@ -42,6 +57,10 @@ type DisplayChart struct {
 	Plans     []string `json:"plans"`
 	Chartpath string   `json:"chartpath"`
 	Version   string   `json:"version"`
+}
+
+type DisplayResponse struct {
+	Message string `json:"message"`
 }
 
 func (api *api) Charts() http.Handler {
@@ -105,7 +124,7 @@ func (api *api) SaveChart(w http.ResponseWriter, r *http.Request) error {
 		api.ServerError(500, "Chart persisted, but Kibosh reload failed", w)
 		return nil
 	}
-	return api.WriteJSONResponse(w, map[string]interface{}{"message": "Chart saved"})
+	return api.WriteJSONResponse(w, DisplayResponse{Message: "Chart saved"})
 }
 
 func (api *api) DeleteChart(w http.ResponseWriter, r *http.Request) error {
@@ -113,6 +132,18 @@ func (api *api) DeleteChart(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		api.ServerError(500, "Unable to parse url path parameters", w)
 		return nil
+	}
+
+	charts, err := api.repo.LoadCharts()
+	if err != nil {
+		api.ServerError(500, "Unable to delete chart", w)
+		return nil
+	}
+	if len(charts) == 1 {
+		if charts[0].Metadata.Name == chartName {
+			api.ServerError(400, "Cannot remove last chart (this would result in invalid catalog)", w)
+			return nil
+		}
 	}
 
 	err = api.repo.DeleteChart(chartName)
@@ -127,8 +158,8 @@ func (api *api) DeleteChart(w http.ResponseWriter, r *http.Request) error {
 		api.ServerError(500, "Chart deleted, but Kibosh reload failed", w)
 		return nil
 	}
-	return api.WriteJSONResponse(w, map[string]interface{}{
-		"message": fmt.Sprintf("Chart [%v] deleted", chartName),
+	return api.WriteJSONResponse(w, DisplayResponse{
+		Message: fmt.Sprintf("Chart [%v] deleted", chartName),
 	})
 }
 
@@ -194,10 +225,7 @@ func (api *api) triggerKiboshReload() error {
 		return err
 	}
 
-	req.Header.Set(
-		"Authorization",
-		auth.BasicAuthorizationHeaderVal(api.kiboshConfig.User, api.kiboshConfig.Pass),
-	)
+	httphelpers.AddBasicAuthHeader(req, api.kiboshConfig.User, api.kiboshConfig.Pass)
 	res, err := client.Do(req)
 	if err != nil {
 		api.logger.Error("Couldn't call kibosh to update", err)

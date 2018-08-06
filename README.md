@@ -7,6 +7,35 @@ When deployed with a Helm chart and added to the marketplace,
 * `cf create-service` calls to Kibosh will create the collection of Kubernetes resources described by the chart.
 * `cf bind-service` calls to Kibosh will expose back any services and secrets created by the chart
 
+Overriding/Setting values as defined in values.yaml via 'cf create-service' or 'cf update-service'.  The format of the json string is a nested format.  Also refer to the cf cli for an example of a valid JSON object.
+
+Example for setting the mysqlUser on `cf create-service` for the MySQL chart
+
+values.yaml
+
+```## Create a database user
+##
+# mysqlUser:
+# mysqlPassword:
+```
+
+`cf create-service mysql medium mysql-kibosh-service -c '{"mysqlUser":"admin"}'`
+
+Example for setting the resources.requests.memory on `cf update-service` for the MySQL chart
+
+values.yaml
+
+```## Configure resource requests and limits
+## ref: http://kubernetes.io/docs/user-guide/compute-resources/
+##
+resources:
+  requests:
+    memory: 256Mi
+    cpu: 100m
+```
+
+`cf update-service mysql-kibosh-service  -c '{"resources": {"requests": {"memory": "256Mi"}}}'`
+
 For some in depth discussion, see this blog post:
 [Use Kubernetes Helm Packages to Build Pivotal Cloud Foundry tiles](https://content.pivotal.io/blog/use-kubernetes-helm-packages-to-build-pivotal-cloud-foundry-tiles-kibosh-a-new-service-broker-makes-it-simple)
 
@@ -17,9 +46,7 @@ ISVs building out a tile should start there, rather than directly using this bin
 For documentation using Kibosh to build a tile, use the
 [tile-generator documentation](https://docs.pivotal.io/tiledev/tile-generator.html#-helm-charts-with-kibosh)
 
-We are still in early development, but do plan to provide migration for partners working directly with us.
-
- ![](docs/kibosh_logo_100.png)
+![](docs/kibosh_logo_100.png)
 
 ## Configuration
 ### Changes required in Chart
@@ -35,7 +62,8 @@ We are still in early development, but do plan to provide migration for partners
     ```
     `file` is a filename that exists in the `plans` subdirectory of the chart and
     `name`'s value should be lower alpha, numeric, `.`, or `-` 
-    Values `values.yaml` sets the defaults and plans only need override values 
+    Values `values.yaml` sets the defaults. Each plan's yaml file is an set of values overriding the defaults present in `values.yaml`
+    (copy any `values.yaml` key/value pairs to override into a new plan file)
 
 In order to successfully pull private images, we're imposing some requirements
 on the `values.yaml` file structure
@@ -62,6 +90,7 @@ on the `values.yaml` file structure
 
 * When defining a `Service`, to expose this back to any applications that are bound,
   `type: LoadBalancer` is a current requirement.
+   `NodePort` is also an option and Kibosh will add externalIPs and nodePort to bind json, but `NodePort` does carry significant risks in production; is not robust to cluster scaling events or IP changes.
 * Resizing disks has limitiations. To support upgrade:
     - You can't resize a persistent volume claim (currently behind an [alpha feature gate](https://kubernetes.io/docs/reference/feature-gates/))
 * Selectors are [immutable](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#selector)
@@ -84,6 +113,23 @@ the following ways to contribute:
 * If you want to contribute code, please make your code changes on a fork of this repository and submit a
 pull request to the master branch of Kibosh. We strongly suggest that you first file an issue to
 let us know of your intent, or comment on the issue you are planning to address.
+
+## Deploying
+To deploy a single chart via a 
+[Pivotal tile](https://docs.pivotal.io/tiledev/),
+see tile-generator's [kibosh package type](https://docs.pivotal.io/tiledev/tile-generator.html#-helm-charts-with-kibosh).
+
+To manually deploy the BOSH release, get the latest BOSH release (`kibosh-release-X.X.XX.tgz`)
+from the  [Github releases](https://github.com/cf-platform-eng/kibosh/releases) and upload
+to your director.
+
+Build a manifest by starting from the example bosh-lite manifest 
+[lite-manifest.yml](bosh/bosh-release/manifests/lite-bazaar-manifest.yml)
+and customize the cloud specific settings (`az`, `vm_type`, etc). This manifest
+uses a set of [input variables](https://bosh.io/docs/cli-int/).
+See
+[values-sample.yml](bosh/bosh-release/manifests/values-sample.yml)
+for example values.
 
 ## Dev
 #### Setup
@@ -131,6 +177,8 @@ charts
 ...
 ```
 
+We have modified [some example charts](https://github.com/cf-platform-eng/kibosh-sample/tree/master/sample-charts) from stable helm repository.
+ 
 #### Test
 ```bash
 make test
@@ -141,7 +189,7 @@ To generate the test-doubles, after any interface change run:
 make generate
 ```
 
-### ci
+### CI
 * https://concourse.cfplatformeng.com/teams/main/pipelines/kibosh
 
 The pipeline is backed by a cluster in the shared GKE account. The default admin
@@ -187,9 +235,9 @@ To update a dependency:
 dep ensure -update github.com/pkg/errors
 ```
 
-Dependency vendoring wrt to helm & k8s is trickier. `dep` isn't able to build the
+Dependency vendoring with respect to helm & k8s is trickier. `dep` isn't able to build the
 tree without significant help. The `Gopkg.tml` has several overrides needed to get everything
-to compile (which work in conjunction with `setup-apimmachinery.sh`).
+to compile.
 
 Updating to a new version of helm/k8s will probably require re-visiting the override & constraint
 matrix built. Useful inputs into this process are:
@@ -198,6 +246,9 @@ matrix built. Useful inputs into this process are:
 * Helm's Glide dependencies and dependency lock file
     - https://github.com/kubernetes/helm/blob/master/glide.yaml
     - https://github.com/kubernetes/helm/blob/master/glide.lock
+* Draft's `Gopkg.toml` file (they're doing the same thing we are, pulling in Helm as a library)
+    - https://github.com/cf-platform-eng/kibosh
+* This [helm tracker issue](https://github.com/kubernetes/helm/issues/3031) also has some useful context
 
 Also run the make target `cleandep` to wipe out the lock file an any local state when upgrading
 helm/k8s, to make sure it can be rebuilt cleanly from the specified constraints.
@@ -205,6 +256,34 @@ helm/k8s, to make sure it can be rebuilt cleanly from the specified constraints.
 More dep links:
 * Common dep commands: https://golang.github.io/dep/docs/daily-dep.html
 * `Gopks.toml` details: https://github.com/golang/dep/blob/master/docs/Gopkg.toml.md
+
+## Bazaar
+Kibosh can also manage multiple charts more dynamically (without redeployment).
+This allows customers to add any available helm chart to their cf marketplace with 
+minimal effort and cycle time.
+
+There is also a corresponding cli (`bazaarcli`) to manage these charts.
+
+```bash
+./bazaarcli.mac -t http://bazaar.v3.pcfdev.io -u admin -p 'monkey123' list
+./bazaarcli.mac -t http://bazaar.v3.pcfdev.io -u admin -p 'monkey123' save ~/workspace/kibosh-sample/sample-charts/mysql-0.8.2.tgz
+./bazaarcli.mac -t http://bazaar.v3.pcfdev.io -u admin -p 'monkey123' save ~/workspace/kibosh-sample/sample-charts/rabbitmq-1.1.9.tgz
+./bazaarcli.mac -t http://bazaar.v3.pcfdev.io -u admin -p 'monkey123' list
+
+cf enable-service-access mysql
+cf enable-service-access rabbitmq
+cf marketplace
+
+./bazaarcli.mac -t http://bazaar.v3.pcfdev.io -u admin -p 'monkey123' delete rabbitmq
+cf marketplace
+```
+
+To deploy in this way, start from the example bosh-lite manifest 
+[lite-bazaar-manifest.yml](bosh/bosh-release/manifests/lite-bazaar-manifest.yml)
+and customize the cloud specific settings (`az`, `vm_type`, etc). See the deploying section
+for more details.
+
+Alternatively, you can also deploy Bazaar as a [tile](https://github.com/cf-platform-eng/kibosh-sample/tree/master/bazaar-tile).  Follow the README on that page.
 
 ## Notes
 
@@ -235,3 +314,4 @@ MVP architecture, including Kibosh packaged by
 [tile-generator](https://github.com/cf-platform-eng/tile-generator/)
 
 ![](docs/mvp_architecture.jpg)
+

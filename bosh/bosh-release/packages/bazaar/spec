@@ -1,0 +1,7 @@
+---
+name: bazaar_pkg
+
+dependencies: []
+
+files:
+- bazaar.linux

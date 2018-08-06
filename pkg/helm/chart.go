@@ -21,13 +21,14 @@ import (
 	"path"
 	"strings"
 
+	"os"
+	"path/filepath"
+	"regexp"
+
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
 	"k8s.io/helm/pkg/chartutil"
 	"k8s.io/helm/pkg/proto/hapi/chart"
-	"os"
-	"path/filepath"
-	"regexp"
 )
 
 type MyChart struct {
@@ -46,7 +47,7 @@ type Plan struct {
 	Values      []byte
 }
 
-func NewChart(chartPath string, privateRegistryServer string) (*MyChart, error) {
+func NewChart(chartPath string, privateRegistryServer string, requirePlans bool) (*MyChart, error) {
 	myChart := &MyChart{
 		Chartpath:             chartPath,
 		privateRegistryServer: privateRegistryServer,
@@ -67,9 +68,11 @@ func NewChart(chartPath string, privateRegistryServer string) (*MyChart, error) 
 		return nil, err
 	}
 
-	err = myChart.loadPlans()
-	if err != nil {
-		return nil, err
+	if requirePlans {
+		err = myChart.loadPlans()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return myChart, nil

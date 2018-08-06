@@ -1,0 +1,5 @@
+check process bazaar
+  with pidfile /var/vcap/sys/run/bazaar/bazaar.pid
+  start program /var/vcap/jobs/bazaar/bin/start
+  stop program /var/vcap/jobs/bazaar/bin/stop
+  group vcap

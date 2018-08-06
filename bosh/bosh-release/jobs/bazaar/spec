@@ -1,0 +1,25 @@
+---
+name: bazaar
+
+templates:
+  start.erb: bin/start
+  stop.erb: bin/stop
+
+packages:
+- bazaar_pkg
+
+consumes:
+  - name: kibosh_broker
+    type: kibosh_broker
+
+properties:
+  bazaar.username:
+    description: Basic Auth username used to connect to Bazaar API
+    default: admin
+  bazaar.password:
+    description: Basic Auth password used to connect to Bazaar API
+  bazaar.port:
+    description: Port to connect to Kibosh broker
+    default: 8081
+  bazaar.helm_chart_dir:
+    description: Location of the helm chart kibosh will deploy

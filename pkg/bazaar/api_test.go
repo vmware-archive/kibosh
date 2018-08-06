@@ -16,23 +16,18 @@
 package bazaar_test
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"io"
-	"io/ioutil"
-	"mime/multipart"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/cf-platform-eng/kibosh/pkg/bazaar"
 	"github.com/cf-platform-eng/kibosh/pkg/helm"
+	"github.com/cf-platform-eng/kibosh/pkg/httphelpers"
 	"github.com/cf-platform-eng/kibosh/pkg/repository/repositoryfakes"
 	hapi_chart "k8s.io/helm/pkg/proto/hapi/chart"
 )
@@ -262,28 +257,48 @@ var _ = Describe("Api", func() {
 			Expect(recorder.Body).To(ContainSubstring("deleted"))
 		})
 
+		It("reject deletion when there is only one chart", func() {
+			spacebearsChart := &helm.MyChart{
+				Chartpath: "/foo/bar",
+				Plans: map[string]helm.Plan{
+					"plan1": {
+						Name: "plan1",
+					},
+				},
+				Chart: &hapi_chart.Chart{
+					Metadata: &hapi_chart.Metadata{
+						Name: "spacebears",
+					},
+				},
+			}
+
+			repo.LoadChartsReturns([]*helm.MyChart{
+				spacebearsChart,
+			}, nil)
+			req, err := http.NewRequest("DELETE", "/charts/spacebears", nil)
+			Expect(err).To(BeNil())
+
+			recorder := httptest.NewRecorder()
+
+			apiHandler := api.Charts()
+			apiHandler.ServeHTTP(recorder, req)
+
+			Expect(recorder.Code).To(Equal(400))
+			Expect(repo.DeleteChartCallCount()).To(BeZero())
+
+		})
 	})
 })
 
 func createRequestWithFile() (*http.Request, error) {
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("chart", "chart.txt")
+	payload, err := ioutil.TempFile("", "")
 	if err != nil {
 		return nil, err
 	}
-	_, err = io.Copy(part, strings.NewReader("hello upload"))
-	if err != nil {
-		return nil, err
-	}
-	boundary := writer.Boundary()
-	_, err = io.Copy(part, strings.NewReader(fmt.Sprintf("\r\n--%s--\r\n", boundary)))
+	_, err = payload.Write([]byte("hello upload"))
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", "/charts/create", body)
-	req.Header.Add("Content-Type", "multipart/form-data; boundary="+boundary)
-
-	return req, nil
+	return httphelpers.CreateFormRequest("/foo", "chart", payload.Name())
 }

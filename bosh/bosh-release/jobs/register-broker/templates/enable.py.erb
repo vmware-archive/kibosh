@@ -12,6 +12,7 @@ auth = "Basic {}".format(creds.decode())
 url = 'http://<%= link('kibosh_broker').instances[0].address %>:<%= link('kibosh_broker').p('kibosh.port') %>/v2/catalog'
 request = urllib.request.Request(url)
 request.add_header("Authorization", auth)
+request.add_header("X-Broker-API-Version", "2.13")
 
 with urllib.request.urlopen(request) as response:
     services_json = response.read().decode()

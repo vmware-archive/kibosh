@@ -21,6 +21,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"os"
 	"strings"
 )
 
@@ -38,7 +40,22 @@ type RegistryConfig struct {
 	Email  string `envconfig:"REG_EMAIL"`
 }
 
-type config struct {
+type CFClientConfig struct {
+	BrokerURL         string `envconfig:"CF_BROKER_URL"`
+	BrokerName        string `envconfig:"CF_BROKER_NAME"`
+	ApiAddress        string `envconfig:"CF_API_ADDRESS"`
+	Username          string `envconfig:"CF_USERNAME"`
+	Password          string `envconfig:"CF_PASSWORD"`
+	SkipSslValidation bool   `envconfig:"CF_SKIP_SSL_VALIDATION"`
+}
+
+type TillerTLSConfig struct {
+	TLSKeyFile    string `envconfig:"TILLER_TLS_KEY_FILE"`
+	TLSCertFile   string `envconfig:"TILLER_CERT_FILE"`
+	TLSCaCertFile string `envconfig:"TILLER_TLS_CA_CERT_FILE"`
+}
+
+type Config struct {
 	AdminUsername string `envconfig:"SECURITY_USER_NAME" required:"true"`
 	AdminPassword string `envconfig:"SECURITY_USER_PASSWORD" required:"true"`
 
@@ -48,15 +65,21 @@ type config struct {
 
 	ClusterCredentials *ClusterCredentials
 	RegistryConfig     *RegistryConfig
+	CFClientConfig     *CFClientConfig
+	TillerTLSConfig    *TillerTLSConfig
 }
 
 func (r RegistryConfig) HasRegistryConfig() bool {
 	return r.Server != ""
 }
 
+func (c CFClientConfig) HasCFClientConfig() bool {
+	return c.ApiAddress != ""
+}
+
 func (r RegistryConfig) GetDockerConfigJson() ([]byte, error) {
 	if r.Server == "" || r.Email == "" || r.Pass == "" || r.User == "" {
-		return nil, errors.New("environment didn't have a proper registry config")
+		return nil, errors.New("environment didn't have a proper registry Config")
 	}
 
 	dockerConfig := map[string]interface{}{
@@ -76,8 +99,8 @@ func (r RegistryConfig) GetDockerConfigJson() ([]byte, error) {
 	return dockerConfigJson, nil
 }
 
-func Parse() (*config, error) {
-	c := &config{}
+func Parse() (*Config, error) {
+	c := &Config{}
 	err := envconfig.Process("", c)
 	if err != nil {
 		return nil, err
@@ -88,6 +111,10 @@ func Parse() (*config, error) {
 		return nil, err
 	}
 
+	err = c.TillerTLSConfig.validateTillerParameters()
+	if err != nil {
+		return nil, err
+	}
 	return c, nil
 }
 
@@ -105,4 +132,35 @@ func (c *ClusterCredentials) parseCAData() error {
 	}
 
 	return nil
+}
+
+func (t *TillerTLSConfig) validateTillerParameters() error {
+	files := []string{
+		t.TLSCertFile, t.TLSKeyFile, t.TLSCaCertFile,
+	}
+	for _, file := range files {
+		if file != "" {
+			exists, err := fileExists(file)
+			if !exists {
+				return errors.New(fmt.Sprintf("Tiller file [%s] does not exist", file))
+			}
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func fileExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	} else {
+		if os.IsNotExist(err) {
+			return false, nil
+		} else {
+			return false, err
+		}
+	}
 }

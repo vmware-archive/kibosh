@@ -71,7 +71,7 @@ func (broker *PksServiceBroker) GetCharts() map[string]*my_helm.MyChart {
 	return broker.chartsMap
 }
 
-func (broker *PksServiceBroker) Services(ctx context.Context) []brokerapi.Service {
+func (broker *PksServiceBroker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 	serviceCatalog := []brokerapi.Service{}
 
 	for _, chart := range broker.chartsMap {
@@ -82,6 +82,12 @@ func (broker *PksServiceBroker) Services(ctx context.Context) []brokerapi.Servic
 				ID:          broker.getServiceID(chart) + "-" + plan.Name,
 				Name:        plan.Name,
 				Description: plan.Description,
+				Metadata: &brokerapi.ServicePlanMetadata{
+					DisplayName: plan.Name,
+					Bullets: []string{
+						plan.Description,
+					},
+				},
 			})
 		}
 
@@ -90,12 +96,17 @@ func (broker *PksServiceBroker) Services(ctx context.Context) []brokerapi.Servic
 			Name:        broker.getServiceName(chart),
 			Description: chart.Metadata.Description,
 			Bindable:    true,
+			Metadata: &brokerapi.ServiceMetadata{
+				DisplayName:      broker.getServiceName(chart),
+				ImageUrl:         chart.Metadata.Icon,
+				DocumentationUrl: chart.Metadata.Home,
+			},
 
 			Plans: plans,
 		})
 	}
 
-	return serviceCatalog
+	return serviceCatalog, nil
 }
 
 func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string, details brokerapi.ProvisionDetails, asyncAllowed bool) (brokerapi.ProvisionedServiceSpec, error) {
@@ -199,6 +210,12 @@ func (broker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID 
 
 	servicesMap := []map[string]interface{}{}
 	for _, service := range services.Items {
+		if service.Spec.Type == "NodePort" {
+			nodes, _ := broker.cluster.ListNodes(meta_v1.ListOptions{})
+			for _, node := range nodes.Items {
+				service.Spec.ExternalIPs = append(service.Spec.ExternalIPs, node.ObjectMeta.Labels["spec.ip"])
+			}
+		}
 		credentialService := map[string]interface{}{
 			"name":   service.ObjectMeta.Name,
 			"spec":   service.Spec,

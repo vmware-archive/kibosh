@@ -140,4 +140,16 @@ images:
 			},
 		}))
 	})
+
+	It("returns an error when the override file is invalid", func() {
+		base := []byte(`
+foo: bar
+`)
+		override := []byte(`
+- foo: "bar2"
+`)
+		_, err := myHelmClient.MergeValueBytes(base, override)
+		Expect(err).ToNot(BeNil())
+	})
+
 })

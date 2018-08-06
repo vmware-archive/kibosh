@@ -23,18 +23,18 @@ build-loader-mac:
 build-loader: build-loader-linux build-loader-mac
 
 build-bazaar-mac:
-	GOOS=darwin GOARCH=amd64 go build -o bazaar.mac ./cmd/bazaar-api/main.go
+	GOOS=darwin GOARCH=amd64 go build -o bazaar.mac ./cmd/bazaarapi/main.go
 
 build-bazaar-linux:
-	GOOS=linux GOARCH=amd64 go build -o bazaar.linux ./cmd/bazaar-api/main.go
+	GOOS=linux GOARCH=amd64 go build -o bazaar.linux ./cmd/bazaarapi/main.go
 
 build-bazaar: build-bazaar-linux build-bazaar-mac
 
 build-bazaar-cli-mac:
-	GOOS=darwin GOARCH=amd64 go build -o bazaarcli.mac ./cmd/bazaar-cli/main.go
+	GOOS=darwin GOARCH=amd64 go build -o bazaarcli.mac ./cmd/bazaarcli/main.go
 
 build-bazaar-cli-linux:
-	GOOS=linux GOARCH=amd64 go build -o bazaarcli.linux ./cmd/bazaar-cli/main.go
+	GOOS=linux GOARCH=amd64 go build -o bazaarcli.linux ./cmd/bazaarcli/main.go
 
 build-bazaar-cli: build-bazaar-cli-mac build-bazaar-cli-linux
 
@@ -56,18 +56,14 @@ generate:
 	#sed -i '' 's/FakeInterface/FakeK8sInterface/g' test/fake_kubernetes_client.go
 	go generate ./...
 
-run:
-	VCAP_SERVICES='{"kubo-odb":[{"credentials":{"kubeconfig":{"apiVersion":"v1","clusters":[{"cluster":{"certificate-authority-data":"bXktZmFrZWNlcnQ="}}],"users":[{"user":{"token":"bXktZmFrZWNlcnQ="}}]}}}]}' \
-	SECURITY_USER_NAME=admin \
-	SECURITY_USER_PASSWORD=pass \
-	go run -ldflags ${LDFLAGS} main.go
-
 cleandep:
 	rm -rf vendor
 	rm -f Gopkg.lock
 
 HAS_DEP := $(shell command -v dep;)
 HAS_BINDATA := $(shell command -v go-bindata;)
+
+boostrap: bootstrap
 
 .PHONY: bootstrap
 bootstrap:
@@ -78,6 +74,6 @@ ifndef HAS_BINDATA
 	go get github.com/jteeuwen/go-bindata/...
 endif
 	dep ensure -v
-	scripts/setup-apimachinery.sh
 
 all: fmt test build build-loader build-bazaar build-bazaar-cli
+

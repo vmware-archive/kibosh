@@ -1,3 +1,18 @@
+// kibosh
+//
+// Copyright (c) 2017-Present Pivotal Software, Inc. All Rights Reserved.
+//
+// This program and the accompanying materials are made available under the terms of the under the Apache License,
+// Version 2.0 (the "License”); you may not use this file except in compliance with the License. You may
+// obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software distributed under the
+// License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+// express or implied. See the License for the specific language governing permissions and
+// limitations under the License.
+
 package cli_test
 
 import (
@@ -10,9 +25,10 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/cf-platform-eng/kibosh/pkg/auth"
 	"github.com/cf-platform-eng/kibosh/pkg/bazaar"
 	"github.com/cf-platform-eng/kibosh/pkg/bazaar/cli"
+	"github.com/cf-platform-eng/kibosh/pkg/httphelpers"
+	"github.com/spf13/cobra"
 )
 
 var _ = Describe("List charts", func() {
@@ -21,10 +37,14 @@ var _ = Describe("List charts", func() {
 
 	var bazaarAPIRequest *http.Request
 	var bazaarAPITestServer *httptest.Server
+	var c *cobra.Command
 
 	BeforeEach(func() {
 		b = bytes.Buffer{}
 		out = bufio.NewWriter(&b)
+		c = cli.NewChartsListCmd(out)
+		c.Flags().Set("user", "bob")
+		c.Flags().Set("password", "monkey123")
 
 	})
 	AfterEach(func() {
@@ -52,10 +72,7 @@ var _ = Describe("List charts", func() {
 		})
 		bazaarAPITestServer = httptest.NewServer(handler)
 
-		c := cli.NewChartsListCmd(out)
 		c.Flags().Set("target", bazaarAPITestServer.URL)
-		c.Flags().Set("user", "bob")
-		c.Flags().Set("password", "monkey123")
 
 		err := c.RunE(c, []string{})
 		out.Flush()
@@ -73,36 +90,29 @@ var _ = Describe("List charts", func() {
 		})
 		bazaarAPITestServer = httptest.NewServer(handler)
 
-		c := cli.NewChartsListCmd(out)
 		c.Flags().Set("target", bazaarAPITestServer.URL)
-		c.Flags().Set("user", "bob")
-		c.Flags().Set("password", "monkey123")
 
 		err := c.RunE(c, []string{})
 		out.Flush()
 
 		Expect(err).To(BeNil())
 		Expect(bazaarAPIRequest.Header.Get("Authorization")).To(
-			Equal(auth.BasicAuthorizationHeaderVal("bob", "monkey123")),
+			Equal(httphelpers.BasicAuthHeaderVal("bob", "monkey123")),
 		)
 	})
 
-	It("calls list charts", func() {
+	It("auth failure list charts", func() {
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(401)
 		})
 		bazaarAPITestServer = httptest.NewServer(handler)
 
-		c := cli.NewChartsListCmd(out)
 		c.Flags().Set("target", bazaarAPITestServer.URL)
-		c.Flags().Set("user", "bob")
-		c.Flags().Set("password", "monkey123")
 
 		err := c.RunE(c, []string{})
 		out.Flush()
 
 		Expect(err).NotTo(BeNil())
 		Expect(err.Error()).To(ContainSubstring("401"))
-
 	})
 })

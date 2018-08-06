@@ -4,6 +4,10 @@ kibosh.darwin
 kibosh.linux
 loader.linux
 loader.mac
+bazaar.linux
+bazaar.mac
+bazaarcli.linux
+bazaarcli.mac
 
 vendor
 
@@ -11,7 +15,7 @@ vendor
 .idea
 
 charts
+charts.bk
+operators
+operators.bk
 local_dev.sh
-
-example-chart/images/**/*
-!example-chart/images/.gitkeep

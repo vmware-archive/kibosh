@@ -59,27 +59,27 @@ var _ = Describe("Repository", func() {
 		})
 
 		It("returns error on empty path", func() {
-			myRepository := repository.NewRepository("", "", logger)
+			myRepository := repository.NewRepository("", "", true, logger)
 			_, err := myRepository.LoadCharts()
 			Expect(err).NotTo(BeNil())
 		})
 
 		It("returns empty slice on directory with no charts", func() {
-			myRepository := repository.NewRepository(emptyDir, "", logger)
+			myRepository := repository.NewRepository(emptyDir, "", true, logger)
 			charts, err := myRepository.LoadCharts()
 			Expect(charts).To(BeEmpty())
 			Expect(err).To(BeNil())
 		})
 
 		It("returns empty slice on directory with empty directories", func() {
-			myRepository := repository.NewRepository(nestedEmptyDir, "", logger)
+			myRepository := repository.NewRepository(nestedEmptyDir, "", true, logger)
 			charts, err := myRepository.LoadCharts()
 			Expect(charts).To(BeEmpty())
 			Expect(err).To(BeNil())
 		})
 	})
 
-	Context("single charts", func() {
+	Context("single osbapi charts", func() {
 		BeforeEach(func() {
 			var err error
 			chartPath, err = ioutil.TempDir("", "chart-")
@@ -97,7 +97,40 @@ var _ = Describe("Repository", func() {
 		})
 
 		It("returns single chart", func() {
-			myRepository := repository.NewRepository(chartPath, "", logger)
+			myRepository := repository.NewRepository(chartPath, "", true, logger)
+			charts, err := myRepository.LoadCharts()
+			Expect(err).To(BeNil())
+
+			Expect(charts).To(HaveLen(1))
+			Expect(charts[0].Metadata.Name).To(Equal("spacebears"))
+		})
+	})
+
+	Context("single plain charts", func() {
+		BeforeEach(func() {
+			var err error
+			chartPath, err = ioutil.TempDir("", "chart-")
+			Expect(err).To(BeNil())
+
+			testChart = test.PlainChart()
+			err = testChart.WriteChart(chartPath)
+			Expect(err).To(BeNil())
+
+			logger = lager.NewLogger("test")
+		})
+
+		AfterEach(func() {
+			os.RemoveAll(chartPath)
+		})
+
+		It("returns err when expecting an osbapi chart", func() {
+			myRepository := repository.NewRepository(chartPath, "", true, logger)
+			_, err := myRepository.LoadCharts()
+			Expect(err).ToNot(BeNil())
+		})
+
+		It("returns a single plain chart", func() {
+			myRepository := repository.NewRepository(chartPath, "", false, logger)
 			charts, err := myRepository.LoadCharts()
 			Expect(err).To(BeNil())
 
@@ -148,7 +181,7 @@ version: 0.0.1
 
 		It("loads multiple charts", func() {
 			logger = lager.NewLogger("test")
-			myRepository := repository.NewRepository(chartPath, "", logger)
+			myRepository := repository.NewRepository(chartPath, "", true, logger)
 
 			charts, err := myRepository.LoadCharts()
 			Expect(err).To(BeNil())
@@ -163,7 +196,7 @@ version: 0.0.1
 			Expect(err).To(BeNil())
 
 			logger = lager.NewLogger("test")
-			myRepository := repository.NewRepository(chartPath, "", logger)
+			myRepository := repository.NewRepository(chartPath, "", true, logger)
 
 			_, err = myRepository.LoadCharts()
 			Expect(err).NotTo(BeNil())
@@ -194,10 +227,10 @@ version: 0.0.1
 			err := testChart.WriteChart(tarDir)
 			Expect(err).To(BeNil())
 
-			chart, err := helm.NewChart(tarDir, "docker.example.com")
+			chart, err := helm.NewChart(tarDir, "docker.example.com", true)
 			tarFile, err := chartutil.Save(chart.Chart, tarDir)
 
-			myRepository := repository.NewRepository(repoDir, "", logger)
+			myRepository := repository.NewRepository(repoDir, "", true, logger)
 			files, err := ioutil.ReadDir(repoDir)
 			Expect(err).To(BeNil())
 			Expect(files).To(HaveLen(0))
@@ -225,20 +258,46 @@ version: 0.0.1
 			err := ioutil.WriteFile(notChartFilePath, []byte("foo"), 0666)
 			Expect(err).To(BeNil())
 
-			myRepository := repository.NewRepository(repoDir, "", logger)
+			myRepository := repository.NewRepository(repoDir, "", true, logger)
 
 			err = myRepository.SaveChart(notChartFilePath)
 			Expect(err).NotTo(BeNil())
+		})
+
+		It("save cleans up previous run stuff", func() {
+			expandedTarPath := filepath.Join(repoDir, "workspace_tmp")
+			os.Mkdir(expandedTarPath, 0700)
+
+			fooFilePath := filepath.Join(repoDir, "workspace_tmp", "foo.yml")
+
+			err := ioutil.WriteFile(fooFilePath, []byte("key: value"), 0666)
+			Expect(err).To(BeNil())
+
+			err = testChart.WriteChart(tarDir)
+			Expect(err).To(BeNil())
+
+			chart, err := helm.NewChart(tarDir, "docker.example.com", true)
+			tarFile, err := chartutil.Save(chart.Chart, tarDir)
+
+			myRepository := repository.NewRepository(repoDir, "", true, logger)
+			_, err = ioutil.ReadDir(repoDir)
+			Expect(err).To(BeNil())
+
+			err = myRepository.SaveChart(tarFile)
+			Expect(err).To(BeNil())
+
+			_, err = os.Stat(fooFilePath)
+			Expect(os.IsNotExist(err)).To(BeTrue())
 		})
 
 		It("overrides existing chart", func() {
 			err := testChart.WriteChart(tarDir)
 			Expect(err).To(BeNil())
 
-			chart, err := helm.NewChart(tarDir, "docker.example.com")
+			chart, err := helm.NewChart(tarDir, "docker.example.com", true)
 			tarFile, err := chartutil.Save(chart.Chart, tarDir)
 
-			myRepository := repository.NewRepository(repoDir, "", logger)
+			myRepository := repository.NewRepository(repoDir, "", true, logger)
 			files, err := ioutil.ReadDir(repoDir)
 			Expect(err).To(BeNil())
 			Expect(files).To(HaveLen(0))
@@ -258,7 +317,7 @@ version: 0.0.2
 
 			err = testChart2.WriteChart(tarDir2)
 			Expect(err).To(BeNil())
-			chart2, err := helm.NewChart(tarDir2, "docker.example.com")
+			chart2, err := helm.NewChart(tarDir2, "docker.example.com", true)
 			Expect(err).To(BeNil())
 
 			tarFile2, err := chartutil.Save(chart2.Chart, tarDir2)
@@ -278,7 +337,6 @@ version: 0.0.2
 	})
 
 	Context("delete chart", func() {
-
 		BeforeEach(func() {
 			testChart = test.DefaultChart()
 		})
@@ -294,7 +352,7 @@ version: 0.0.2
 			err = testChart.WriteChart(deletePath)
 			Expect(err).To(BeNil())
 			logger = lager.NewLogger("test")
-			myRepository := repository.NewRepository(chartPath, "", logger)
+			myRepository := repository.NewRepository(chartPath, "", true, logger)
 
 			err = myRepository.DeleteChart("spacebears")
 			Expect(err).To(BeNil())
@@ -320,7 +378,7 @@ version: 0.0.2
 			Expect(err).To(BeNil())
 
 			logger = lager.NewLogger("test")
-			myRepository := repository.NewRepository(chartPath, "", logger)
+			myRepository := repository.NewRepository(chartPath, "", true, logger)
 
 			err = myRepository.DeleteChart("spacebears")
 			Expect(err).To(BeNil())
@@ -338,7 +396,7 @@ version: 0.0.2
 			Expect(err).To(BeNil())
 
 			logger = lager.NewLogger("test")
-			myRepository := repository.NewRepository(chartPath, "", logger)
+			myRepository := repository.NewRepository(chartPath, "", true, logger)
 
 			err = myRepository.DeleteChart("spacebears")
 			Expect(err).To(BeNil())

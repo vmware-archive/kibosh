@@ -18,8 +18,10 @@ package broker_test
 import (
 	"encoding/json"
 	"errors"
+	"strings"
 
 	"code.cloudfoundry.org/lager"
+
 	. "github.com/cf-platform-eng/kibosh/pkg/broker"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
@@ -102,7 +104,8 @@ var _ = Describe("Broker", func() {
 	Context("catalog", func() {
 		It("Provides a catalog with correct service", func() {
 			serviceBroker := NewPksServiceBroker(registryConfig, nil, nil, charts, logger)
-			serviceCatalog := serviceBroker.Services(nil)
+			serviceCatalog, err := serviceBroker.Services(nil)
+			Expect(err).To(BeNil())
 
 			Expect(len(serviceCatalog)).To(Equal(2))
 
@@ -129,18 +132,31 @@ var _ = Describe("Broker", func() {
 
 		It("Provides a catalog with correct plans", func() {
 			serviceBroker := NewPksServiceBroker(registryConfig, nil, nil, charts, logger)
-			serviceCatalog := serviceBroker.Services(nil)
+			serviceCatalog, err := serviceBroker.Services(nil)
+			Expect(err).To(BeNil())
 
 			expectedPlans := []brokerapi.ServicePlan{
 				{
 					ID:          "37b7acb6-6755-56fe-a17f-2307657023ef-small",
 					Name:        "small",
 					Description: "default (small) plan for spacebears",
+					Metadata: &brokerapi.ServicePlanMetadata{
+						DisplayName: "small",
+						Bullets: []string{
+							"default (small) plan for spacebears",
+						},
+					},
 				},
 				{
 					ID:          "37b7acb6-6755-56fe-a17f-2307657023ef-medium",
 					Name:        "medium",
 					Description: "medium plan for spacebears",
+					Metadata: &brokerapi.ServicePlanMetadata{
+						DisplayName: "medium",
+						Bullets: []string{
+							"medium plan for spacebears",
+						},
+					},
 				},
 			}
 
@@ -282,7 +298,7 @@ var _ = Describe("Broker", func() {
 				Expect(chart).To(Equal(spacebearsChart))
 				Expect(namespaceName).To(Equal("kibosh-my-instance-guid"))
 				Expect(plan).To(Equal("small"))
-				Expect(opts).To(HaveLen(9))
+				Expect(strings.TrimSpace(string(opts))).To(Equal("foo: bar"))
 			})
 		})
 	})
@@ -599,6 +615,52 @@ var _ = Describe("Broker", func() {
 			Expect(string(secretsJson)).To(Equal(`[{"data":{"db-password":"abc123"},"name":"passwords"}]`))
 		})
 
+		// NodePort Test
+		It("bind returns externalIPs field when Service Type NodePort is used", func() {
+			nodeList := api_v1.NodeList{
+				Items: []api_v1.Node{
+					{
+						ObjectMeta: meta_v1.ObjectMeta{
+							Labels: map[string]string{
+								"spec.ip": "1.1.1.1",
+							},
+						},
+					},
+				},
+			}
+			secretsList := api_v1.SecretList{
+				Items: []api_v1.Secret{
+					{
+						ObjectMeta: meta_v1.ObjectMeta{Name: "passwords"},
+						Data:       map[string][]byte{"db-password": []byte("abc123")},
+						Type:       api_v1.SecretTypeOpaque,
+					},
+				},
+			}
+			serviceList := api_v1.ServiceList{
+				Items: []api_v1.Service{
+					{
+						ObjectMeta: meta_v1.ObjectMeta{Name: "kibosh-my-mysql-db-instance"},
+						Spec: api_v1.ServiceSpec{
+							Ports: []api_v1.ServicePort{},
+							Type:  "NodePort",
+						},
+					},
+				},
+			}
+			fakeCluster.ListNodesReturns(&nodeList, nil)
+			fakeCluster.ListServicesReturns(&serviceList, nil)
+			fakeCluster.ListSecretsReturns(&secretsList, nil)
+			binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{})
+			Expect(err).To(BeNil())
+			creds := binding.Credentials
+
+			services := creds.(map[string]interface{})["services"]
+			spec := services.([]map[string]interface{})[0]["spec"]
+			externalIPs := spec.(api_v1.ServiceSpec).ExternalIPs
+			Expect(externalIPs[0]).To(Equal("1.1.1.1"))
+		})
+		//
 		It("bind filters to only opaque secrets", func() {
 			serviceList := api_v1.ServiceList{Items: []api_v1.Service{}}
 			fakeCluster.ListServicesReturns(&serviceList, nil)
@@ -795,9 +857,18 @@ var _ = Describe("Broker", func() {
 
 			resp, err := broker.Update(nil, "my-instance-guid", details, true)
 
+			chart, namespaceName, plan, opts := fakeMyHelmClient.UpdateChartArgsForCall(0)
+
 			Expect(err).To(BeNil())
 			Expect(resp.IsAsync).To(BeTrue())
 			Expect(resp.OperationData).To(Equal("update"))
+			Expect(fakeMyHelmClient.UpdateChartCallCount()).To(Equal(1))
+
+			Expect(chart).To(Equal(spacebearsChart))
+			Expect(namespaceName).To(Equal("kibosh-my-instance-guid"))
+			Expect(plan).To(Equal("my-plan-id"))
+			Expect(strings.TrimSpace(string(opts))).To(Equal("foo: bar"))
+
 		})
 	})
 })

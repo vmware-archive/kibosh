@@ -1,1 +1,12 @@
---- {}
+bazaar.linux:
+  size: 62768486
+  sha: 0d4fd82525dcdb4ce817a4f0340ac3f14982c58f
+delete_all_and_deregister.linux:
+  size: 7019264
+  sha: 31397589b5fb37eb72afdcd1da356b3849876db2
+kibosh.linux:
+  size: 66080542
+  sha: d447e53fd02c30df60d57e5223afd6957c950a45
+loader.linux:
+  size: 3164217
+  sha: d7acf4c1890d8d01dcabcf430112fbe3240e1508
