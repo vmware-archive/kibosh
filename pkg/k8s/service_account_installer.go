@@ -26,6 +26,7 @@ const (
 	serviceAccountName = "tiller"
 )
 
+//go:generate counterfeiter ./ ServiceAccountInstaller
 type ServiceAccountInstaller interface {
 	Install() error
 }
@@ -33,6 +34,14 @@ type ServiceAccountInstaller interface {
 type serviceAccountInstaller struct {
 	cluster Cluster
 	logger  lager.Logger
+}
+
+type ServiceAccountInstallerFactory struct {
+	Logger lager.Logger
+}
+
+func (saif ServiceAccountInstallerFactory) ServiceAccountInstaller(cluster Cluster) ServiceAccountInstaller {
+	return NewServiceAccountInstaller(cluster, saif.Logger)
 }
 
 func NewServiceAccountInstaller(cluster Cluster, logger lager.Logger) ServiceAccountInstaller {
