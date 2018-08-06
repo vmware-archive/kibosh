@@ -36,14 +36,17 @@ import (
 
 const registrySecretName = "registry-secret"
 
+//go:generate counterfeiter ./ ClusterFactory
 type ClusterFactory interface {
 	DefaultCluster() (k8s.Cluster, error)
 }
 
+//go:generate counterfeiter ./ HelmClientFactory
 type HelmClientFactory interface {
 	HelmClient(cluster k8s.Cluster) my_helm.MyHelmClient
 }
 
+//go:generate counterfeiter ./ ServiceAccountInstallerFactory
 type ServiceAccountInstallerFactory interface {
 	ServiceAccountInstaller(cluster k8s.Cluster) k8s.ServiceAccountInstaller
 }
