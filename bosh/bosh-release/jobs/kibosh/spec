@@ -21,6 +21,8 @@ properties:
   kibosh.helm_chart_dir:
     description: Location of the helm chart kibosh will deploy
     default: charts
+  kibosh.operator_dir:
+    description: Location of the operator helm chart kibosh will deploy
   kibosh.ca_data:
     description: Certificate for the kubernetes cluster. Generally found in kubeconfig.
   kibosh.server:
