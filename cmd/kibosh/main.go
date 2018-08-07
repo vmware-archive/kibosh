@@ -31,30 +31,6 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 )
 
-type ClusterFactory struct {
-	ClusterCredentials config.ClusterCredentials
-}
-
-func (cf ClusterFactory) DefaultCluster() (k8s.Cluster, error) {
-	return k8s.NewCluster(&cf.ClusterCredentials)
-}
-
-type HelmClientFactory struct {
-	logger lager.Logger
-}
-
-func (hcf HelmClientFactory) HelmClient(cluster k8s.Cluster) helm.MyHelmClient {
-	return helm.NewMyHelmClient(cluster, hcf.logger)
-}
-
-type ServiceAccountInstallerFactory struct {
-	logger lager.Logger
-}
-
-func (saif ServiceAccountInstallerFactory) ServiceAccountInstaller(cluster k8s.Cluster) k8s.ServiceAccountInstaller {
-	return k8s.NewServiceAccountInstaller(cluster, saif.logger)
-}
-
 func main() {
 	brokerLogger := lager.NewLogger("kibosh")
 	brokerLogger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
@@ -94,9 +70,9 @@ func main() {
 	}
 	brokerLogger.Info(fmt.Sprintf("Installing operators %s", operatorCharts))
 
-	clusterFactory := ClusterFactory{*conf.ClusterCredentials}
-	helmClientFactory := HelmClientFactory{brokerLogger}
-	serviceAccountInstallerFactory := ServiceAccountInstallerFactory{brokerLogger}
+	clusterFactory := k8s.ClusterFactory{ClusterCredentials: *conf.ClusterCredentials}
+	helmClientFactory := helm.HelmClientFactory{Logger: brokerLogger}
+	serviceAccountInstallerFactory := k8s.ServiceAccountInstallerFactory{Logger: brokerLogger}
 
 	serviceBroker := broker.NewPksServiceBroker(conf, clusterFactory, helmClientFactory, serviceAccountInstallerFactory, charts, brokerLogger)
 	brokerCredentials := brokerapi.BrokerCredentials{
