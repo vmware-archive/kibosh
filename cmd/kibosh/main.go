@@ -68,7 +68,6 @@ func main() {
 	}
 
 	operatorRepo := repository.NewRepository(conf.OperatorDir, conf.RegistryConfig.Server, false, brokerLogger)
-
 	operatorCharts, err := operatorRepo.LoadCharts()
 	if err != nil {
 		if !os.IsNotExist(err) {
