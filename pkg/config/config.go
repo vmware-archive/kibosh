@@ -62,6 +62,7 @@ type Config struct {
 	Port         int    `envconfig:"PORT" default:"8080"`
 	HelmChartDir string `envconfig:"HELM_CHART_DIR" default:"charts"`
 	OperatorDir  string `envconfig:"OPERATOR_DIR" default:"operators"`
+	StateDir     string `envconfig:"STATE_DIR" default:"state"`
 
 	ClusterCredentials *ClusterCredentials
 	RegistryConfig     *RegistryConfig

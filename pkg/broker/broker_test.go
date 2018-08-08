@@ -186,8 +186,10 @@ var _ = Describe("Broker", func() {
 		BeforeEach(func() {
 			fakeHelmClient = helmfakes.FakeMyHelmClient{}
 			fakeHelmClientFactory.HelmClientReturns(&fakeHelmClient)
+			fakeClusterFactory = k8sfakes.FakeClusterFactory{}
 			fakeCluster = k8sfakes.FakeCluster{}
 			fakeClusterFactory.DefaultClusterReturns(&fakeCluster, nil)
+			fakeClusterFactory.GetClusterReturns(&fakeCluster, nil)
 			fakeServiceAccountInstaller = k8sfakes.FakeServiceAccountInstaller{}
 			fakeServiceAccountInstallerFactory.ServiceAccountInstallerReturns(&fakeServiceAccountInstaller)
 			details = brokerapi.ProvisionDetails{
@@ -195,6 +197,9 @@ var _ = Describe("Broker", func() {
 			}
 
 			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, charts, logger)
+			Expect(fakeClusterFactory.DefaultClusterCallCount()).To(Equal(0))
+			Expect(fakeClusterFactory.GetClusterCallCount()).To(Equal(0))
+
 		})
 
 		It("requires async", func() {
@@ -211,6 +216,31 @@ var _ = Describe("Broker", func() {
 			Expect(err).To(BeNil())
 			Expect(resp.IsAsync).To(BeTrue())
 			Expect(resp.OperationData).To(Equal("provision"))
+		})
+
+		It("uses the default cluster", func() {
+			Expect(fakeClusterFactory.DefaultClusterCallCount()).To(Equal(0))
+			Expect(fakeClusterFactory.GetClusterCallCount()).To(Equal(0))
+
+			_, err := broker.Provision(nil, "my-instance-guid", details, true)
+
+			Expect(err).To(BeNil())
+			Expect(fakeClusterFactory.DefaultClusterCallCount()).To(Equal(1))
+			Expect(fakeClusterFactory.GetClusterCallCount()).To(Equal(0))
+		})
+
+		It("targets the right cluster", func() {
+			Expect(fakeClusterFactory.DefaultClusterCallCount()).To(Equal(0))
+			Expect(fakeClusterFactory.GetClusterCallCount()).To(Equal(0))
+
+			details.RawParameters = []byte(`{"clusterConfig" : {"server": "server url", "token":"token data", "certificateAuthorityData":"LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURKRENDQWd5Z0F3SUJBZ0lVVHltSk1uWEU0aXp5QlBvalM1enpXU2tzNmVrd0RRWUpLb1pJaHZjTkFRRUwKQlFBd0RURUxNQWtHQTFVRUF4TUNZMkV3SGhjTk1UZ3dOVEE0TVRneU16SXdXaGNOTVRrd05UQTRNVGd5TXpJdwpXakFOTVFzd0NRWURWUVFERXdKallUQ0NBU0l3RFFZSktvWklodmNOQVFFQkJRQURnZ0VQQURDQ0FRb0NnZ0VCCkFLNGd3ZnFpeG1KT1JjSmtERjZVdmNVQWl5TEdlRks1Z0JnaEU3MVFzMnZ4UU4vT1AxekVHMkVSWHZheFIzbUYKVFdxTkNlTTl5d1Fpcm9FTmtFODd2LzFBZXZudkJQMDVZczdmaU5pS0ZNZTRYV091UWRlNXR0S3JpdlpJRWtCawpTT2psdXlQR0g4d3JTY0J1alZQelQvMGxLR3FKUW1iTGFTVm1qczczK0NINFpEZ2ZILzN0c0tpQTRaWU54Z2JGCnY0WWRnTFJHSkdTZjN5NlhyaWoxaVpMaUdhYjVWbDVLUSs2T0ZqR0wxbEEybyt4SGV2d2J0T2hQdlB1emNYbHkKd1RJay8rSEw0ckRMOG9Oemg5QTFldlFCaDJHRzhUSmFQMXVldVVXSXlHZENyb2FqTUZMN1ZaZkd1aUZLK2UyUwplODNYNHdzakJSc0t6RFlKL21IcjE5a0NBd0VBQWFOOE1Ib3dIUVlEVlIwT0JCWUVGSDdsRlJWSFZSeXFYQkhJClQ1cGdJVmRtM0JmcU1FZ0dBMVVkSXdSQk1EK0FGSDdsRlJWSFZSeXFYQkhJVDVwZ0lWZG0zQmZxb1JHa0R6QU4KTVFzd0NRWURWUVFERXdKallZSVVUeW1KTW5YRTRpenlCUG9qUzV6eldTa3M2ZWt3RHdZRFZSMFRBUUgvQkFVdwpBd0VCL3pBTkJna3Foa2lHOXcwQkFRc0ZBQU9DQVFFQUs2SUtJdGJOMVFaR2pMWUZsTU1KbDJrcVFCNG9KekgyClZLczhxTCtMZDJHVHNIWDVxKzFhV2ZLcVRha0V1QVdwTGZYWUZEUXc3TXYyak9rZGQ0WEV6MXEwZ3k1QWw1MVYKZnlYaXBJalBMdFYwK21DdGVkc2hFNHJZVjZvQUp4RFE2MzJ2b3JpWVJpR3A3SHVqL254VjFMbmUwQzlQdmI0UAp1NVYrZGxQRHZSR3J2Y1dtNjk4bC9PQncyNk9GcHFCQytBUExteW5SMDBXL2xQQURHOWpaT0ZiblNlRGFPMkhqClcwQzhzb3QrYkZianFsaU01T2hBU0RwOFI2VHBqU1hWNEFqZzE5blMxM1M0bVZVSGFtOXJOTkw4aWVhdVdVMUUKdUVaUFBNb0hHcGlZQ29CelEwYmdqL0xaVDR1YzVlZ1Mrb29XdUJTKzM0Mk1KcVFFa2NVRWFBPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="}}`)
+			_, err := broker.Provision(nil, "my-instance-guid", details, true)
+
+			Expect(err).To(BeNil())
+			Expect(fakeClusterFactory.DefaultClusterCallCount()).To(Equal(0))
+			Expect(fakeClusterFactory.GetClusterCallCount()).To(Equal(1))
+			clusterConfig := fakeClusterFactory.GetClusterArgsForCall(0)
+			Expect(clusterConfig.Server).To(Equal("server url"))
 		})
 
 		Context("namespace", func() {
@@ -347,6 +377,7 @@ var _ = Describe("Broker", func() {
 			fakeHelmClientFactory.HelmClientReturns(&fakeHelmClient)
 			fakeCluster = k8sfakes.FakeCluster{}
 			fakeClusterFactory.DefaultClusterReturns(&fakeCluster, nil)
+			fakeClusterFactory.GetClusterReturns(&fakeCluster, nil)
 			fakeServiceAccountInstaller = k8sfakes.FakeServiceAccountInstaller{}
 			fakeServiceAccountInstallerFactory.ServiceAccountInstallerReturns(&fakeServiceAccountInstaller)
 
@@ -627,6 +658,7 @@ var _ = Describe("Broker", func() {
 			fakeHelmClientFactory.HelmClientReturns(&fakeHelmClient)
 			fakeCluster = k8sfakes.FakeCluster{}
 			fakeClusterFactory.DefaultClusterReturns(&fakeCluster, nil)
+			fakeClusterFactory.GetClusterReturns(&fakeCluster, nil)
 			fakeServiceAccountInstaller = k8sfakes.FakeServiceAccountInstaller{}
 			fakeServiceAccountInstallerFactory.ServiceAccountInstallerReturns(&fakeServiceAccountInstaller)
 
@@ -827,6 +859,7 @@ var _ = Describe("Broker", func() {
 			fakeHelmClientFactory.HelmClientReturns(&fakeHelmClient)
 			fakeCluster = k8sfakes.FakeCluster{}
 			fakeClusterFactory.DefaultClusterReturns(&fakeCluster, nil)
+			fakeClusterFactory.GetClusterReturns(&fakeCluster, nil)
 			fakeServiceAccountInstaller = k8sfakes.FakeServiceAccountInstaller{}
 			fakeServiceAccountInstallerFactory.ServiceAccountInstallerReturns(&fakeServiceAccountInstaller)
 
@@ -894,6 +927,7 @@ var _ = Describe("Broker", func() {
 			fakeHelmClientFactory.HelmClientReturns(&fakeHelmClient)
 			fakeCluster = k8sfakes.FakeCluster{}
 			fakeClusterFactory.DefaultClusterReturns(&fakeCluster, nil)
+			fakeClusterFactory.GetClusterReturns(&fakeCluster, nil)
 			fakeServiceAccountInstaller = k8sfakes.FakeServiceAccountInstaller{}
 			fakeServiceAccountInstallerFactory.ServiceAccountInstallerReturns(&fakeServiceAccountInstaller)
 

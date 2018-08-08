@@ -129,7 +129,17 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 		},
 	}
 
-	cluster, err := broker.clusterFactory.DefaultCluster()
+	var cluster k8s.Cluster
+	var err error
+
+	clusterConfig, configPresent := ExtractClusterConfig(details.GetRawParameters())
+
+	if configPresent {
+		cluster, err = broker.clusterFactory.GetCluster(&clusterConfig)
+	} else {
+		cluster, err = broker.clusterFactory.DefaultCluster()
+	}
+
 	if err != nil {
 		return brokerapi.ProvisionedServiceSpec{}, err
 	}
