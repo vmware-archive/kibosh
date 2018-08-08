@@ -24,6 +24,7 @@ import (
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
+	"github.com/cf-platform-eng/kibosh/pkg/operator"
 	"github.com/ghodss/yaml"
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
@@ -37,44 +38,44 @@ const registrySecretName = "registry-secret"
 
 // PksServiceBroker contains values passed in from configuration necessary for broker's work.
 type PksServiceBroker struct {
-	Logger         lager.Logger
-	registryConfig *config.RegistryConfig
-
-	cluster      k8s.Cluster
-	myHelmClient my_helm.MyHelmClient
-	chartsMap    map[string]*my_helm.MyChart
+	Logger                         lager.Logger
+	config                         *config.Config
+	clusterFactory                 k8s.ClusterFactory
+	helmClientFactory              my_helm.HelmClientFactory
+	serviceAccountInstallerFactory k8s.ServiceAccountInstallerFactory
+	charts                         []*my_helm.MyChart
 }
 
-func NewPksServiceBroker(registryConfig *config.RegistryConfig, cluster k8s.Cluster, myHelmClient my_helm.MyHelmClient, charts []*my_helm.MyChart, logger lager.Logger) *PksServiceBroker {
+func NewPksServiceBroker(config *config.Config, clusterFactory k8s.ClusterFactory, helmClientFactory my_helm.HelmClientFactory, serviceAccountInstallerFactory k8s.ServiceAccountInstallerFactory, charts []*my_helm.MyChart, logger lager.Logger) *PksServiceBroker {
 	broker := &PksServiceBroker{
-		Logger:         logger,
-		registryConfig: registryConfig,
-
-		cluster:      cluster,
-		myHelmClient: myHelmClient,
+		Logger:                         logger,
+		config:                         config,
+		clusterFactory:                 clusterFactory,
+		helmClientFactory:              helmClientFactory,
+		serviceAccountInstallerFactory: serviceAccountInstallerFactory,
+		charts: charts,
 	}
-	broker.SetCharts(charts)
 
 	return broker
 }
 
 func (broker *PksServiceBroker) SetCharts(charts []*my_helm.MyChart) {
-	chartsMap := map[string]*my_helm.MyChart{}
-	for _, chart := range charts {
-		chartsMap[broker.getServiceID(chart)] = chart
-	}
-	broker.chartsMap = chartsMap
+	broker.charts = charts
 }
 
-func (broker *PksServiceBroker) GetCharts() map[string]*my_helm.MyChart {
+func (broker *PksServiceBroker) GetChartsMap() map[string]*my_helm.MyChart {
 	//only really exposed for testing
-	return broker.chartsMap
+	chartsMap := map[string]*my_helm.MyChart{}
+	for _, chart := range broker.charts {
+		chartsMap[broker.getServiceID(chart)] = chart
+	}
+	return chartsMap
 }
 
 func (broker *PksServiceBroker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 	serviceCatalog := []brokerapi.Service{}
 
-	for _, chart := range broker.chartsMap {
+	for _, chart := range broker.GetChartsMap() {
 		plans := []brokerapi.ServicePlan{}
 		for _, plan := range chart.Plans {
 
@@ -127,13 +128,19 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 			},
 		},
 	}
-	_, err := broker.cluster.CreateNamespace(&namespace)
+
+	cluster, err := broker.clusterFactory.DefaultCluster()
 	if err != nil {
 		return brokerapi.ProvisionedServiceSpec{}, err
 	}
 
-	if broker.registryConfig.HasRegistryConfig() {
-		privateRegistrySetup := k8s.NewPrivateRegistrySetup(namespaceName, "default", broker.cluster, broker.registryConfig)
+	_, err = cluster.CreateNamespace(&namespace)
+	if err != nil {
+		return brokerapi.ProvisionedServiceSpec{}, err
+	}
+
+	if broker.config.RegistryConfig.HasRegistryConfig() {
+		privateRegistrySetup := k8s.NewPrivateRegistrySetup(namespaceName, "default", cluster, broker.config.RegistryConfig)
 		err := privateRegistrySetup.Setup()
 		if err != nil {
 			return brokerapi.ProvisionedServiceSpec{}, err
@@ -149,12 +156,33 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 		}
 	}
 
-	chart := broker.chartsMap[details.ServiceID]
+	myHelmClient := broker.helmClientFactory.HelmClient(cluster)
+
+	myServiceAccountInstaller := broker.serviceAccountInstallerFactory.ServiceAccountInstaller(cluster)
+	err = myServiceAccountInstaller.Install()
+	if err != nil {
+		return brokerapi.ProvisionedServiceSpec{}, err
+	}
+
+	helmInstaller := my_helm.NewInstaller(broker.config, cluster, myHelmClient, broker.Logger)
+	err = helmInstaller.Install()
+	if err != nil {
+		return brokerapi.ProvisionedServiceSpec{}, err
+	}
+
+	// Install each operator chart.
+	operatorInstaller := operator.NewInstaller(broker.config.RegistryConfig, cluster, myHelmClient, broker.Logger)
+	err = operatorInstaller.InstallCharts(broker.charts)
+	if err != nil {
+		return brokerapi.ProvisionedServiceSpec{}, err
+	}
+
+	chart := broker.GetChartsMap()[details.ServiceID]
 	if chart == nil {
 		return brokerapi.ProvisionedServiceSpec{}, errors.New(fmt.Sprintf("Chart not found for [%s]", details.ServiceID))
 	}
 
-	_, err = broker.myHelmClient.InstallChart(chart, namespaceName, planName, installValues)
+	_, err = myHelmClient.InstallChart(chart, namespaceName, planName, installValues)
 	if err != nil {
 		return brokerapi.ProvisionedServiceSpec{}, err
 	}
@@ -166,12 +194,19 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 }
 
 func (broker *PksServiceBroker) Deprovision(ctx context.Context, instanceID string, details brokerapi.DeprovisionDetails, asyncAllowed bool) (brokerapi.DeprovisionServiceSpec, error) {
-	_, err := broker.myHelmClient.DeleteRelease(broker.getNamespace(instanceID))
+	cluster, err := broker.clusterFactory.DefaultCluster()
 	if err != nil {
 		return brokerapi.DeprovisionServiceSpec{}, err
 	}
 
-	err = broker.cluster.DeleteNamespace(broker.getNamespace(instanceID), &meta_v1.DeleteOptions{})
+	helmClient := broker.helmClientFactory.HelmClient(cluster)
+
+	_, err = helmClient.DeleteRelease(broker.getNamespace(instanceID))
+	if err != nil {
+		return brokerapi.DeprovisionServiceSpec{}, err
+	}
+
+	err = cluster.DeleteNamespace(broker.getNamespace(instanceID), &meta_v1.DeleteOptions{})
 	if err != nil {
 		return brokerapi.DeprovisionServiceSpec{}, err
 	}
@@ -183,7 +218,12 @@ func (broker *PksServiceBroker) Deprovision(ctx context.Context, instanceID stri
 }
 
 func (broker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID string, details brokerapi.BindDetails) (brokerapi.Binding, error) {
-	secrets, err := broker.cluster.ListSecrets(broker.getNamespace(instanceID), meta_v1.ListOptions{})
+	cluster, err := broker.clusterFactory.DefaultCluster()
+	if err != nil {
+		return brokerapi.Binding{}, err
+	}
+
+	secrets, err := cluster.ListSecrets(broker.getNamespace(instanceID), meta_v1.ListOptions{})
 	if err != nil {
 		return brokerapi.Binding{}, err
 	}
@@ -203,7 +243,7 @@ func (broker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID 
 		}
 	}
 
-	services, err := broker.cluster.ListServices(broker.getNamespace(instanceID), meta_v1.ListOptions{})
+	services, err := cluster.ListServices(broker.getNamespace(instanceID), meta_v1.ListOptions{})
 	if err != nil {
 		return brokerapi.Binding{}, err
 	}
@@ -259,14 +299,21 @@ func (broker *PksServiceBroker) Update(ctx context.Context, instanceID string, d
 		}
 	}
 
-	chart := broker.chartsMap[details.ServiceID]
+	chart := broker.GetChartsMap()[details.ServiceID]
 	if chart == nil {
 		return brokerapi.UpdateServiceSpec{}, errors.New(fmt.Sprintf("Chart not found for [%s]", details.ServiceID))
 	}
 
 	planName := strings.TrimPrefix(details.PlanID, details.ServiceID+"-")
 
-	_, err = broker.myHelmClient.UpdateChart(chart, broker.getNamespace(instanceID), planName, updateValues)
+	cluster, err := broker.clusterFactory.DefaultCluster()
+	if err != nil {
+		return brokerapi.UpdateServiceSpec{}, err
+	}
+
+	helmClient := broker.helmClientFactory.HelmClient(cluster)
+
+	_, err = helmClient.UpdateChart(chart, broker.getNamespace(instanceID), planName, updateValues)
 	if err != nil {
 		broker.Logger.Debug(fmt.Sprintf("Update failed on update release= %v", err))
 		return brokerapi.UpdateServiceSpec{}, err
@@ -282,7 +329,15 @@ func (broker *PksServiceBroker) Update(ctx context.Context, instanceID string, d
 func (broker *PksServiceBroker) LastOperation(ctx context.Context, instanceID, operationData string) (brokerapi.LastOperation, error) {
 	var brokerStatus brokerapi.LastOperationState
 	var description string
-	response, err := broker.myHelmClient.ReleaseStatus(broker.getNamespace(instanceID))
+
+	cluster, err := broker.clusterFactory.DefaultCluster()
+	if err != nil {
+		return brokerapi.LastOperation{}, err
+	}
+
+	helmClient := broker.helmClientFactory.HelmClient(cluster)
+
+	response, err := helmClient.ReleaseStatus(broker.getNamespace(instanceID))
 	if err != nil {
 		return brokerapi.LastOperation{}, err
 	}
@@ -364,7 +419,12 @@ func (broker *PksServiceBroker) LastOperation(ctx context.Context, instanceID, o
 }
 
 func (broker *PksServiceBroker) servicesReady(instanceID string) (bool, error) {
-	services, err := broker.cluster.ListServices(broker.getNamespace(instanceID), meta_v1.ListOptions{})
+	cluster, err := broker.clusterFactory.DefaultCluster()
+	if err != nil {
+		return false, err
+	}
+
+	services, err := cluster.ListServices(broker.getNamespace(instanceID), meta_v1.ListOptions{})
 	if err != nil {
 		return false, err
 	}
@@ -381,7 +441,12 @@ func (broker *PksServiceBroker) servicesReady(instanceID string) (bool, error) {
 }
 
 func (broker *PksServiceBroker) podsReady(instanceID string) (string, bool, error) {
-	podList, err := broker.cluster.ListPods(broker.getNamespace(instanceID), meta_v1.ListOptions{})
+	cluster, err := broker.clusterFactory.DefaultCluster()
+	if err != nil {
+		return "", false, err
+	}
+
+	podList, err := cluster.ListPods(broker.getNamespace(instanceID), meta_v1.ListOptions{})
 	if err != nil {
 		return "", false, err
 	}

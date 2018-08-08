@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"time"
 
+	"strings"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/Masterminds/semver"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
@@ -27,7 +29,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	helmstaller "k8s.io/helm/cmd/helm/installer"
-	"strings"
 )
 
 type installer struct {
@@ -64,6 +65,9 @@ func NewInstaller(c *config.Config, cluster k8s.Cluster, client MyHelmClient, lo
 }
 
 func (i *installer) Install() error {
+	if "" == tillerTag {
+		tillerTag = "v2.9.0"
+	}
 	i.logger.Debug(fmt.Sprintf("Installing helm with Tiller version %s", tillerTag))
 
 	tillerImage := "gcr.io/kubernetes-helm/tiller:" + tillerTag

@@ -26,6 +26,7 @@ const (
 	serviceAccountName = "tiller"
 )
 
+//go:generate counterfeiter ./ ServiceAccountInstaller
 type ServiceAccountInstaller interface {
 	Install() error
 }

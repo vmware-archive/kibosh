@@ -16,8 +16,12 @@
 package repository_test
 
 import (
-	"code.cloudfoundry.org/lager"
 	"errors"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
+
+	"code.cloudfoundry.org/lager"
 	"github.com/cf-platform-eng/kibosh/pkg/broker"
 	"github.com/cf-platform-eng/kibosh/pkg/cf/cffakes"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
@@ -27,10 +31,7 @@ import (
 	"github.com/cloudfoundry-community/go-cfclient"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"io/ioutil"
 	hapi_chart "k8s.io/helm/pkg/proto/hapi/chart"
-	"net/http"
-	"net/http/httptest"
 )
 
 var _ = Describe("Api", func() {
@@ -81,7 +82,7 @@ var _ = Describe("Api", func() {
 		apiHandler.ServeHTTP(recorder, req)
 
 		Expect(recorder.Code).To(Equal(200))
-		broCharts := bro.GetCharts()
+		broCharts := bro.GetChartsMap()
 		Expect(len(broCharts)).To(Equal(1))
 		Expect(broCharts[spacebearsServiceGUID].Metadata.Name).To(Equal("spacebears"))
 	})
