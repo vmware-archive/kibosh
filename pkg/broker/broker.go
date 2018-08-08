@@ -36,32 +36,17 @@ import (
 
 const registrySecretName = "registry-secret"
 
-//go:generate counterfeiter ./ ClusterFactory
-type ClusterFactory interface {
-	DefaultCluster() (k8s.Cluster, error)
-}
-
-//go:generate counterfeiter ./ HelmClientFactory
-type HelmClientFactory interface {
-	HelmClient(cluster k8s.Cluster) my_helm.MyHelmClient
-}
-
-//go:generate counterfeiter ./ ServiceAccountInstallerFactory
-type ServiceAccountInstallerFactory interface {
-	ServiceAccountInstaller(cluster k8s.Cluster) k8s.ServiceAccountInstaller
-}
-
 // PksServiceBroker contains values passed in from configuration necessary for broker's work.
 type PksServiceBroker struct {
 	Logger                         lager.Logger
 	config                         *config.Config
-	clusterFactory                 ClusterFactory
-	helmClientFactory              HelmClientFactory
-	serviceAccountInstallerFactory ServiceAccountInstallerFactory
+	clusterFactory                 k8s.ClusterFactory
+	helmClientFactory              my_helm.HelmClientFactory
+	serviceAccountInstallerFactory k8s.ServiceAccountInstallerFactory
 	charts                         []*my_helm.MyChart
 }
 
-func NewPksServiceBroker(config *config.Config, clusterFactory ClusterFactory, helmClientFactory HelmClientFactory, serviceAccountInstallerFactory ServiceAccountInstallerFactory, charts []*my_helm.MyChart, logger lager.Logger) *PksServiceBroker {
+func NewPksServiceBroker(config *config.Config, clusterFactory k8s.ClusterFactory, helmClientFactory my_helm.HelmClientFactory, serviceAccountInstallerFactory k8s.ServiceAccountInstallerFactory, charts []*my_helm.MyChart, logger lager.Logger) *PksServiceBroker {
 	broker := &PksServiceBroker{
 		Logger:                         logger,
 		config:                         config,

@@ -73,14 +73,6 @@ func NewCluster(kuboConfig *config.ClusterCredentials) (Cluster, error) {
 	}, nil
 }
 
-type ClusterFactory struct {
-	ClusterCredentials config.ClusterCredentials
-}
-
-func (cf ClusterFactory) DefaultCluster() (Cluster, error) {
-	return NewCluster(&cf.ClusterCredentials)
-}
-
 func (cluster *cluster) GetClientConfig() *rest.Config {
 	return cluster.k8sConfig
 }

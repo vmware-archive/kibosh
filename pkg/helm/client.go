@@ -54,14 +54,6 @@ func NewMyHelmClient(cluster k8s.Cluster, logger lager.Logger) MyHelmClient {
 	}
 }
 
-type HelmClientFactory struct {
-	Logger lager.Logger
-}
-
-func (hcf HelmClientFactory) HelmClient(cluster k8s.Cluster) MyHelmClient {
-	return NewMyHelmClient(cluster, hcf.Logger)
-}
-
 func (c myHelmClient) open() (*kube.Tunnel, helm.Interface, error) {
 	config, client := c.cluster.GetClientConfig(), c.cluster.GetClient()
 	tunnel, err := portforwarder.New(nameSpace, client, config)

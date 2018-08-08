@@ -36,14 +36,6 @@ type serviceAccountInstaller struct {
 	logger  lager.Logger
 }
 
-type ServiceAccountInstallerFactory struct {
-	Logger lager.Logger
-}
-
-func (saif ServiceAccountInstallerFactory) ServiceAccountInstaller(cluster Cluster) ServiceAccountInstaller {
-	return NewServiceAccountInstaller(cluster, saif.Logger)
-}
-
 func NewServiceAccountInstaller(cluster Cluster, logger lager.Logger) ServiceAccountInstaller {
 
 	return &serviceAccountInstaller{

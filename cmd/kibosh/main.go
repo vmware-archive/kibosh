@@ -70,9 +70,9 @@ func main() {
 	}
 	brokerLogger.Info(fmt.Sprintf("Installing operators %s", operatorCharts))
 
-	clusterFactory := k8s.ClusterFactory{ClusterCredentials: *conf.ClusterCredentials}
-	helmClientFactory := helm.HelmClientFactory{Logger: brokerLogger}
-	serviceAccountInstallerFactory := k8s.ServiceAccountInstallerFactory{Logger: brokerLogger}
+	clusterFactory := k8s.NewClusterFactory(*conf.ClusterCredentials)
+	helmClientFactory := helm.NewHelmClientFactory(brokerLogger)
+	serviceAccountInstallerFactory := k8s.NewServiceAccountInstallerFactory(brokerLogger)
 
 	serviceBroker := broker.NewPksServiceBroker(conf, clusterFactory, helmClientFactory, serviceAccountInstallerFactory, charts, brokerLogger)
 	brokerCredentials := brokerapi.BrokerCredentials{

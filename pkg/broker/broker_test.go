@@ -22,7 +22,6 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	. "github.com/cf-platform-eng/kibosh/pkg/broker"
-	"github.com/cf-platform-eng/kibosh/pkg/broker/brokerfakes"
 	my_config "github.com/cf-platform-eng/kibosh/pkg/config"
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/helm/helmfakes"
@@ -176,11 +175,11 @@ var _ = Describe("Broker", func() {
 	Context("provision", func() {
 		var details brokerapi.ProvisionDetails
 		var fakeHelmClient helmfakes.FakeMyHelmClient
-		var fakeHelmClientFactory brokerfakes.FakeHelmClientFactory
+		var fakeHelmClientFactory helmfakes.FakeHelmClientFactory
 		var fakeCluster k8sfakes.FakeCluster
-		var fakeClusterFactory brokerfakes.FakeClusterFactory
+		var fakeClusterFactory k8sfakes.FakeClusterFactory
 		var fakeServiceAccountInstaller k8sfakes.FakeServiceAccountInstaller
-		var fakeServiceAccountInstallerFactory brokerfakes.FakeServiceAccountInstallerFactory
+		var fakeServiceAccountInstallerFactory k8sfakes.FakeServiceAccountInstallerFactory
 		var broker *PksServiceBroker
 
 		BeforeEach(func() {
@@ -335,11 +334,11 @@ var _ = Describe("Broker", func() {
 
 	Context("last operation", func() {
 		var fakeHelmClient helmfakes.FakeMyHelmClient
-		var fakeHelmClientFactory brokerfakes.FakeHelmClientFactory
+		var fakeHelmClientFactory helmfakes.FakeHelmClientFactory
 		var fakeCluster k8sfakes.FakeCluster
-		var fakeClusterFactory brokerfakes.FakeClusterFactory
+		var fakeClusterFactory k8sfakes.FakeClusterFactory
 		var fakeServiceAccountInstaller k8sfakes.FakeServiceAccountInstaller
-		var fakeServiceAccountInstallerFactory brokerfakes.FakeServiceAccountInstallerFactory
+		var fakeServiceAccountInstallerFactory k8sfakes.FakeServiceAccountInstallerFactory
 		var broker *PksServiceBroker
 
 		BeforeEach(func() {
@@ -615,11 +614,11 @@ var _ = Describe("Broker", func() {
 
 	Context("bind", func() {
 		var fakeHelmClient helmfakes.FakeMyHelmClient
-		var fakeHelmClientFactory brokerfakes.FakeHelmClientFactory
+		var fakeHelmClientFactory helmfakes.FakeHelmClientFactory
 		var fakeCluster k8sfakes.FakeCluster
-		var fakeClusterFactory brokerfakes.FakeClusterFactory
+		var fakeClusterFactory k8sfakes.FakeClusterFactory
 		var fakeServiceAccountInstaller k8sfakes.FakeServiceAccountInstaller
-		var fakeServiceAccountInstallerFactory brokerfakes.FakeServiceAccountInstallerFactory
+		var fakeServiceAccountInstallerFactory k8sfakes.FakeServiceAccountInstallerFactory
 		var broker *PksServiceBroker
 
 		BeforeEach(func() {
@@ -769,11 +768,11 @@ var _ = Describe("Broker", func() {
 
 	Context("delete", func() {
 		var fakeHelmClient helmfakes.FakeMyHelmClient
-		var fakeHelmClientFactory brokerfakes.FakeHelmClientFactory
+		var fakeHelmClientFactory helmfakes.FakeHelmClientFactory
 		var fakeCluster k8sfakes.FakeCluster
-		var fakeClusterFactory brokerfakes.FakeClusterFactory
+		var fakeClusterFactory k8sfakes.FakeClusterFactory
 		var fakeServiceAccountInstaller k8sfakes.FakeServiceAccountInstaller
-		var fakeServiceAccountInstallerFactory brokerfakes.FakeServiceAccountInstallerFactory
+		var fakeServiceAccountInstallerFactory k8sfakes.FakeServiceAccountInstallerFactory
 		var broker *PksServiceBroker
 
 		BeforeEach(func() {
@@ -836,11 +835,11 @@ var _ = Describe("Broker", func() {
 
 	Context("update", func() {
 		var fakeHelmClient helmfakes.FakeMyHelmClient
-		var fakeHelmClientFactory brokerfakes.FakeHelmClientFactory
+		var fakeHelmClientFactory helmfakes.FakeHelmClientFactory
 		var fakeCluster k8sfakes.FakeCluster
-		var fakeClusterFactory brokerfakes.FakeClusterFactory
+		var fakeClusterFactory k8sfakes.FakeClusterFactory
 		var fakeServiceAccountInstaller k8sfakes.FakeServiceAccountInstaller
-		var fakeServiceAccountInstallerFactory brokerfakes.FakeServiceAccountInstallerFactory
+		var fakeServiceAccountInstallerFactory k8sfakes.FakeServiceAccountInstallerFactory
 		var broker *PksServiceBroker
 
 		BeforeEach(func() {
