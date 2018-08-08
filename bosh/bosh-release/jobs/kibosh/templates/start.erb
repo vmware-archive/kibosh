@@ -36,26 +36,15 @@ export CF_BROKER_NAME=<%= p("kibosh.cf.broker_name") %>
 export CF_SKIP_SSL_VALIDATION=<%= p("kibosh.cf.skip_ssl_validation") %>
 <% end %>
 
-if [ ! -d "$LOG_DIR" ] ; then
-  mkdir -p "$LOG_DIR"
-  chown -R vcap:vcap "$LOG_DIR"
-fi
+mkdir -p "$LOG_DIR" "$RUN_DIR" "$HELM_CHART_DIR"
 
-if [ ! -d "$RUN_DIR" ] ; then
-  mkdir -p "$RUN_DIR"
-  chown -R vcap:vcap "$RUN_DIR"
-fi
-
-if [ ! -d "$HELM_CHART_DIR" ] ; then
-  mkdir -p "$HELM_CHART_DIR"
-  chown -R vcap:vcap "$HELM_CHART_DIR"
-fi
+# If one of these directories is very large, chowning might take a very long time.
+# Consider only chowning if dir did not yet exist in the previous step
+chown -R vcap:vcap "$LOG_DIR" "$RUN_DIR" "$HELM_CHART_DIR"
 
 <% if p("kibosh.operator_dir") %>
-if [ ! -d "$OPERATOR_DIR" ] ; then
-  mkdir -p "$OPERATOR_DIR"
-  chown -R vcap:vcap "$OPERATOR_DIR"
-fi
+mkdir -p "$OPERATOR_DIR"
+chown -R vcap:vcap "$OPERATOR_DIR"
 <% end %>
 
 # heed warnings from start-stop-daemon(8) about use of exec flag with interpreters
