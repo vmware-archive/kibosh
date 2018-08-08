@@ -11,6 +11,9 @@ export SECURITY_USER_NAME=<%= p("kibosh.username", "admin") %>
 export SECURITY_USER_PASSWORD=<%= p("kibosh.password") %>
 export PORT=<%= p("kibosh.port", "8080") %>
 export HELM_CHART_DIR=<%= p("kibosh.helm_chart_dir", "charts") %>
+<% if p("kibosh.operator_dir") %>
+export OPERATOR_DIR=<%= p("kibosh.operator_dir") %>
+<% end %>
 export CA_DATA=<%= Shellwords.escape p("kibosh.ca_data") %>
 export SERVER=<%= p("kibosh.server", "https://127.0.0.1") %>
 export TOKEN=<%= p("kibosh.token") %>
@@ -38,6 +41,11 @@ mkdir -p "$LOG_DIR" "$RUN_DIR" "$HELM_CHART_DIR"
 # If one of these directories is very large, chowning might take a very long time.
 # Consider only chowning if dir did not yet exist in the previous step
 chown -R vcap:vcap "$LOG_DIR" "$RUN_DIR" "$HELM_CHART_DIR"
+
+<% if p("kibosh.operator_dir") %>
+mkdir -p "$OPERATOR_DIR"
+chown -R vcap:vcap "$OPERATOR_DIR"
+<% end %>
 
 # heed warnings from start-stop-daemon(8) about use of exec flag with interpreters
 /sbin/start-stop-daemon \
