@@ -11,7 +11,7 @@ export SECURITY_USER_NAME=<%= p("kibosh.username", "admin") %>
 export SECURITY_USER_PASSWORD=<%= p("kibosh.password") %>
 export PORT=<%= p("kibosh.port", "8080") %>
 export HELM_CHART_DIR=<%= p("kibosh.helm_chart_dir", "charts") %>
-<% if p("kibosh.operator_dir") %>
+<% if p("kibosh.operator_dir", "") != "" %>
 export OPERATOR_DIR=<%= p("kibosh.operator_dir") %>
 <% end %>
 export CA_DATA=<%= Shellwords.escape p("kibosh.ca_data") %>
@@ -42,7 +42,7 @@ mkdir -p "$LOG_DIR" "$RUN_DIR" "$HELM_CHART_DIR"
 # Consider only chowning if dir did not yet exist in the previous step
 chown -R vcap:vcap "$LOG_DIR" "$RUN_DIR" "$HELM_CHART_DIR"
 
-<% if p("kibosh.operator_dir") %>
+<% if p("kibosh.operator_dir", "") != "" %>
 mkdir -p "$OPERATOR_DIR"
 chown -R vcap:vcap "$OPERATOR_DIR"
 <% end %>
