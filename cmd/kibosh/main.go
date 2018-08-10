@@ -68,13 +68,13 @@ func main() {
 			brokerLogger.Fatal("Unable to load operators", err)
 		}
 	}
-	brokerLogger.Info(fmt.Sprintf("Installing operators %s", operatorCharts))
+	brokerLogger.Info(fmt.Sprintf("Loaded operator charts: %s", operatorCharts))
 
 	clusterFactory := k8s.NewClusterFactory(*conf.ClusterCredentials)
 	helmClientFactory := helm.NewHelmClientFactory(brokerLogger)
 	serviceAccountInstallerFactory := k8s.NewServiceAccountInstallerFactory(brokerLogger)
 
-	serviceBroker := broker.NewPksServiceBroker(conf, clusterFactory, helmClientFactory, serviceAccountInstallerFactory, charts, brokerLogger)
+	serviceBroker := broker.NewPksServiceBroker(conf, clusterFactory, helmClientFactory, serviceAccountInstallerFactory, charts, operatorCharts, brokerLogger)
 	brokerCredentials := brokerapi.BrokerCredentials{
 		Username: conf.AdminUsername,
 		Password: conf.AdminPassword,
