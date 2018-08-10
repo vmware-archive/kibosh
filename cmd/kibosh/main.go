@@ -20,6 +20,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/cf-platform-eng/kibosh/pkg/state"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/cf-platform-eng/kibosh/pkg/broker"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
@@ -74,7 +76,16 @@ func main() {
 	helmClientFactory := helm.NewHelmClientFactory(brokerLogger)
 	serviceAccountInstallerFactory := k8s.NewServiceAccountInstallerFactory(brokerLogger)
 
-	serviceBroker := broker.NewPksServiceBroker(conf, clusterFactory, helmClientFactory, serviceAccountInstallerFactory, charts, brokerLogger)
+	mapServiceInstanceToCluster := state.NewKeyValueStore()
+	err = mapServiceInstanceToCluster.Open(conf.StateDir)
+
+	if err != nil {
+		brokerLogger.Fatal("Unable to open state db", err)
+	}
+
+	defer mapServiceInstanceToCluster.Close()
+
+	serviceBroker := broker.NewPksServiceBroker(conf, clusterFactory, helmClientFactory, serviceAccountInstallerFactory, charts, mapServiceInstanceToCluster, brokerLogger)
 	brokerCredentials := brokerapi.BrokerCredentials{
 		Username: conf.AdminUsername,
 		Password: conf.AdminPassword,

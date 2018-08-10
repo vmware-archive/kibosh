@@ -79,3 +79,7 @@ ignored = [
 [[constraint]]
   branch = "master"
   name = "github.com/cloudfoundry-community/go-cfclient"
+
+[[constraint]]
+  name = "github.com/dgraph-io/badger"
+  version = "1.5.3"

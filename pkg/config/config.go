@@ -27,10 +27,10 @@ import (
 )
 
 type ClusterCredentials struct {
-	CADataRaw string `envconfig:"CA_DATA"`
+	CADataRaw string `envconfig:"CA_DATA" json:"caDataRaw"`
 	CAData    []byte
-	Server    string `envconfig:"SERVER"`
-	Token     string `envconfig:"TOKEN"`
+	Server    string `envconfig:"SERVER" json:"server"`
+	Token     string `envconfig:"TOKEN" json:"token"`
 }
 
 type RegistryConfig struct {

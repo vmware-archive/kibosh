@@ -44,8 +44,8 @@ func ExtractClusterConfig(params json.RawMessage) (config.ClusterCredentials, bo
 
 	if err == nil && isValidClusterConfig(&c.ClusterConfig) {
 		caData, _ := b64.StdEncoding.DecodeString(c.ClusterConfig.CertificatAuthorityData)
-		return config.ClusterCredentials{Server: c.ClusterConfig.Server, Token: c.ClusterConfig.Token, CADataRaw: string(caData)}, true
-	} else {
-		return config.ClusterCredentials{}, false
+		return config.ClusterCredentials{Server: c.ClusterConfig.Server, Token: c.ClusterConfig.Token, CADataRaw: string(caData), CAData: caData}, true
 	}
+
+	return config.ClusterCredentials{}, false
 }
