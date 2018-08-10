@@ -241,6 +241,9 @@ var _ = Describe("Broker", func() {
 			clusterConfig := fakeClusterFactory.GetClusterArgsForCall(0)
 			Expect(clusterConfig.Server).To(Equal("server url"))
 			Expect(fakeBrokerState.PutJsonCallCount()).To(Equal(1))
+			Expect(fakeBrokerState.PutJsonCallCount()).To(Equal(1))
+			putKey, _ := fakeBrokerState.PutJsonArgsForCall(0)
+			Expect(putKey).To(Equal("my-instance-guid-instance-to-cluster"))
 		})
 
 		Context("namespace", func() {
@@ -1019,6 +1022,9 @@ var _ = Describe("Broker", func() {
 			Expect(response.OperationData).To(Equal("deprovision"))
 			Expect(fakeClusterFactory.DefaultClusterCallCount()).ShouldNot(Equal(0))
 			Expect(fakeClusterFactory.GetClusterCallCount()).To(Equal(0))
+			Expect(fakeBrokerState.DeleteCallCount()).To(Equal(1))
+			deleteKey := fakeBrokerState.DeleteArgsForCall(0)
+			Expect(deleteKey).To(Equal("my-instance-guid-instance-to-cluster"))
 		})
 
 		It("targets proper cluster", func() {

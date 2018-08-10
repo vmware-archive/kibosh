@@ -43,6 +43,17 @@ type FakeKeyValueStore struct {
 	getJsonReturnsOnCall map[int]struct {
 		result1 error
 	}
+	DeleteStub        func(key string) error
+	deleteMutex       sync.RWMutex
+	deleteArgsForCall []struct {
+		key string
+	}
+	deleteReturns struct {
+		result1 error
+	}
+	deleteReturnsOnCall map[int]struct {
+		result1 error
+	}
 	CloseStub        func()
 	closeMutex       sync.RWMutex
 	closeArgsForCall []struct{}
@@ -196,6 +207,54 @@ func (fake *FakeKeyValueStore) GetJsonReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeKeyValueStore) Delete(key string) error {
+	fake.deleteMutex.Lock()
+	ret, specificReturn := fake.deleteReturnsOnCall[len(fake.deleteArgsForCall)]
+	fake.deleteArgsForCall = append(fake.deleteArgsForCall, struct {
+		key string
+	}{key})
+	fake.recordInvocation("Delete", []interface{}{key})
+	fake.deleteMutex.Unlock()
+	if fake.DeleteStub != nil {
+		return fake.DeleteStub(key)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.deleteReturns.result1
+}
+
+func (fake *FakeKeyValueStore) DeleteCallCount() int {
+	fake.deleteMutex.RLock()
+	defer fake.deleteMutex.RUnlock()
+	return len(fake.deleteArgsForCall)
+}
+
+func (fake *FakeKeyValueStore) DeleteArgsForCall(i int) string {
+	fake.deleteMutex.RLock()
+	defer fake.deleteMutex.RUnlock()
+	return fake.deleteArgsForCall[i].key
+}
+
+func (fake *FakeKeyValueStore) DeleteReturns(result1 error) {
+	fake.DeleteStub = nil
+	fake.deleteReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeKeyValueStore) DeleteReturnsOnCall(i int, result1 error) {
+	fake.DeleteStub = nil
+	if fake.deleteReturnsOnCall == nil {
+		fake.deleteReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.deleteReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeKeyValueStore) Close() {
 	fake.closeMutex.Lock()
 	fake.closeArgsForCall = append(fake.closeArgsForCall, struct{}{})
@@ -221,6 +280,8 @@ func (fake *FakeKeyValueStore) Invocations() map[string][][]interface{} {
 	defer fake.putJsonMutex.RUnlock()
 	fake.getJsonMutex.RLock()
 	defer fake.getJsonMutex.RUnlock()
+	fake.deleteMutex.RLock()
+	defer fake.deleteMutex.RUnlock()
 	fake.closeMutex.RLock()
 	defer fake.closeMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

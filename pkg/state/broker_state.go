@@ -32,6 +32,9 @@ type KeyValueStore interface {
 
 	// get val unmarshaled with json.Unmarshal()
 	GetJson(key string, val interface{}) error
+
+	Delete(key string) error
+
 	Close()
 }
 
@@ -86,4 +89,10 @@ func (kvs *keyValueStore) GetJson(key string, val interface{}) error {
 	})
 
 	return err
+}
+
+func (kvs *keyValueStore) Delete(key string) error {
+	return kvs.db.Update(func(txn *badger.Txn) error {
+		return txn.Delete([]byte(key))
+	})
 }

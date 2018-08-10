@@ -248,6 +248,8 @@ func (broker *PksServiceBroker) Deprovision(ctx context.Context, instanceID stri
 		return brokerapi.DeprovisionServiceSpec{}, err
 	}
 
+	broker.mapInstanceToCluster.Delete(clusterMapKey(instanceID))
+
 	return brokerapi.DeprovisionServiceSpec{
 		IsAsync:       true,
 		OperationData: "deprovision",

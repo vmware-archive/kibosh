@@ -48,7 +48,7 @@ var _ = Describe("Broker State", func() {
 		Expect(err).To(BeNil())
 	})
 
-	Context("put and get", func() {
+	Context("basic functionality", func() {
 		It("put and item and get it back", func() {
 			ts1 := testStruct{"hi", 101}
 			err := kvs.PutJson("key1", ts1)
@@ -62,6 +62,19 @@ var _ = Describe("Broker State", func() {
 		It("returns key not found for non-existent key", func() {
 			var ts testStruct
 			err := kvs.GetJson("key3", &ts)
+			Expect(err).To(Equal(state.KeyNotFoundError))
+		})
+
+		It("put an item, delete it, and make sure its gone", func() {
+			ts1 := testStruct{"bye", 42}
+			err := kvs.PutJson("keyA", ts1)
+			Expect(err).To(BeNil())
+			var ts2 testStruct
+			err = kvs.GetJson("keyA", &ts2)
+			Expect(err).To(BeNil())
+			err = kvs.Delete("keyA")
+			Expect(err).To(BeNil())
+			err = kvs.GetJson("keyA", &ts2)
 			Expect(err).To(Equal(state.KeyNotFoundError))
 		})
 	})
