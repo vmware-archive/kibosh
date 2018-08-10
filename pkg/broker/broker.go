@@ -44,16 +44,18 @@ type PksServiceBroker struct {
 	helmClientFactory              my_helm.HelmClientFactory
 	serviceAccountInstallerFactory k8s.ServiceAccountInstallerFactory
 	charts                         []*my_helm.MyChart
+	operators                      []*my_helm.MyChart
 }
 
-func NewPksServiceBroker(config *config.Config, clusterFactory k8s.ClusterFactory, helmClientFactory my_helm.HelmClientFactory, serviceAccountInstallerFactory k8s.ServiceAccountInstallerFactory, charts []*my_helm.MyChart, logger lager.Logger) *PksServiceBroker {
+func NewPksServiceBroker(config *config.Config, clusterFactory k8s.ClusterFactory, helmClientFactory my_helm.HelmClientFactory, serviceAccountInstallerFactory k8s.ServiceAccountInstallerFactory, charts []*my_helm.MyChart, operators []*my_helm.MyChart, logger lager.Logger) *PksServiceBroker {
 	broker := &PksServiceBroker{
 		Logger:                         logger,
 		config:                         config,
 		clusterFactory:                 clusterFactory,
 		helmClientFactory:              helmClientFactory,
 		serviceAccountInstallerFactory: serviceAccountInstallerFactory,
-		charts: charts,
+		charts:    charts,
+		operators: operators,
 	}
 
 	return broker
@@ -172,7 +174,7 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 
 	// Install each operator chart.
 	operatorInstaller := operator.NewInstaller(broker.config.RegistryConfig, cluster, myHelmClient, broker.Logger)
-	err = operatorInstaller.InstallCharts(broker.charts)
+	err = operatorInstaller.InstallCharts(broker.operators)
 	if err != nil {
 		return brokerapi.ProvisionedServiceSpec{}, err
 	}
