@@ -248,8 +248,6 @@ func (broker *PksServiceBroker) Deprovision(ctx context.Context, instanceID stri
 		return brokerapi.DeprovisionServiceSpec{}, err
 	}
 
-	broker.mapInstanceToCluster.Delete(clusterMapKey(instanceID))
-
 	return brokerapi.DeprovisionServiceSpec{
 		IsAsync:       true,
 		OperationData: "deprovision",
@@ -435,6 +433,7 @@ func (broker *PksServiceBroker) LastOperation(ctx context.Context, instanceID, o
 		case hapi_release.Status_DELETED:
 			brokerStatus = brokerapi.Succeeded
 			description = "gone"
+			defer broker.mapInstanceToCluster.Delete(clusterMapKey(instanceID))
 		case hapi_release.Status_DEPLOYED:
 			fallthrough
 		case hapi_release.Status_DELETING:

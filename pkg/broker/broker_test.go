@@ -444,6 +444,24 @@ var _ = Describe("Broker", func() {
 			Expect(fakeBrokerState.GetJsonCallCount()).To(Equal(fakeClusterFactory.DefaultClusterCallCount()))
 		})
 
+		It("deletes cluster creds from state on delete", func() {
+			fakeHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
+				Info: &hapi_release.Info{
+					Status: &hapi_release.Status{
+						Code: hapi_release.Status_DELETED,
+					},
+				},
+			}, nil)
+
+			resp, err := broker.LastOperation(nil, "my-instance-guid", "deprovision")
+			Expect(err).To(BeNil())
+			Expect(resp.Description).To(ContainSubstring("gone"))
+			Expect(resp.State).To(Equal(brokerapi.Succeeded))
+			Expect(fakeBrokerState.DeleteCallCount()).To(Equal(1))
+			deleteKey := fakeBrokerState.DeleteArgsForCall(0)
+			Expect(deleteKey).To(Equal("my-instance-guid-instance-to-cluster"))
+		})
+
 		It("returns pending install", func() {
 			fakeHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
 				Info: &hapi_release.Info{
@@ -1022,9 +1040,6 @@ var _ = Describe("Broker", func() {
 			Expect(response.OperationData).To(Equal("deprovision"))
 			Expect(fakeClusterFactory.DefaultClusterCallCount()).ShouldNot(Equal(0))
 			Expect(fakeClusterFactory.GetClusterCallCount()).To(Equal(0))
-			Expect(fakeBrokerState.DeleteCallCount()).To(Equal(1))
-			deleteKey := fakeBrokerState.DeleteArgsForCall(0)
-			Expect(deleteKey).To(Equal("my-instance-guid-instance-to-cluster"))
 		})
 
 		It("targets proper cluster", func() {
