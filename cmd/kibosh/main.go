@@ -71,7 +71,7 @@ func main() {
 	brokerLogger.Info(fmt.Sprintf("Loaded operator charts: %s", operatorCharts))
 
 	clusterFactory := k8s.NewClusterFactory(*conf.ClusterCredentials)
-	helmClientFactory := helm.NewHelmClientFactory(brokerLogger)
+	helmClientFactory := helm.NewHelmClientFactory(conf.HelmTLSConfig, brokerLogger)
 	serviceAccountInstallerFactory := k8s.NewServiceAccountInstallerFactory(brokerLogger)
 
 	serviceBroker := broker.NewPksServiceBroker(conf, clusterFactory, helmClientFactory, serviceAccountInstallerFactory, charts, operatorCharts, brokerLogger)

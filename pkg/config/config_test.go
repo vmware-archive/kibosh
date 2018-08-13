@@ -182,21 +182,32 @@ my cert data
 				var err error
 				tlsPath, err = ioutil.TempDir("", "")
 				Expect(err).To(BeNil())
-				tlsFile := filepath.Join(tlsPath, "tls_key_file.txt")
-				err = ioutil.WriteFile(tlsFile, []byte("foo key"), 0666)
-				Expect(err).To(BeNil())
-
-				tlsCertFile := filepath.Join(tlsPath, "tls_cert_file.txt")
-				err = ioutil.WriteFile(tlsCertFile, []byte("foo cert"), 0666)
-				Expect(err).To(BeNil())
 
 				tlsCAFile := filepath.Join(tlsPath, "tls_ca_file.txt")
 				err = ioutil.WriteFile(tlsCAFile, []byte("foo ca"), 0666)
 				Expect(err).To(BeNil())
 
-				os.Setenv("TILLER_TLS_KEY_FILE", tlsFile)
-				os.Setenv("TILLER_CERT_FILE", tlsCertFile)
+				tillerTLSFile := filepath.Join(tlsPath, "tiller_tls_key_file.txt")
+				err = ioutil.WriteFile(tillerTLSFile, []byte("foo key"), 0666)
+				Expect(err).To(BeNil())
+
+				tillerTLSCertFile := filepath.Join(tlsPath, "tls_cert_file.txt")
+				err = ioutil.WriteFile(tillerTLSCertFile, []byte("foo cert"), 0666)
+				Expect(err).To(BeNil())
+
+				helmTLSFile := filepath.Join(tlsPath, "tiller_tls_key_file.txt")
+				err = ioutil.WriteFile(helmTLSFile, []byte("foo key"), 0666)
+				Expect(err).To(BeNil())
+
+				helmTLSCertFile := filepath.Join(tlsPath, "tls_cert_file.txt")
+				err = ioutil.WriteFile(helmTLSCertFile, []byte("foo cert"), 0666)
+				Expect(err).To(BeNil())
+
 				os.Setenv("TILLER_TLS_CA_CERT_FILE", tlsCAFile)
+				os.Setenv("TILLER_TLS_KEY_FILE", tillerTLSFile)
+				os.Setenv("TILLER_CERT_FILE", tillerTLSCertFile)
+				os.Setenv("HELM_TLS_KEY_FILE", helmTLSFile)
+				os.Setenv("HELM_CERT_FILE", helmTLSCertFile)
 			})
 
 			AfterEach(func() {
@@ -207,9 +218,18 @@ my cert data
 				c, err := Parse()
 				Expect(err).To(BeNil())
 
-				Expect(c.TillerTLSConfig.TLSKeyFile).NotTo(BeEmpty())
-				Expect(c.TillerTLSConfig.TLSCertFile).NotTo(BeEmpty())
-				Expect(c.TillerTLSConfig.TLSCaCertFile).NotTo(BeEmpty())
+				Expect(c.HelmTLSConfig.TLSCaCertFile).NotTo(BeEmpty())
+				Expect(c.HelmTLSConfig.TillerTLSKeyFile).NotTo(BeEmpty())
+				Expect(c.HelmTLSConfig.TillerTLSCertFile).NotTo(BeEmpty())
+				Expect(c.HelmTLSConfig.HelmTLSKeyFile).NotTo(BeEmpty())
+				Expect(c.HelmTLSConfig.HelmTLSCertFile).NotTo(BeEmpty())
+			})
+
+			It("has tiller tls config", func() {
+				c, err := Parse()
+				Expect(err).To(BeNil())
+
+				Expect(c.HelmTLSConfig.HasTillerTLS()).To(Equal(true))
 			})
 
 			It("error when files don't exists", func() {
@@ -219,6 +239,13 @@ my cert data
 				Expect(err).NotTo(BeNil())
 
 				Expect(err.Error()).To(ContainSubstring("tls_"))
+			})
+
+			It("error when tls only partially specified", func() {
+				os.Setenv("HELM_CERT_FILE", "")
+
+				_, err := Parse()
+				Expect(err).NotTo(BeNil())
 			})
 		})
 	})

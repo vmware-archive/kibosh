@@ -16,9 +16,14 @@
 package helm
 
 import (
+	"crypto/x509"
 	"fmt"
+	"io/ioutil"
+	"net"
+	"reflect"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/cf-platform-eng/kibosh/pkg/config"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
 	"github.com/ghodss/yaml"
 	helmstaller "k8s.io/helm/cmd/helm/installer"
@@ -27,11 +32,13 @@ import (
 	"k8s.io/helm/pkg/kube"
 	"k8s.io/helm/pkg/proto/hapi/chart"
 	rls "k8s.io/helm/pkg/proto/hapi/services"
+	"k8s.io/helm/pkg/tlsutil"
 )
 
 type myHelmClient struct {
 	privateRegistryServer string
 	cluster               k8s.Cluster
+	tlsConf               *config.HelmTLSConfig
 	logger                lager.Logger
 }
 
@@ -41,22 +48,25 @@ type MyHelmClient interface {
 	helm.Interface
 	Install(*helmstaller.Options) error
 	Upgrade(*helmstaller.Options) error
+	Uninstall(*helmstaller.Options) error
 	InstallChart(chart *MyChart, namespace string, planName string, installValues []byte) (*rls.InstallReleaseResponse, error)
 	InstallOperator(chart *MyChart, namespace string) (*rls.InstallReleaseResponse, error)
 	UpdateChart(chart *MyChart, rlsName string, planName string, updateValues []byte) (*rls.UpdateReleaseResponse, error)
 	MergeValueBytes(base []byte, override []byte) ([]byte, error)
+	HasDifferentTLSConfig() bool
 }
 
-func NewMyHelmClient(cluster k8s.Cluster, logger lager.Logger) MyHelmClient {
+func NewMyHelmClient(cluster k8s.Cluster, tlsConf *config.HelmTLSConfig, logger lager.Logger) MyHelmClient {
 	return &myHelmClient{
 		cluster: cluster,
+		tlsConf: tlsConf,
 		logger:  logger,
 	}
 }
 
 func (c myHelmClient) open() (*kube.Tunnel, helm.Interface, error) {
-	config, client := c.cluster.GetClientConfig(), c.cluster.GetClient()
-	tunnel, err := portforwarder.New(nameSpace, client, config)
+	conf, client := c.cluster.GetClientConfig(), c.cluster.GetClient()
+	tunnel, err := portforwarder.New(nameSpace, client, conf)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -64,7 +74,57 @@ func (c myHelmClient) open() (*kube.Tunnel, helm.Interface, error) {
 	host := fmt.Sprintf("127.0.0.1:%d", tunnel.Local)
 	c.logger.Debug("Tunnel", lager.Data{"host": host})
 
-	return tunnel, helm.NewClient(helm.Host(host)), nil
+	opts := []helm.Option{
+		helm.Host(host),
+	}
+	if c.tlsConf.HasTillerTLS() {
+		tlsOpts := tlsutil.Options{
+			CaCertFile:         c.tlsConf.TLSCaCertFile,
+			KeyFile:            c.tlsConf.HelmTLSKeyFile,
+			CertFile:           c.tlsConf.HelmTLSCertFile,
+			InsecureSkipVerify: false,
+		}
+
+		tlsCfg, err := tlsutil.ClientConfig(tlsOpts)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		caBytes, err := ioutil.ReadFile(c.tlsConf.TLSCaCertFile)
+		//trust our own cert
+		tlsCfg.RootCAs.AppendCertsFromPEM(caBytes)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		opts = append(opts, helm.WithTLS(tlsCfg))
+	}
+
+	return tunnel, helm.NewClient(opts...), nil
+}
+
+func (c *myHelmClient) HasDifferentTLSConfig() bool {
+	_, err := c.ListReleases()
+	if err != nil {
+		_, isUAError := err.(x509.UnknownAuthorityError)
+		if isUAError {
+			return true
+		}
+
+		_, isHostnameError := err.(x509.HostnameError)
+		if isHostnameError {
+			return true
+		}
+
+		opError, isOpError := err.(*net.OpError)
+		if isOpError {
+			errorType := reflect.TypeOf(opError.Err)
+			if errorType.String() == "tls.alert" {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (c *myHelmClient) Install(opts *helmstaller.Options) error {
@@ -75,13 +135,21 @@ func (c *myHelmClient) Upgrade(opts *helmstaller.Options) error {
 	return helmstaller.Upgrade(c.cluster.GetClient(), opts)
 }
 
+func (c *myHelmClient) Uninstall(opts *helmstaller.Options) error {
+	return helmstaller.Uninstall(c.cluster.GetInternalClient(), opts)
+}
+
 func (c myHelmClient) ListReleases(opts ...helm.ReleaseListOption) (*rls.ListReleasesResponse, error) {
 	tunnel, client, err := c.open()
 	if err != nil {
 		return nil, err
 	}
 	defer tunnel.Close()
-	return client.ListReleases(opts...)
+	releases, err := client.ListReleases(opts...)
+	if err != nil {
+		return nil, err
+	}
+	return releases, nil
 }
 
 func (c myHelmClient) InstallRelease(chStr, namespace string, opts ...helm.InstallOption) (*rls.InstallReleaseResponse, error) {

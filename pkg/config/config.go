@@ -49,10 +49,12 @@ type CFClientConfig struct {
 	SkipSslValidation bool   `envconfig:"CF_SKIP_SSL_VALIDATION"`
 }
 
-type TillerTLSConfig struct {
-	TLSKeyFile    string `envconfig:"TILLER_TLS_KEY_FILE"`
-	TLSCertFile   string `envconfig:"TILLER_CERT_FILE"`
-	TLSCaCertFile string `envconfig:"TILLER_TLS_CA_CERT_FILE"`
+type HelmTLSConfig struct {
+	TLSCaCertFile     string `envconfig:"TILLER_TLS_CA_CERT_FILE"`
+	TillerTLSKeyFile  string `envconfig:"TILLER_TLS_KEY_FILE"`
+	TillerTLSCertFile string `envconfig:"TILLER_CERT_FILE"`
+	HelmTLSKeyFile    string `envconfig:"HELM_TLS_KEY_FILE"`
+	HelmTLSCertFile   string `envconfig:"HELM_CERT_FILE"`
 }
 
 type Config struct {
@@ -66,7 +68,7 @@ type Config struct {
 	ClusterCredentials *ClusterCredentials
 	RegistryConfig     *RegistryConfig
 	CFClientConfig     *CFClientConfig
-	TillerTLSConfig    *TillerTLSConfig
+	HelmTLSConfig      *HelmTLSConfig
 }
 
 func (r RegistryConfig) HasRegistryConfig() bool {
@@ -75,6 +77,10 @@ func (r RegistryConfig) HasRegistryConfig() bool {
 
 func (c CFClientConfig) HasCFClientConfig() bool {
 	return c.ApiAddress != ""
+}
+
+func (t *HelmTLSConfig) HasTillerTLS() bool {
+	return t.TLSCaCertFile != ""
 }
 
 func (r RegistryConfig) GetDockerConfigJson() ([]byte, error) {
@@ -111,10 +117,13 @@ func Parse() (*Config, error) {
 		return nil, err
 	}
 
-	err = c.TillerTLSConfig.validateTillerParameters()
-	if err != nil {
-		return nil, err
+	if c.HelmTLSConfig.HasTillerTLS() {
+		err = c.HelmTLSConfig.validateHelmConfig()
+		if err != nil {
+			return nil, err
+		}
 	}
+
 	return c, nil
 }
 
@@ -134,15 +143,20 @@ func (c *ClusterCredentials) parseCAData() error {
 	return nil
 }
 
-func (t *TillerTLSConfig) validateTillerParameters() error {
+func (t *HelmTLSConfig) validateHelmConfig() error {
 	files := []string{
-		t.TLSCertFile, t.TLSKeyFile, t.TLSCaCertFile,
+		t.TLSCaCertFile,
+		t.TillerTLSCertFile, t.TillerTLSKeyFile,
+		t.HelmTLSCertFile, t.HelmTLSKeyFile,
 	}
 	for _, file := range files {
+		if file == "" {
+			return errors.New("configuring with ssl requires a ca cert, tiller cert/key, and helm cert/key")
+		}
 		if file != "" {
 			exists, err := fileExists(file)
 			if !exists {
-				return errors.New(fmt.Sprintf("Tiller file [%s] does not exist", file))
+				return errors.New(fmt.Sprintf("Helm file [%s] does not exist", file))
 			}
 			if err != nil {
 				return err

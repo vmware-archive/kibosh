@@ -17,9 +17,8 @@ package helm
 
 import (
 	"fmt"
-	"time"
-
 	"strings"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/Masterminds/semver"
@@ -81,13 +80,100 @@ func (i *installer) Install() error {
 		tillerImage = fmt.Sprintf("%s/tiller:%s", i.config.RegistryConfig.Server, tillerTag)
 	}
 
+	var err error
+	if i.config.HelmTLSConfig.HasTillerTLS() {
+		i.logger.Debug("Installing with TLS")
+		err = i.installWithTLS(tillerImage)
+	} else {
+		i.logger.Debug("Installing insecure :(")
+		err = i.installInsecure(tillerImage)
+	}
+	if err != nil {
+		return err
+	}
+
+	i.logger.Info("Waiting for tiller to become healthy")
+	waited := time.Duration(0)
+	for {
+		if i.helmHealthy() {
+			break
+		}
+		if waited >= i.maxWait {
+			return errors.New("Didn't become healthy within max time")
+		}
+		willWait := i.maxWait / 10
+		waited = waited + willWait
+		time.Sleep(willWait)
+	}
+	return nil
+}
+
+func (i *installer) SetMaxWait(wait time.Duration) {
+	i.maxWait = wait
+}
+
+func (i *installer) helmHealthy() bool {
+	_, err := i.client.ListReleases()
+
+	if err != nil {
+		i.logger.Debug(fmt.Sprintf(
+			"Error checking helm healthy. Not necessarily an 'error' Error: %s", err.Error()),
+		)
+	}
+
+	return err == nil
+}
+
+func (i *installer) isNewerVersion(existingImage string, newImage string) bool {
+	existingVersionSplit := strings.Split(existingImage, ":")
+	if len(existingVersionSplit) < 2 {
+		return true
+	}
+	existingVersion := existingVersionSplit[1]
+
+	newVersionSplit := strings.Split(newImage, ":")
+	if len(newVersionSplit) < 2 {
+		return true
+	}
+	newVersion := newVersionSplit[1]
+
+	return semver.MustParse(newVersion).GreaterThan(semver.MustParse(existingVersion))
+}
+
+func (i *installer) installWithTLS(tillerImage string) error {
+	if i.client.HasDifferentTLSConfig() {
+		i.logger.Debug("Uninstalling to remove existing TLS")
+		err := i.client.Uninstall(&helmstaller.Options{
+			Namespace: nameSpace,
+		})
+		if err != nil {
+			return errors.Wrap(err, "Error uninstalling previous helm")
+		}
+		//todo: wait for deletion!?
+	}
+
 	options := helmstaller.Options{
 		Namespace:      nameSpace,
 		ImageSpec:      tillerImage,
 		ServiceAccount: serviceAccount,
-		TLSCertFile:    i.config.TillerTLSConfig.TLSCertFile,
-		TLSKeyFile:     i.config.TillerTLSConfig.TLSKeyFile,
-		TLSCaCertFile:  i.config.TillerTLSConfig.TLSCaCertFile,
+		VerifyTLS:      true,
+		TLSCertFile:    i.config.HelmTLSConfig.TillerTLSCertFile,
+		TLSKeyFile:     i.config.HelmTLSConfig.TillerTLSKeyFile,
+		TLSCaCertFile:  i.config.HelmTLSConfig.TLSCaCertFile,
+	}
+	err := i.client.Install(&options)
+	if err != nil {
+		return errors.Wrap(err, "Error installing helm with security")
+	}
+
+	return nil
+}
+
+func (i *installer) installInsecure(tillerImage string) error {
+	options := helmstaller.Options{
+		Namespace:      nameSpace,
+		ImageSpec:      tillerImage,
+		ServiceAccount: serviceAccount,
 	}
 
 	err := i.client.Install(&options)
@@ -113,43 +199,5 @@ func (i *installer) Install() error {
 		}
 	}
 
-	i.logger.Info("Waiting for tiller to become healthy")
-	waited := time.Duration(0)
-	for {
-		if i.helmHealthy() {
-			break
-		}
-		if waited >= i.maxWait {
-			return errors.New("Didn't become healthy within max time")
-		}
-		willWait := i.maxWait / 10
-		waited = waited + willWait
-		time.Sleep(willWait)
-	}
 	return nil
-}
-
-func (i *installer) SetMaxWait(wait time.Duration) {
-	i.maxWait = wait
-}
-
-func (i *installer) helmHealthy() bool {
-	_, err := i.client.ListReleases()
-	return err == nil
-}
-
-func (i *installer) isNewerVersion(existingImage string, newImage string) bool {
-	existingVersionSplit := strings.Split(existingImage, ":")
-	if len(existingVersionSplit) < 2 {
-		return true
-	}
-	existingVersion := existingVersionSplit[1]
-
-	newVersionSplit := strings.Split(newImage, ":")
-	if len(newVersionSplit) < 2 {
-		return true
-	}
-	newVersion := newVersionSplit[1]
-
-	return semver.MustParse(newVersion).GreaterThan(semver.MustParse(existingVersion))
 }

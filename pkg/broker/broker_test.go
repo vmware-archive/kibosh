@@ -57,7 +57,7 @@ var _ = Describe("Broker", func() {
 				User:   "k8s",
 				Pass:   "monkey123",
 				Email:  "k8s@example.com"},
-			TillerTLSConfig: &my_config.TillerTLSConfig{},
+			HelmTLSConfig: &my_config.HelmTLSConfig{},
 		}
 		spacebearsChart = &my_helm.MyChart{
 			Chart: &hapi_chart.Chart{
@@ -258,7 +258,7 @@ var _ = Describe("Broker", func() {
 
 		Context("registry secrets", func() {
 			It("doesn't mess with secrets when not configured", func() {
-				config = &my_config.Config{RegistryConfig: &my_config.RegistryConfig{}, TillerTLSConfig: &my_config.TillerTLSConfig{}}
+				config = &my_config.Config{RegistryConfig: &my_config.RegistryConfig{}, HelmTLSConfig: &my_config.HelmTLSConfig{}}
 				broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, charts, nil, logger)
 
 				_, err := broker.Provision(nil, "my-instance-guid", details, true)
