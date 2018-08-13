@@ -107,7 +107,7 @@ func Parse() (*Config, error) {
 		return nil, err
 	}
 
-	err = c.ClusterCredentials.parseCAData()
+	err = c.ClusterCredentials.ParseCAData()
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +119,7 @@ func Parse() (*Config, error) {
 	return c, nil
 }
 
-func (c *ClusterCredentials) parseCAData() error {
+func (c *ClusterCredentials) ParseCAData() error {
 	c.CADataRaw = strings.TrimSpace(c.CADataRaw)
 	if strings.Index(c.CADataRaw, "-----BEGIN CERTIFICATE-----") == 0 {
 		c.CAData = []byte(c.CADataRaw)

@@ -18,7 +18,6 @@
 package broker
 
 import (
-	b64 "encoding/base64"
 	"encoding/json"
 
 	"github.com/cf-platform-eng/kibosh/pkg/config"
@@ -43,8 +42,9 @@ func ExtractClusterConfig(params json.RawMessage) (config.ClusterCredentials, bo
 	err := json.Unmarshal(params, &c)
 
 	if err == nil && isValidClusterConfig(&c.ClusterConfig) {
-		caData, _ := b64.StdEncoding.DecodeString(c.ClusterConfig.CertificatAuthorityData)
-		return config.ClusterCredentials{Server: c.ClusterConfig.Server, Token: c.ClusterConfig.Token, CADataRaw: string(caData), CAData: caData}, true
+		clusterCreds := config.ClusterCredentials{Server: c.ClusterConfig.Server, Token: c.ClusterConfig.Token, CADataRaw: string(c.ClusterConfig.CertificatAuthorityData)}
+		clusterCreds.ParseCAData()
+		return clusterCreds, true
 	}
 
 	return config.ClusterCredentials{}, false
