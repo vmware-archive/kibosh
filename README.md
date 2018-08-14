@@ -64,6 +64,7 @@ For documentation using Kibosh to build a tile, use the
     `name`'s value should be lower alpha, numeric, `.`, or `-` 
     Values `values.yaml` sets the defaults. Each plan's yaml file is an set of values overriding the defaults present in `values.yaml`
     (copy any `values.yaml` key/value pairs to override into a new plan file)
+  See kibosh-sample's [sample-charts](https://github.com/cf-platform-eng/kibosh-sample/tree/master/sample-charts) for a few examples.
 
 In order to successfully pull private images, we're imposing some requirements
 on the `values.yaml` file structure

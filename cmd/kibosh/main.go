@@ -70,7 +70,7 @@ func main() {
 			brokerLogger.Fatal("Unable to load operators", err)
 		}
 	}
-	brokerLogger.Info(fmt.Sprintf("Installing operators %s", operatorCharts))
+	brokerLogger.Info(fmt.Sprintf("Loaded operator charts: %s", operatorCharts))
 
 	clusterFactory := k8s.NewClusterFactory(*conf.ClusterCredentials)
 	helmClientFactory := helm.NewHelmClientFactory(brokerLogger)
@@ -85,7 +85,7 @@ func main() {
 
 	defer mapServiceInstanceToCluster.Close()
 
-	serviceBroker := broker.NewPksServiceBroker(conf, clusterFactory, helmClientFactory, serviceAccountInstallerFactory, charts, mapServiceInstanceToCluster, brokerLogger)
+	serviceBroker := broker.NewPksServiceBroker(conf, clusterFactory, helmClientFactory, serviceAccountInstallerFactory, charts, operatorCharts, mapServiceInstanceToCluster, brokerLogger)
 	brokerCredentials := brokerapi.BrokerCredentials{
 		Username: conf.AdminUsername,
 		Password: conf.AdminPassword,

@@ -33,7 +33,7 @@ resources:
   source:
     bucket: kibosh
     json_key: {{gcp_service_account_key}}
-    regexp: images/tiller-image.tar
+    regexp: images/tiller-(?P<version>.*).tgz
 
 # reminder: how do we auto-consume production releases?
 # they're releases alpha tags, which we don't want to consume
@@ -620,7 +620,6 @@ jobs:
           repository: cfplatformeng/tile-generator
       params:
         IMAGE_DIR: tiller-image
-        IMAGE_FILE_NAME: tiller-image.tar
       run:
         path: bash
         args:
@@ -656,10 +655,11 @@ jobs:
 
           python fix_manifest.py
 
+          export IMAGE_FILE_NAME=tiller-$(cat tag).tgz
           tar -cvf ../out/${IMAGE_FILE_NAME} -C new-image $(ls new-image)
   - put: tiller-image-fixed
     params:
-      file: out/tiller-image.tar
+      file: out/tiller-v*.tgz
 
 
 - name: publish-release
@@ -714,7 +714,7 @@ jobs:
           mv bazaarcli-linux/bazaarcli-*.linux output/
           mv bazaarcli-mac/bazaarcli-*.mac output/
           mv kibosh-release/kibosh*.tgz output/
-          mv tiller-image-fixed/tiller-image.tar output/tiller-$(cat tiller-image/tag | tr -d '\n').tgz
+          mv tiller-image-fixed/tiller-v*.tgz output/
   - put: release-repo
     params:
       name: version/version
