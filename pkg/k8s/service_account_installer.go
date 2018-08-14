@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	serviceAccountName = "tiller"
+	serviceAccountName = "kibosh-tiller"
 )
 
 //go:generate counterfeiter ./ ServiceAccountInstaller
