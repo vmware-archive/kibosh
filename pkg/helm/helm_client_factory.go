@@ -17,6 +17,7 @@ package helm
 
 import (
 	"code.cloudfoundry.org/lager"
+	"github.com/cf-platform-eng/kibosh/pkg/config"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
 )
 
@@ -26,13 +27,17 @@ type HelmClientFactory interface {
 }
 
 type helmClientFactory struct {
-	logger lager.Logger
+	logger  lager.Logger
+	tlsConf *config.HelmTLSConfig
 }
 
 func (hcf helmClientFactory) HelmClient(cluster k8s.Cluster) MyHelmClient {
-	return NewMyHelmClient(cluster, hcf.logger)
+	return NewMyHelmClient(cluster, hcf.tlsConf, hcf.logger)
 }
 
-func NewHelmClientFactory(logger lager.Logger) HelmClientFactory {
-	return &helmClientFactory{logger}
+func NewHelmClientFactory(tlsConf *config.HelmTLSConfig, logger lager.Logger) HelmClientFactory {
+	return &helmClientFactory{
+		logger:  logger,
+		tlsConf: tlsConf,
+	}
 }

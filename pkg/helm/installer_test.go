@@ -45,8 +45,8 @@ var _ = Describe("KubeConfig", func() {
 	BeforeEach(func() {
 		logger = lager.NewLogger("test")
 		conf = &config.Config{
-			RegistryConfig:  &config.RegistryConfig{},
-			TillerTLSConfig: &config.TillerTLSConfig{},
+			RegistryConfig: &config.RegistryConfig{},
+			HelmTLSConfig:  &config.HelmTLSConfig{},
 		}
 
 		k8sClient := test.FakeK8sInterface{}
@@ -55,84 +55,6 @@ var _ = Describe("KubeConfig", func() {
 		client = helmfakes.FakeMyHelmClient{}
 
 		installer = NewInstaller(conf, &cluster, &client, logger)
-	})
-
-	It("success", func() {
-		err := installer.Install()
-
-		Expect(err).To(BeNil())
-
-		Expect(client.InstallCallCount()).To(Equal(1))
-		Expect(client.UpgradeCallCount()).To(Equal(0))
-
-		opts := client.InstallArgsForCall(0)
-		Expect(opts.Namespace).To(Equal("kube-system"))
-		Expect(opts.ImageSpec).To(Equal("gcr.io/kubernetes-helm/tiller:" + helmVersion))
-	})
-
-	It("upgrade required", func() {
-		client.InstallReturns(api_errors.NewAlreadyExists(schema.GroupResource{}, ""))
-		cluster.GetDeploymentReturns(
-			&v1_beta1.Deployment{
-				Spec: v1_beta1.DeploymentSpec{
-					Template: v1.PodTemplateSpec{
-						Spec: v1.PodSpec{
-							Containers: []v1.Container{
-								{Image: "gcr.io/kubernetes-helm/tiller:v2.7.0"},
-							}},
-					},
-				},
-			}, nil,
-		)
-
-		err := installer.Install()
-
-		Expect(err).To(BeNil())
-		Expect(client.InstallCallCount()).To(Equal(1))
-		Expect(client.UpgradeCallCount()).To(Equal(1))
-	})
-
-	It("installed but upgrade not required (same version)", func() {
-		client.InstallReturns(api_errors.NewAlreadyExists(schema.GroupResource{}, ""))
-		cluster.GetDeploymentReturns(
-			&v1_beta1.Deployment{
-				Spec: v1_beta1.DeploymentSpec{
-					Template: v1.PodTemplateSpec{
-						Spec: v1.PodSpec{
-							Containers: []v1.Container{
-								{Image: "gcr.io/kubernetes-helm/tiller:" + helmVersion},
-							}},
-					},
-				},
-			}, nil,
-		)
-
-		err := installer.Install()
-
-		Expect(err).To(BeNil())
-		Expect(client.InstallCallCount()).To(Equal(1))
-		Expect(client.UpgradeCallCount()).To(Equal(0))
-	})
-
-	It("blocks on error", func() {
-		client.ListReleasesReturnsOnCall(0, nil, errors.New("broker"))
-		client.ListReleasesReturnsOnCall(1, nil, errors.New("broker"))
-		client.ListReleasesReturnsOnCall(2, nil, nil)
-		installer.SetMaxWait(1 * time.Millisecond)
-
-		err := installer.Install()
-
-		Expect(client.ListReleasesCallCount()).To(Equal(3))
-		Expect(err).To(BeNil())
-	})
-
-	It("returns error if helm doesn't become healthy", func() {
-		client.ListReleasesReturns(nil, errors.New("No helm for you"))
-		installer.SetMaxWait(1 * time.Millisecond)
-
-		err := installer.Install()
-
-		Expect(err).NotTo(BeNil())
 	})
 
 	Context("with private registry configured", func() {
@@ -144,7 +66,7 @@ var _ = Describe("KubeConfig", func() {
 					Pass:   "monkey123",
 					Email:  "k8s@example.com",
 				},
-				TillerTLSConfig: &config.TillerTLSConfig{},
+				HelmTLSConfig: &config.HelmTLSConfig{},
 			}
 
 			installer = NewInstaller(conf, &cluster, &client, logger)
@@ -205,6 +127,146 @@ var _ = Describe("KubeConfig", func() {
 			Expect(err).To(BeNil())
 			Expect(client.InstallCallCount()).To(Equal(1))
 			Expect(client.UpgradeCallCount()).To(Equal(0))
+		})
+	})
+
+	Context("insecure", func() {
+		It("success", func() {
+			err := installer.Install()
+
+			Expect(err).To(BeNil())
+
+			Expect(client.InstallCallCount()).To(Equal(1))
+			Expect(client.UpgradeCallCount()).To(Equal(0))
+
+			opts := client.InstallArgsForCall(0)
+			Expect(opts.Namespace).To(Equal("kube-system"))
+			Expect(opts.ImageSpec).To(Equal("gcr.io/kubernetes-helm/tiller:" + helmVersion))
+
+			Expect(client.UninstallCallCount()).To(Equal(0))
+		})
+
+		It("upgrade required", func() {
+			client.InstallReturns(api_errors.NewAlreadyExists(schema.GroupResource{}, ""))
+			cluster.GetDeploymentReturns(
+				&v1_beta1.Deployment{
+					Spec: v1_beta1.DeploymentSpec{
+						Template: v1.PodTemplateSpec{
+							Spec: v1.PodSpec{
+								Containers: []v1.Container{
+									{Image: "gcr.io/kubernetes-helm/tiller:v2.7.0"},
+								}},
+						},
+					},
+				}, nil,
+			)
+
+			err := installer.Install()
+
+			Expect(err).To(BeNil())
+			Expect(client.InstallCallCount()).To(Equal(1))
+			Expect(client.UpgradeCallCount()).To(Equal(1))
+		})
+
+		It("installed but upgrade not required (same version)", func() {
+			client.InstallReturns(api_errors.NewAlreadyExists(schema.GroupResource{}, ""))
+			cluster.GetDeploymentReturns(
+				&v1_beta1.Deployment{
+					Spec: v1_beta1.DeploymentSpec{
+						Template: v1.PodTemplateSpec{
+							Spec: v1.PodSpec{
+								Containers: []v1.Container{
+									{Image: "gcr.io/kubernetes-helm/tiller:" + helmVersion},
+								}},
+						},
+					},
+				}, nil,
+			)
+
+			err := installer.Install()
+
+			Expect(err).To(BeNil())
+			Expect(client.InstallCallCount()).To(Equal(1))
+			Expect(client.UpgradeCallCount()).To(Equal(0))
+		})
+
+		It("blocks on error", func() {
+			client.ListReleasesReturnsOnCall(0, nil, errors.New("broker"))
+			client.ListReleasesReturnsOnCall(1, nil, errors.New("broker"))
+			client.ListReleasesReturnsOnCall(2, nil, nil)
+			installer.SetMaxWait(1 * time.Millisecond)
+
+			err := installer.Install()
+
+			Expect(client.ListReleasesCallCount()).To(Equal(3))
+			Expect(err).To(BeNil())
+		})
+
+		It("returns error if helm doesn't become healthy", func() {
+			client.ListReleasesReturns(nil, errors.New("No helm for you"))
+			installer.SetMaxWait(1 * time.Millisecond)
+
+			err := installer.Install()
+
+			Expect(err).NotTo(BeNil())
+		})
+	})
+
+	Context("secure", func() {
+		BeforeEach(func() {
+			conf = &config.Config{
+				RegistryConfig: &config.RegistryConfig{},
+				HelmTLSConfig: &config.HelmTLSConfig{
+					TLSCaCertFile:     "foo",
+					TillerTLSKeyFile:  "bar",
+					TillerTLSCertFile: "baz",
+				},
+			}
+			installer = NewInstaller(conf, &cluster, &client, logger)
+		})
+
+		It("success", func() {
+			err := installer.Install()
+
+			Expect(err).To(BeNil())
+
+			Expect(client.InstallCallCount()).To(Equal(1))
+			Expect(client.UpgradeCallCount()).To(Equal(0))
+
+			opts := client.InstallArgsForCall(0)
+			Expect(opts.VerifyTLS).To(BeTrue())
+			Expect(opts.TLSCaCertFile).To(Equal("foo"))
+			Expect(opts.TLSKeyFile).To(Equal("bar"))
+			Expect(opts.TLSCertFile).To(Equal("baz"))
+			Expect(opts.Namespace).To(Equal("kube-system"))
+			Expect(opts.ImageSpec).To(Equal("gcr.io/kubernetes-helm/tiller:" + helmVersion))
+		})
+
+		It("uninstalls before installing on tls issue", func() {
+			client.HasDifferentTLSConfigReturns(true)
+			err := installer.Install()
+
+			Expect(err).To(BeNil())
+
+			Expect(client.UninstallCallCount()).To(Equal(1))
+		})
+
+		It("only uninstalls before installing on tls issue", func() {
+			err := installer.Install()
+
+			Expect(err).To(BeNil())
+
+			Expect(client.UninstallCallCount()).To(Equal(0))
+		})
+
+		It("uninstall fail for previous tiller ", func() {
+			client.HasDifferentTLSConfigReturns(true)
+			client.UninstallReturns(errors.New("internal server error"))
+
+			err := installer.Install()
+
+			Expect(client.UninstallCallCount()).To(Equal(1))
+			Expect(err).NotTo(BeNil())
 		})
 	})
 })

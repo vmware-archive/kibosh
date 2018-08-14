@@ -213,6 +213,17 @@ type FakeMyHelmClient struct {
 	upgradeReturnsOnCall map[int]struct {
 		result1 error
 	}
+	UninstallStub        func(*helmstaller.Options) error
+	uninstallMutex       sync.RWMutex
+	uninstallArgsForCall []struct {
+		arg1 *helmstaller.Options
+	}
+	uninstallReturns struct {
+		result1 error
+	}
+	uninstallReturnsOnCall map[int]struct {
+		result1 error
+	}
 	InstallChartStub        func(chart *helm.MyChart, namespace string, planName string, installValues []byte) (*rls.InstallReleaseResponse, error)
 	installChartMutex       sync.RWMutex
 	installChartArgsForCall []struct {
@@ -272,6 +283,15 @@ type FakeMyHelmClient struct {
 	mergeValueBytesReturnsOnCall map[int]struct {
 		result1 []byte
 		result2 error
+	}
+	HasDifferentTLSConfigStub        func() bool
+	hasDifferentTLSConfigMutex       sync.RWMutex
+	hasDifferentTLSConfigArgsForCall []struct{}
+	hasDifferentTLSConfigReturns     struct {
+		result1 bool
+	}
+	hasDifferentTLSConfigReturnsOnCall map[int]struct {
+		result1 bool
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -1009,6 +1029,54 @@ func (fake *FakeMyHelmClient) UpgradeReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeMyHelmClient) Uninstall(arg1 *helmstaller.Options) error {
+	fake.uninstallMutex.Lock()
+	ret, specificReturn := fake.uninstallReturnsOnCall[len(fake.uninstallArgsForCall)]
+	fake.uninstallArgsForCall = append(fake.uninstallArgsForCall, struct {
+		arg1 *helmstaller.Options
+	}{arg1})
+	fake.recordInvocation("Uninstall", []interface{}{arg1})
+	fake.uninstallMutex.Unlock()
+	if fake.UninstallStub != nil {
+		return fake.UninstallStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.uninstallReturns.result1
+}
+
+func (fake *FakeMyHelmClient) UninstallCallCount() int {
+	fake.uninstallMutex.RLock()
+	defer fake.uninstallMutex.RUnlock()
+	return len(fake.uninstallArgsForCall)
+}
+
+func (fake *FakeMyHelmClient) UninstallArgsForCall(i int) *helmstaller.Options {
+	fake.uninstallMutex.RLock()
+	defer fake.uninstallMutex.RUnlock()
+	return fake.uninstallArgsForCall[i].arg1
+}
+
+func (fake *FakeMyHelmClient) UninstallReturns(result1 error) {
+	fake.UninstallStub = nil
+	fake.uninstallReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeMyHelmClient) UninstallReturnsOnCall(i int, result1 error) {
+	fake.UninstallStub = nil
+	if fake.uninstallReturnsOnCall == nil {
+		fake.uninstallReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.uninstallReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeMyHelmClient) InstallChart(chart *helm.MyChart, namespace string, planName string, installValues []byte) (*rls.InstallReleaseResponse, error) {
 	var installValuesCopy []byte
 	if installValues != nil {
@@ -1241,6 +1309,46 @@ func (fake *FakeMyHelmClient) MergeValueBytesReturnsOnCall(i int, result1 []byte
 	}{result1, result2}
 }
 
+func (fake *FakeMyHelmClient) HasDifferentTLSConfig() bool {
+	fake.hasDifferentTLSConfigMutex.Lock()
+	ret, specificReturn := fake.hasDifferentTLSConfigReturnsOnCall[len(fake.hasDifferentTLSConfigArgsForCall)]
+	fake.hasDifferentTLSConfigArgsForCall = append(fake.hasDifferentTLSConfigArgsForCall, struct{}{})
+	fake.recordInvocation("HasDifferentTLSConfig", []interface{}{})
+	fake.hasDifferentTLSConfigMutex.Unlock()
+	if fake.HasDifferentTLSConfigStub != nil {
+		return fake.HasDifferentTLSConfigStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.hasDifferentTLSConfigReturns.result1
+}
+
+func (fake *FakeMyHelmClient) HasDifferentTLSConfigCallCount() int {
+	fake.hasDifferentTLSConfigMutex.RLock()
+	defer fake.hasDifferentTLSConfigMutex.RUnlock()
+	return len(fake.hasDifferentTLSConfigArgsForCall)
+}
+
+func (fake *FakeMyHelmClient) HasDifferentTLSConfigReturns(result1 bool) {
+	fake.HasDifferentTLSConfigStub = nil
+	fake.hasDifferentTLSConfigReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeMyHelmClient) HasDifferentTLSConfigReturnsOnCall(i int, result1 bool) {
+	fake.HasDifferentTLSConfigStub = nil
+	if fake.hasDifferentTLSConfigReturnsOnCall == nil {
+		fake.hasDifferentTLSConfigReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.hasDifferentTLSConfigReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
+}
+
 func (fake *FakeMyHelmClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -1274,6 +1382,8 @@ func (fake *FakeMyHelmClient) Invocations() map[string][][]interface{} {
 	defer fake.installMutex.RUnlock()
 	fake.upgradeMutex.RLock()
 	defer fake.upgradeMutex.RUnlock()
+	fake.uninstallMutex.RLock()
+	defer fake.uninstallMutex.RUnlock()
 	fake.installChartMutex.RLock()
 	defer fake.installChartMutex.RUnlock()
 	fake.installOperatorMutex.RLock()
@@ -1282,6 +1392,8 @@ func (fake *FakeMyHelmClient) Invocations() map[string][][]interface{} {
 	defer fake.updateChartMutex.RUnlock()
 	fake.mergeValueBytesMutex.RLock()
 	defer fake.mergeValueBytesMutex.RUnlock()
+	fake.hasDifferentTLSConfigMutex.RLock()
+	defer fake.hasDifferentTLSConfigMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

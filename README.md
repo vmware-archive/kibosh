@@ -170,6 +170,19 @@ Use `local_dev_minikube` to set up all the secrets and start kibosh:
 local_dev_minikube.sh
 ```
 
+##### Securing tiller
+In production, tiller **should be secured**. It's probably good practice to use secure tiller
+in your local environment as well (at least some of the time) to catch issues.
+
+To generate a set of credentials, run [tiller_ssl.sh](docs/tiller-ssl/tiller_ssl.sh) from inside
+`docs/tiller-ssl/`. This will create a CA cert, a cert/key pair for Tiller, and a client cert/key pair.
+If debugging using the helm cli, include the tls flags. For example:
+```bash
+helm ls --all --tls-verify --tls-ca-cert docs/tiller-ssl/ca.cert.pem --tls-cert docs/tiller-ssl/tiller.cert.pem --tls-key docs/tiller-ssl/tiller.key.pem
+```
+
+See [Helm's tiller_ssl.md](https://github.com/helm/helm/blob/master/docs/tiller_ssl.md) for more details. 
+
 #### Charts
 The Kibosh code loads charts from the `HELM_CHART_DIR`, which defaults to `charts`.
 This directory can either be a single chart (with all the changes described in the

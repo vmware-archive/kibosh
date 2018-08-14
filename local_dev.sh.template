@@ -10,6 +10,14 @@ export TOKEN=''
 export SECURITY_USER_NAME=admin
 export SECURITY_USER_PASSWORD=pass
 
+# tiller ssl good practice, but not strictly required in dev
+export CERT_DIR=$GOPATH/src/github.com/cf-platform-eng/kibosh/docs/tiller-ssl
+export TILLER_TLS_CA_CERT_FILE=$CERT_DIR/ca.cert.pem
+export TILLER_CERT_FILE=$CERT_DIR/tiller.cert.pem
+export TILLER_TLS_KEY_FILE=$CERT_DIR/tiller.key.pem
+export HELM_CERT_FILE=$CERT_DIR/helm.cert.pem
+export HELM_TLS_KEY_FILE=$CERT_DIR/helm.key.pem
+
 # REG_* settings are optional, for configuring a private docker registry
 export REG_SERVER='gcr.io'
 export REG_USER='_json_key'

@@ -17,19 +17,21 @@ package k8s
 
 import (
 	"github.com/cf-platform-eng/kibosh/pkg/config"
-
 	api_v1 "k8s.io/api/core/v1"
 	v1_beta1 "k8s.io/api/extensions/v1beta1"
 	rbacv1beta1 "k8s.io/api/rbac/v1beta1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 //go:generate counterfeiter ./ Cluster
 type Cluster interface {
 	GetClient() kubernetes.Interface
+	GetInternalClient() internalclientset.Interface
 	GetClientConfig() *rest.Config
 
 	CreateNamespace(*api_v1.Namespace) (*api_v1.Namespace, error)
@@ -51,9 +53,10 @@ type Cluster interface {
 }
 
 type cluster struct {
-	credentials *config.ClusterCredentials
-	client      kubernetes.Interface
-	k8sConfig   *rest.Config
+	credentials    *config.ClusterCredentials
+	client         kubernetes.Interface
+	internalClient internalclientset.Interface
+	k8sConfig      *rest.Config
 }
 
 func NewCluster(kuboConfig *config.ClusterCredentials) (Cluster, error) {
@@ -67,10 +70,16 @@ func NewCluster(kuboConfig *config.ClusterCredentials) (Cluster, error) {
 		return nil, err
 	}
 
+	internalClient, err := internalclientset.NewForConfig(k8sConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	return &cluster{
-		credentials: kuboConfig,
-		k8sConfig:   k8sConfig,
-		client:      client,
+		credentials:    kuboConfig,
+		k8sConfig:      k8sConfig,
+		client:         client,
+		internalClient: internalClient,
 	}, nil
 }
 
@@ -92,6 +101,10 @@ func buildClientConfig(credentials *config.ClusterCredentials) (*rest.Config, er
 
 func (cluster *cluster) GetClient() kubernetes.Interface {
 	return cluster.client
+}
+
+func (cluster *cluster) GetInternalClient() internalclientset.Interface {
+	return cluster.internalClient
 }
 
 func (cluster *cluster) CreateNamespace(namespace *api_v1.Namespace) (*api_v1.Namespace, error) {

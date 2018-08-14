@@ -39,11 +39,14 @@ organizationalUnitName_default = Pivotal
 [ v3_req ]
 basicConstraints = CA:FALSE
 keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+subjectAltName = @alt_names
+[alt_names]
+IP = 127.0.0.1
 EOF
 
 openssl genrsa -out ./tiller.key.pem 4096
 openssl req -key tiller.key.pem -new -sha256 -subj "/CN=tiller.kibosh.cf/O=Pivotal/C=US" -out tiller.csr.pem -config tiller.conf
-openssl x509 -req -CA ca.cert.pem -CAkey ca.key.pem -CAcreateserial -in tiller.csr.pem -out tiller.cert.pem -days 7300
+openssl x509 -req -CA ca.cert.pem -CAkey ca.key.pem -CAcreateserial -in tiller.csr.pem -out tiller.cert.pem -days 7300 -extensions v3_req -extfile tiller.conf
 
 rm tiller.csr.pem
 rm tiller.conf
