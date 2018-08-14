@@ -22,6 +22,7 @@ import (
 //go:generate counterfeiter ./ ClusterFactory
 type ClusterFactory interface {
 	DefaultCluster() (Cluster, error)
+	GetCluster(creds *config.ClusterCredentials) (Cluster, error)
 }
 
 func NewClusterFactory(clusterCredentials config.ClusterCredentials) ClusterFactory {
@@ -34,4 +35,8 @@ type clusterFactory struct {
 
 func (cf clusterFactory) DefaultCluster() (Cluster, error) {
 	return NewCluster(&cf.clusterCredentials)
+}
+
+func (cf clusterFactory) GetCluster(creds *config.ClusterCredentials) (Cluster, error) {
+	return NewCluster(creds)
 }

@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cf-platform-eng/kibosh/pkg/state"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
@@ -44,18 +46,20 @@ type PksServiceBroker struct {
 	helmClientFactory              my_helm.HelmClientFactory
 	serviceAccountInstallerFactory k8s.ServiceAccountInstallerFactory
 	charts                         []*my_helm.MyChart
+	mapInstanceToCluster           state.KeyValueStore
 	operators                      []*my_helm.MyChart
 }
 
-func NewPksServiceBroker(config *config.Config, clusterFactory k8s.ClusterFactory, helmClientFactory my_helm.HelmClientFactory, serviceAccountInstallerFactory k8s.ServiceAccountInstallerFactory, charts []*my_helm.MyChart, operators []*my_helm.MyChart, logger lager.Logger) *PksServiceBroker {
+func NewPksServiceBroker(config *config.Config, clusterFactory k8s.ClusterFactory, helmClientFactory my_helm.HelmClientFactory, serviceAccountInstallerFactory k8s.ServiceAccountInstallerFactory, charts []*my_helm.MyChart, operators []*my_helm.MyChart, mapInstanceToCluster state.KeyValueStore, logger lager.Logger) *PksServiceBroker {
 	broker := &PksServiceBroker{
 		Logger:                         logger,
 		config:                         config,
 		clusterFactory:                 clusterFactory,
 		helmClientFactory:              helmClientFactory,
 		serviceAccountInstallerFactory: serviceAccountInstallerFactory,
-		charts:    charts,
-		operators: operators,
+		charts:               charts,
+		operators:            operators,
+		mapInstanceToCluster: mapInstanceToCluster,
 	}
 
 	return broker
@@ -112,6 +116,14 @@ func (broker *PksServiceBroker) Services(ctx context.Context) ([]brokerapi.Servi
 	return serviceCatalog, nil
 }
 
+func clusterMapKey(instanceID string) string {
+	return instanceID + "-instance-to-cluster"
+}
+
+type clusterConfigState struct {
+	ClusterCredentials config.ClusterCredentials `json:"clusterCredentials"`
+}
+
 func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string, details brokerapi.ProvisionDetails, asyncAllowed bool) (brokerapi.ProvisionedServiceSpec, error) {
 	if !asyncAllowed {
 		return brokerapi.ProvisionedServiceSpec{}, brokerapi.ErrAsyncRequired
@@ -131,7 +143,17 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 		},
 	}
 
-	cluster, err := broker.clusterFactory.DefaultCluster()
+	var cluster k8s.Cluster
+	var err error
+
+	clusterCreds, configPresent := ExtractClusterConfig(details.GetRawParameters())
+
+	if configPresent {
+		cluster, err = broker.clusterFactory.GetCluster(&clusterCreds)
+	} else {
+		cluster, err = broker.clusterFactory.DefaultCluster()
+	}
+
 	if err != nil {
 		return brokerapi.ProvisionedServiceSpec{}, err
 	}
@@ -189,6 +211,10 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 		return brokerapi.ProvisionedServiceSpec{}, err
 	}
 
+	if configPresent {
+		broker.mapInstanceToCluster.PutJson(clusterMapKey(instanceID), clusterConfigState{ClusterCredentials: clusterCreds})
+	}
+
 	return brokerapi.ProvisionedServiceSpec{
 		IsAsync:       true,
 		OperationData: "provision",
@@ -196,8 +222,19 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 }
 
 func (broker *PksServiceBroker) Deprovision(ctx context.Context, instanceID string, details brokerapi.DeprovisionDetails, asyncAllowed bool) (brokerapi.DeprovisionServiceSpec, error) {
-	cluster, err := broker.clusterFactory.DefaultCluster()
-	if err != nil {
+	var cluster k8s.Cluster
+	var clusterConfigForInstance clusterConfigState
+
+	err := broker.mapInstanceToCluster.GetJson(clusterMapKey(instanceID), &clusterConfigForInstance)
+
+	if err == nil {
+		cluster, err = broker.clusterFactory.GetCluster(&clusterConfigForInstance.ClusterCredentials)
+	} else if err == state.KeyNotFoundError {
+		cluster, err = broker.clusterFactory.DefaultCluster()
+		if err != nil {
+			return brokerapi.DeprovisionServiceSpec{}, err
+		}
+	} else {
 		return brokerapi.DeprovisionServiceSpec{}, err
 	}
 
@@ -220,8 +257,19 @@ func (broker *PksServiceBroker) Deprovision(ctx context.Context, instanceID stri
 }
 
 func (broker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID string, details brokerapi.BindDetails) (brokerapi.Binding, error) {
-	cluster, err := broker.clusterFactory.DefaultCluster()
-	if err != nil {
+	var cluster k8s.Cluster
+	var clusterConfigForInstance clusterConfigState
+
+	err := broker.mapInstanceToCluster.GetJson(clusterMapKey(instanceID), &clusterConfigForInstance)
+
+	if err == nil {
+		cluster, err = broker.clusterFactory.GetCluster(&clusterConfigForInstance.ClusterCredentials)
+	} else if err == state.KeyNotFoundError {
+		cluster, err = broker.clusterFactory.DefaultCluster()
+		if err != nil {
+			return brokerapi.Binding{}, err
+		}
+	} else {
 		return brokerapi.Binding{}, err
 	}
 
@@ -284,7 +332,7 @@ func (broker *PksServiceBroker) Unbind(ctx context.Context, instanceID, bindingI
 // Its purpose may be for changing plans, so if we only have a single default plan
 // it is out of scope.
 func (broker *PksServiceBroker) Update(ctx context.Context, instanceID string, details brokerapi.UpdateDetails, asyncAllowed bool) (brokerapi.UpdateServiceSpec, error) {
-	var updateValues []byte = nil
+	var updateValues []byte
 	var err error
 
 	if details.GetRawParameters() == nil {
@@ -308,8 +356,19 @@ func (broker *PksServiceBroker) Update(ctx context.Context, instanceID string, d
 
 	planName := strings.TrimPrefix(details.PlanID, details.ServiceID+"-")
 
-	cluster, err := broker.clusterFactory.DefaultCluster()
-	if err != nil {
+	var cluster k8s.Cluster
+	var clusterConfigForInstance clusterConfigState
+
+	err = broker.mapInstanceToCluster.GetJson(clusterMapKey(instanceID), &clusterConfigForInstance)
+
+	if err == nil {
+		cluster, err = broker.clusterFactory.GetCluster(&clusterConfigForInstance.ClusterCredentials)
+	} else if err == state.KeyNotFoundError {
+		cluster, err = broker.clusterFactory.DefaultCluster()
+		if err != nil {
+			return brokerapi.UpdateServiceSpec{}, err
+		}
+	} else {
 		return brokerapi.UpdateServiceSpec{}, err
 	}
 
@@ -332,8 +391,19 @@ func (broker *PksServiceBroker) LastOperation(ctx context.Context, instanceID, o
 	var brokerStatus brokerapi.LastOperationState
 	var description string
 
-	cluster, err := broker.clusterFactory.DefaultCluster()
-	if err != nil {
+	var cluster k8s.Cluster
+	var clusterConfigForInstance clusterConfigState
+
+	err := broker.mapInstanceToCluster.GetJson(clusterMapKey(instanceID), &clusterConfigForInstance)
+
+	if err == nil {
+		cluster, err = broker.clusterFactory.GetCluster(&clusterConfigForInstance.ClusterCredentials)
+	} else if err == state.KeyNotFoundError {
+		cluster, err = broker.clusterFactory.DefaultCluster()
+		if err != nil {
+			return brokerapi.LastOperation{}, err
+		}
+	} else {
 		return brokerapi.LastOperation{}, err
 	}
 
@@ -365,6 +435,7 @@ func (broker *PksServiceBroker) LastOperation(ctx context.Context, instanceID, o
 		case hapi_release.Status_DELETED:
 			brokerStatus = brokerapi.Succeeded
 			description = "gone"
+			defer broker.mapInstanceToCluster.Delete(clusterMapKey(instanceID))
 		case hapi_release.Status_DEPLOYED:
 			fallthrough
 		case hapi_release.Status_DELETING:
@@ -390,42 +461,37 @@ func (broker *PksServiceBroker) LastOperation(ctx context.Context, instanceID, o
 			State:       brokerStatus,
 			Description: description,
 		}, nil
-	} else {
-		servicesReady, err := broker.servicesReady(instanceID)
-		if err != nil {
-			return brokerapi.LastOperation{}, err
-		}
-		if !servicesReady {
-			return brokerapi.LastOperation{
-				State:       brokerapi.InProgress,
-				Description: "service deployment load balancer in progress",
-			}, nil
-		}
+	}
 
-		message, podsReady, err := broker.podsReady(instanceID)
-		if err != nil {
-			return brokerapi.LastOperation{}, err
-		}
-		if !podsReady {
-			return brokerapi.LastOperation{
-				State:       brokerapi.InProgress,
-				Description: message,
-			}, nil
-		}
-
+	servicesReady, err := broker.servicesReady(instanceID, cluster)
+	if err != nil {
+		return brokerapi.LastOperation{}, err
+	}
+	if !servicesReady {
 		return brokerapi.LastOperation{
-			State:       brokerStatus,
-			Description: description,
+			State:       brokerapi.InProgress,
+			Description: "service deployment load balancer in progress",
 		}, nil
 	}
-}
 
-func (broker *PksServiceBroker) servicesReady(instanceID string) (bool, error) {
-	cluster, err := broker.clusterFactory.DefaultCluster()
+	message, podsReady, err := broker.podsReady(instanceID, cluster)
 	if err != nil {
-		return false, err
+		return brokerapi.LastOperation{}, err
+	}
+	if !podsReady {
+		return brokerapi.LastOperation{
+			State:       brokerapi.InProgress,
+			Description: message,
+		}, nil
 	}
 
+	return brokerapi.LastOperation{
+		State:       brokerStatus,
+		Description: description,
+	}, nil
+}
+
+func (broker *PksServiceBroker) servicesReady(instanceID string, cluster k8s.Cluster) (bool, error) {
 	services, err := cluster.ListServices(broker.getNamespace(instanceID), meta_v1.ListOptions{})
 	if err != nil {
 		return false, err
@@ -442,12 +508,7 @@ func (broker *PksServiceBroker) servicesReady(instanceID string) (bool, error) {
 	return servicesReady, nil
 }
 
-func (broker *PksServiceBroker) podsReady(instanceID string) (string, bool, error) {
-	cluster, err := broker.clusterFactory.DefaultCluster()
-	if err != nil {
-		return "", false, err
-	}
-
+func (broker *PksServiceBroker) podsReady(instanceID string, cluster k8s.Cluster) (string, bool, error) {
 	podList, err := cluster.ListPods(broker.getNamespace(instanceID), meta_v1.ListOptions{})
 	if err != nil {
 		return "", false, err
