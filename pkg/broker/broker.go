@@ -461,7 +461,7 @@ func (broker *PksServiceBroker) LastOperation(ctx context.Context, instanceID, o
 		}, nil
 	}
 
-	servicesReady, err := broker.servicesReady(instanceID)
+	servicesReady, err := broker.servicesReady(instanceID, cluster)
 	if err != nil {
 		return brokerapi.LastOperation{}, err
 	}
@@ -472,7 +472,7 @@ func (broker *PksServiceBroker) LastOperation(ctx context.Context, instanceID, o
 		}, nil
 	}
 
-	message, podsReady, err := broker.podsReady(instanceID)
+	message, podsReady, err := broker.podsReady(instanceID, cluster)
 	if err != nil {
 		return brokerapi.LastOperation{}, err
 	}
@@ -489,23 +489,7 @@ func (broker *PksServiceBroker) LastOperation(ctx context.Context, instanceID, o
 	}, nil
 }
 
-func (broker *PksServiceBroker) servicesReady(instanceID string) (bool, error) {
-	var cluster k8s.Cluster
-	var clusterConfigForInstance clusterConfigState
-
-	err := broker.mapInstanceToCluster.GetJson(clusterMapKey(instanceID), &clusterConfigForInstance)
-
-	if err == nil {
-		cluster, err = broker.clusterFactory.GetCluster(&clusterConfigForInstance.ClusterCredentials)
-	} else if err == state.KeyNotFoundError {
-		cluster, err = broker.clusterFactory.DefaultCluster()
-		if err != nil {
-			return false, err
-		}
-	} else {
-		return false, err
-	}
-
+func (broker *PksServiceBroker) servicesReady(instanceID string, cluster k8s.Cluster) (bool, error) {
 	services, err := cluster.ListServices(broker.getNamespace(instanceID), meta_v1.ListOptions{})
 	if err != nil {
 		return false, err
@@ -522,23 +506,7 @@ func (broker *PksServiceBroker) servicesReady(instanceID string) (bool, error) {
 	return servicesReady, nil
 }
 
-func (broker *PksServiceBroker) podsReady(instanceID string) (string, bool, error) {
-	var cluster k8s.Cluster
-	var clusterConfigForInstance clusterConfigState
-
-	err := broker.mapInstanceToCluster.GetJson(clusterMapKey(instanceID), &clusterConfigForInstance)
-
-	if err == nil {
-		cluster, err = broker.clusterFactory.GetCluster(&clusterConfigForInstance.ClusterCredentials)
-	} else if err == state.KeyNotFoundError {
-		cluster, err = broker.clusterFactory.DefaultCluster()
-		if err != nil {
-			return "", false, err
-		}
-	} else {
-		return "", false, err
-	}
-
+func (broker *PksServiceBroker) podsReady(instanceID string, cluster k8s.Cluster) (string, bool, error) {
 	podList, err := cluster.ListPods(broker.getNamespace(instanceID), meta_v1.ListOptions{})
 	if err != nil {
 		return "", false, err

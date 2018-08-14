@@ -76,13 +76,13 @@ func (kvs *keyValueStore) GetJson(key string, val interface{}) error {
 		item, err := txn.Get([]byte(key))
 
 		if err == nil {
-			bytes, err := item.Value()
+			bytes, e := item.Value()
 
-			if err != nil {
-				return err
+			if e != nil {
+				return e
 			}
 
-			json.Unmarshal(bytes, val)
+			err = json.Unmarshal(bytes, val)
 		}
 
 		return err
