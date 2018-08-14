@@ -48,7 +48,7 @@ var (
 )
 
 const (
-	serviceAccount = "tiller"
+	serviceAccount = "kibosh-tiller"
 	nameSpace      = "kube-system"
 	deploymentName = "tiller-deploy"
 )

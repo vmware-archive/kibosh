@@ -68,7 +68,7 @@ var _ = Describe("Service Account Installer", func() {
 			nameSpace, serviceAccount := cluster.CreateServiceAccountArgsForCall(0)
 			Expect(nameSpace).To(Equal("kube-system"))
 			Expect(serviceAccount.Labels["kibosh"]).To(Equal("tiller-service-account"))
-			Expect(serviceAccount.Name).To(Equal("tiller"))
+			Expect(serviceAccount.Name).To(Equal("kibosh-tiller"))
 
 		})
 
@@ -114,7 +114,7 @@ var _ = Describe("Service Account Installer", func() {
 			Expect(clusterRoleBinding.RoleRef.Kind).To(Equal("ClusterRole"))
 			Expect(clusterRoleBinding.RoleRef.APIGroup).To(Equal("rbac.authorization.k8s.io"))
 			Expect(clusterRoleBinding.Subjects[0].Kind).To(Equal("ServiceAccount"))
-			Expect(clusterRoleBinding.Subjects[0].Name).To(Equal("tiller"))
+			Expect(clusterRoleBinding.Subjects[0].Name).To(Equal("kibosh-tiller"))
 			Expect(clusterRoleBinding.Subjects[0].Namespace).To(Equal("kube-system"))
 		})
 
