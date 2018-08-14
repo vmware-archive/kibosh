@@ -27,10 +27,10 @@ import (
 )
 
 type ClusterCredentials struct {
-	CADataRaw string `envconfig:"CA_DATA"`
+	CADataRaw string `envconfig:"CA_DATA" json:"caDataRaw"`
 	CAData    []byte
-	Server    string `envconfig:"SERVER"`
-	Token     string `envconfig:"TOKEN"`
+	Server    string `envconfig:"SERVER" json:"server"`
+	Token     string `envconfig:"TOKEN" json:"token"`
 }
 
 type RegistryConfig struct {
@@ -62,6 +62,7 @@ type Config struct {
 	Port         int    `envconfig:"PORT" default:"8080"`
 	HelmChartDir string `envconfig:"HELM_CHART_DIR" default:"charts"`
 	OperatorDir  string `envconfig:"OPERATOR_DIR" default:"operators"`
+	StateDir     string `envconfig:"STATE_DIR" default:"state"`
 
 	ClusterCredentials *ClusterCredentials
 	RegistryConfig     *RegistryConfig
@@ -106,7 +107,7 @@ func Parse() (*Config, error) {
 		return nil, err
 	}
 
-	err = c.ClusterCredentials.parseCAData()
+	err = c.ClusterCredentials.ParseCAData()
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +119,7 @@ func Parse() (*Config, error) {
 	return c, nil
 }
 
-func (c *ClusterCredentials) parseCAData() error {
+func (c *ClusterCredentials) ParseCAData() error {
 	c.CADataRaw = strings.TrimSpace(c.CADataRaw)
 	if strings.Index(c.CADataRaw, "-----BEGIN CERTIFICATE-----") == 0 {
 		c.CAData = []byte(c.CADataRaw)
