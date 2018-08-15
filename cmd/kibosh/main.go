@@ -76,6 +76,12 @@ func main() {
 	helmClientFactory := helm.NewHelmClientFactory(conf.HelmTLSConfig, brokerLogger)
 	serviceAccountInstallerFactory := k8s.NewServiceAccountInstallerFactory(brokerLogger)
 
+	err = broker.PrepareDefaultCluster(conf, clusterFactory, helmClientFactory, serviceAccountInstallerFactory, brokerLogger, operatorCharts)
+
+	if err != nil {
+		brokerLogger.Fatal("Unable to prepare default cluster", err)
+	}
+
 	mapServiceInstanceToCluster := state.NewKeyValueStore()
 	err = mapServiceInstanceToCluster.Open(conf.StateDir)
 

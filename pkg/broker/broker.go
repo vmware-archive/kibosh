@@ -26,7 +26,6 @@ import (
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
-	"github.com/cf-platform-eng/kibosh/pkg/operator"
 	"github.com/ghodss/yaml"
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
@@ -183,22 +182,13 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 	myHelmClient := broker.helmClientFactory.HelmClient(cluster)
 
 	myServiceAccountInstaller := broker.serviceAccountInstallerFactory.ServiceAccountInstaller(cluster)
-	err = myServiceAccountInstaller.Install()
-	if err != nil {
-		return brokerapi.ProvisionedServiceSpec{}, err
-	}
 
-	helmInstaller := my_helm.NewInstaller(broker.config, cluster, myHelmClient, broker.Logger)
-	err = helmInstaller.Install()
-	if err != nil {
-		return brokerapi.ProvisionedServiceSpec{}, err
-	}
+	if configPresent {
+		err = PrepareCluster(broker.config, cluster, myHelmClient, myServiceAccountInstaller, broker.Logger, broker.operators)
 
-	// Install each operator chart.
-	operatorInstaller := operator.NewInstaller(broker.config.RegistryConfig, cluster, myHelmClient, broker.Logger)
-	err = operatorInstaller.InstallCharts(broker.operators)
-	if err != nil {
-		return brokerapi.ProvisionedServiceSpec{}, err
+		if err != nil {
+			return brokerapi.ProvisionedServiceSpec{}, err
+		}
 	}
 
 	chart := broker.GetChartsMap()[details.ServiceID]
