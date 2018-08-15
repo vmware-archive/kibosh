@@ -17,6 +17,7 @@ export OPERATOR_DIR=<%= p("kibosh.operator_dir") %>
 export CA_DATA=<%= Shellwords.escape p("kibosh.ca_data") %>
 export SERVER=<%= p("kibosh.server", "https://127.0.0.1") %>
 export TOKEN=<%= p("kibosh.token") %>
+export STATE_DIR=<%= p("kibosh.key_value_store_dir", "/var/vcap/store/kibosh-key-value-store") %>
 
 <% if p("registry.server", "") != "" %>
 echo "'registry.server' is configured"
@@ -36,11 +37,11 @@ export CF_BROKER_NAME=<%= p("kibosh.cf.broker_name") %>
 export CF_SKIP_SSL_VALIDATION=<%= p("kibosh.cf.skip_ssl_validation") %>
 <% end %>
 
-mkdir -p "$LOG_DIR" "$RUN_DIR" "$HELM_CHART_DIR"
+mkdir -p "$LOG_DIR" "$RUN_DIR" "$HELM_CHART_DIR" "$STATE_DIR"
 
 # If one of these directories is very large, chowning might take a very long time.
 # Consider only chowning if dir did not yet exist in the previous step
-chown -R vcap:vcap "$LOG_DIR" "$RUN_DIR" "$HELM_CHART_DIR"
+chown -R vcap:vcap "$LOG_DIR" "$RUN_DIR" "$HELM_CHART_DIR" "$STATE_DIR"
 
 <% if p("kibosh.operator_dir", "") != "" %>
 mkdir -p "$OPERATOR_DIR"

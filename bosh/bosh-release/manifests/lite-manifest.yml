@@ -81,6 +81,7 @@ instance_groups:
       username: admin
       password: ((kibosh-password))
       helm_chart_dir: /var/vcap/packages/example-chart/example-chart
+      key_value_store_dir: /var/vcap/store/kibosh-key-value-store
       ca_data: ((k8s-cluster-ca-cert))
       server: ((k8s-cluster-server))
       token: ((k8s-cluster-token))
