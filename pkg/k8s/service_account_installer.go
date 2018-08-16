@@ -17,13 +17,15 @@ package k8s
 
 import (
 	"code.cloudfoundry.org/lager"
+	"fmt"
 	api_v1 "k8s.io/api/core/v1"
 	"k8s.io/api/rbac/v1beta1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
-	serviceAccountName = "kibosh-tiller"
+	serviceAccountName = "tiller"
+	roleBindingName    = "tiller-cluster-admin"
 )
 
 //go:generate counterfeiter ./ ServiceAccountInstaller
@@ -54,7 +56,7 @@ func (serviceAccountInstaller *serviceAccountInstaller) Install() error {
 
 func (serviceAccountInstaller *serviceAccountInstaller) ensureAccount() error {
 	result, err := serviceAccountInstaller.cluster.ListServiceAccounts("kube-system", meta_v1.ListOptions{
-		LabelSelector: "kibosh=tiller-service-account",
+		FieldSelector: "metadata.name=" + serviceAccountName,
 	})
 	if err != nil {
 		return err
@@ -71,6 +73,9 @@ func (serviceAccountInstaller *serviceAccountInstaller) ensureAccount() error {
 		if err != nil {
 			return err
 		}
+		serviceAccountInstaller.logger.Info(fmt.Sprintf("Created service account [%s]", serviceAccountName))
+	} else {
+		serviceAccountInstaller.logger.Info(fmt.Sprintf("Service account [%s] already exists", serviceAccountName))
 	}
 
 	return nil
@@ -79,7 +84,7 @@ func (serviceAccountInstaller *serviceAccountInstaller) ensureAccount() error {
 func (serviceAccountInstaller *serviceAccountInstaller) ensureRole() error {
 
 	result, err := serviceAccountInstaller.cluster.ListClusterRoleBindings(meta_v1.ListOptions{
-		LabelSelector: "kibosh=tiller-service-admin-binding",
+		FieldSelector: "metadata.name=" + roleBindingName,
 	})
 	if err != nil {
 		return err
@@ -89,7 +94,7 @@ func (serviceAccountInstaller *serviceAccountInstaller) ensureRole() error {
 		// we should create
 		_, err := serviceAccountInstaller.cluster.CreateClusterRoleBinding(&v1beta1.ClusterRoleBinding{
 			ObjectMeta: meta_v1.ObjectMeta{
-				Name:   "tiller-cluster-admin",
+				Name:   roleBindingName,
 				Labels: map[string]string{"kibosh": "tiller-service-admin-binding"},
 			},
 			RoleRef: v1beta1.RoleRef{
@@ -108,6 +113,9 @@ func (serviceAccountInstaller *serviceAccountInstaller) ensureRole() error {
 		if err != nil {
 			return err
 		}
+		serviceAccountInstaller.logger.Info(fmt.Sprintf("Created role binding [%s]", roleBindingName))
+	} else {
+		serviceAccountInstaller.logger.Info(fmt.Sprintf("Role binding [%s] already exists", roleBindingName))
 	}
 
 	return nil

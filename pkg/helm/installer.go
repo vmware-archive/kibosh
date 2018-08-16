@@ -48,7 +48,7 @@ var (
 )
 
 const (
-	serviceAccount = "kibosh-tiller"
+	serviceAccount = "tiller"
 	nameSpace      = "kube-system"
 	deploymentName = "tiller-deploy"
 )
@@ -85,7 +85,7 @@ func (i *installer) Install() error {
 		i.logger.Debug("Installing with TLS")
 		err = i.installWithTLS(tillerImage)
 	} else {
-		i.logger.Debug("Installing insecure :(")
+		i.logger.Debug("Installing insecure")
 		err = i.installInsecure(tillerImage)
 	}
 	if err != nil {

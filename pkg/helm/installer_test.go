@@ -81,7 +81,7 @@ var _ = Describe("KubeConfig", func() {
 
 			namespace, name, _, data, _ := cluster.PatchArgsForCall(0)
 			Expect(namespace).To(Equal("kube-system"))
-			Expect(name).To(Equal("kibosh-tiller"))
+			Expect(name).To(Equal("tiller"))
 			Expect(data).To(Equal([]byte(`{"imagePullSecrets":[{"name":"registry-secret"}]}`)))
 		})
 
