@@ -56,9 +56,9 @@ func (serviceAccountInstaller *serviceAccountInstaller) ensureAccount() error {
 	result, err := serviceAccountInstaller.cluster.ListServiceAccounts("kube-system", meta_v1.ListOptions{
 		LabelSelector: "kibosh=tiller-service-account",
 	})
-	if err != nil {
-		return err
-	}
+	//if err != nil {
+	//	return err
+	//}
 
 	if len(result.Items) < 1 {
 		_, err = serviceAccountInstaller.cluster.CreateServiceAccount("kube-system", &api_v1.ServiceAccount{
