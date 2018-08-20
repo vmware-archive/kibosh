@@ -5,6 +5,12 @@ resource_types:
   source:
     repository: frodenas/gcs-resource
 
+- name: slack-notification
+  type: docker-image
+  source:
+    repository: cfcommunity/slack-notification-resource
+    tag: latest
+
 resources:
 - name: source-repo
   type: git
@@ -173,6 +179,19 @@ resources:
     globs:
     - docker-*.tgz
 
+- name: slack-ci-alert
+  type: slack-notification
+  source:
+    url: {{slack_ci_alert_url}}
+
+slack_on_failure: &slack_on_failure
+  put: slack-ci-alert
+  params:
+    icon_emoji: ":concourse-failed:"
+    username: Concourse CI
+    channel: "#pe-internal-kibosh"
+    text: "Kibosh has a CI failure, see https://concourse.cfplatformeng.com/teams/main/pipelines/kibosh"
+
 jobs:
 - name: setup-infrastructure-lite
   plan:
@@ -244,6 +263,7 @@ jobs:
           popd
 
           mv cf-cli-release/cf-cli.tgz output
+    on_failure: *slack_on_failure
   - put: cf-cli-binary
     params:
       file: output/cf-cli.tgz
@@ -284,6 +304,7 @@ jobs:
           popd
 
           cp $SRC/delete_all_and_deregister.linux output/delete_all_and_deregister.linux
+    on_failure: *slack_on_failure
   - put: delete-all-and-deregister
     params:
       file: output/delete_all_and_deregister.linux
@@ -296,7 +317,7 @@ jobs:
     - get: tiller-image
     - get: source-repo
       trigger: true
-  - task: say-hello
+  - task: do-tiller-version-check
     config:
       inputs:
       - name: tiller-image
@@ -323,7 +344,7 @@ jobs:
               Failing due to mismatch"
             exit 1
           fi
-
+    on_failure: *slack_on_failure
 
 - name: unit-tests
   plan:
@@ -350,6 +371,7 @@ jobs:
         args:
         - -exc
         - |
+          exit 1
           go get github.com/onsi/ginkgo/ginkgo
           go get github.com/onsi/gomega
 
@@ -375,6 +397,7 @@ jobs:
           cp $SRC/bazaar.linux output/bazaar-${VERSION}.linux
           cp $SRC/bazaarcli.mac output/bazaarcli-${VERSION}.mac
           cp $SRC/bazaarcli.linux output/bazaarcli-${VERSION}.linux
+    on_failure: *slack_on_failure
   - put: kibosh-linux
     params:
       file: output/kibosh-*.linux
@@ -454,6 +477,7 @@ jobs:
 
           popd
           cp source-repo/bosh/bosh-release/kibosh-release-${VERSION}.tgz output/
+    on_failure: *slack_on_failure
   - put: kibosh-release
     params:
       file: output/kibosh-release-*.tgz
@@ -510,6 +534,7 @@ jobs:
           pushd source-repo/bosh/example-chart-bosh-release
           ./deploy.sh
           popd
+    on_failure: *slack_on_failure
 
 - name: deploy
   plan:
@@ -555,6 +580,7 @@ jobs:
 
           yes | bosh -d kibosh deploy bosh/bosh-release/manifests/lite-manifest.yml --no-redact --vars-store=values.yml
           popd
+    on_failure: *slack_on_failure
 
 - name: push-image-errand
   plan:
@@ -600,6 +626,7 @@ jobs:
 
           yes | bosh -d kibosh run-errand loader
           popd
+    on_failure: *slack_on_failure
 
 - name: save-tiller-image
   plan:
@@ -657,6 +684,7 @@ jobs:
 
           export IMAGE_FILE_NAME=tiller-$(cat tag).tgz
           tar -cvf ../out/${IMAGE_FILE_NAME} -C new-image $(ls new-image)
+    on_failure: *slack_on_failure
   - put: tiller-image-fixed
     params:
       file: out/tiller-v*.tgz
@@ -715,6 +743,7 @@ jobs:
           mv bazaarcli-mac/bazaarcli-*.mac output/
           mv kibosh-release/kibosh*.tgz output/
           mv tiller-image-fixed/tiller-v*.tgz output/
+    on_failure: *slack_on_failure
   - put: release-repo
     params:
       name: version/version
@@ -736,6 +765,7 @@ jobs:
       trigger: true
   - task: do-delete
     file: cf-deployment-concourse-tasks/bosh-delete-deployment/task.yml
+    on_failure: *slack_on_failure
     params:
       DEPLOYMENT_NAME: kibosh
     input_mapping:
@@ -753,6 +783,7 @@ jobs:
       trigger: true
   - task: do-clean-up
     file: cf-deployment-concourse-tasks/bosh-cleanup/task.yml
+    on_failure: *slack_on_failure
     params:
       CLEAN_ALL: true
     input_mapping:
