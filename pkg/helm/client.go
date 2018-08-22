@@ -16,6 +16,7 @@
 package helm
 
 import (
+	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
@@ -122,6 +123,11 @@ func (c *myHelmClient) HasDifferentTLSConfig() bool {
 			if errorType.String() == "tls.alert" {
 				return true
 			}
+		}
+
+		_, isRecordHeaderError := err.(tls.RecordHeaderError)
+		if isRecordHeaderError {
+			return true
 		}
 	}
 	return false
