@@ -60,10 +60,11 @@ For documentation using Kibosh to build a tile, use the
       description: "medium sized plan for mysql"
       file: "medium.yaml"
     ```
-    `file` is a filename that exists in the `plans` subdirectory of the chart and
-    `name`'s value should be lower alpha, numeric, `.`, or `-` 
-    Values `values.yaml` sets the defaults. Each plan's yaml file is an set of values overriding the defaults present in `values.yaml`
-    (copy any `values.yaml` key/value pairs to override into a new plan file)
+    `file` is a filename that exists in the `plans` subdirectory of the chart.
+    File names should consist of only lowercase letters, digits, `.`, or `-`.
+    The standard `values.yaml` file in the helm chart sets the defaults.
+    Each plan's yaml file is a set of values overriding the defaults present in `values.yaml`.
+    Copy any key/value pairs to override from `values.yaml` into a new plan file and change their value.
   See kibosh-sample's [sample-charts](https://github.com/cf-platform-eng/kibosh-sample/tree/master/sample-charts) for a few examples.
 
 In order to successfully pull private images, we're imposing some requirements
