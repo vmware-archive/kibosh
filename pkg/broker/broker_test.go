@@ -643,6 +643,34 @@ var _ = Describe("Broker", func() {
 			Expect(resp.Description).To(ContainSubstring("0/1 nodes are available: 1 Insufficient memory"))
 		})
 
+		It("considers a pod status of Completed as meaning the pod succeeded", func() {
+			fakeHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
+				Info: &hapi_release.Info{
+					Status: &hapi_release.Status{
+						Code: hapi_release.Status_DEPLOYED,
+					},
+				},
+			}, nil)
+
+			podList := api_v1.PodList{
+				Items: []api_v1.Pod{
+					{
+						ObjectMeta: meta_v1.ObjectMeta{Name: "pod1"},
+						Spec:       api_v1.PodSpec{},
+						Status: api_v1.PodStatus{
+							Phase: "Completed",
+						},
+					},
+				},
+			}
+			fakeCluster.ListPodsReturns(&podList, nil)
+
+			resp, err := broker.LastOperation(nil, "my-instance-guid", "provision")
+
+			Expect(err).To(BeNil())
+			Expect(resp.State).To(Equal(brokerapi.Succeeded))
+		})
+
 		It("returns error when unable to list pods", func() {
 			fakeHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
 				Info: &hapi_release.Info{

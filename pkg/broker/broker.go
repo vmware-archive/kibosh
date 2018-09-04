@@ -507,7 +507,7 @@ func (broker *PksServiceBroker) podsReady(instanceID string, cluster k8s.Cluster
 	podsReady := true
 	message := ""
 	for _, pod := range podList.Items {
-		if pod.Status.Phase != "Running" {
+		if pod.Status.Phase != "Running" && pod.Status.Phase != "Completed" {
 			podsReady = false
 			for _, condition := range pod.Status.Conditions {
 				if condition.Message != "" {
