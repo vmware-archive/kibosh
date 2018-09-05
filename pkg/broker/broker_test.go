@@ -62,6 +62,7 @@ var _ = Describe("Broker", func() {
 				Email:  "k8s@example.com"},
 			HelmTLSConfig: &my_config.HelmTLSConfig{},
 		}
+		bullets := []string{"bullet1 for plan for spacebears", "bullet2 for plan for spacebears"}
 		spacebearsChart = &my_helm.MyChart{
 			Chart: &hapi_chart.Chart{
 				Metadata: &hapi_chart.Metadata{
@@ -79,6 +80,7 @@ var _ = Describe("Broker", func() {
 					Name:        "medium",
 					Description: "medium plan for spacebears",
 					File:        "medium.yaml",
+					Bullets:     bullets,
 				},
 			},
 		}
@@ -159,7 +161,8 @@ var _ = Describe("Broker", func() {
 					Metadata: &brokerapi.ServicePlanMetadata{
 						DisplayName: "medium",
 						Bullets: []string{
-							"medium plan for spacebears",
+							"bullet1 for plan for spacebears",
+							"bullet2 for plan for spacebears",
 						},
 					},
 				},
