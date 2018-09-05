@@ -43,6 +43,7 @@ type MyChart struct {
 type Plan struct {
 	Name        string `yaml:"name"`
 	Description string `yaml:"description"`
+	Bullets     []string `yaml:"bullets"`
 	File        string `yaml:"file"`
 	Values      []byte
 }

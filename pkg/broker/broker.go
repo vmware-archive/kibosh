@@ -90,9 +90,14 @@ func (broker *PksServiceBroker) Services(ctx context.Context) ([]brokerapi.Servi
 				Description: plan.Description,
 				Metadata: &brokerapi.ServicePlanMetadata{
 					DisplayName: plan.Name,
-					Bullets: []string{
-						plan.Description,
-					},
+					Bullets: func() []string {
+						if plan.Bullets == nil {
+							return []string{
+								plan.Description,
+							}
+						}
+						return plan.Bullets
+					}(),
 				},
 			})
 		}
