@@ -1,6 +1,14 @@
-- name: "default"
+- name: "default-free"
   description: "default plan for spacebears"
   bullets:  #Optional. If not provided, one Bullet with value of field description will be used.
   - bullet1 for plan for spacebears
   - bullet2 for plan for spacebears
   file: "default.yaml"
+- name: "default-paid-undbindable"
+  description: "default plan for spacebears"
+  bullets:  #Optional. If not provided, one Bullet with value of field description will be used.
+  - bullet1 for plan for spacebears
+  - bullet2 for plan for spacebears
+  file: "default.yaml"
+  free: false #optional, defaults to true
+  bindable: false #optional, defaults to true

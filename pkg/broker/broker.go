@@ -83,7 +83,6 @@ func (broker *PksServiceBroker) Services(ctx context.Context) ([]brokerapi.Servi
 	for _, chart := range broker.GetChartsMap() {
 		plans := []brokerapi.ServicePlan{}
 		for _, plan := range chart.Plans {
-
 			plans = append(plans, brokerapi.ServicePlan{
 				ID:          broker.getServiceID(chart) + "-" + plan.Name,
 				Name:        plan.Name,
@@ -99,6 +98,8 @@ func (broker *PksServiceBroker) Services(ctx context.Context) ([]brokerapi.Servi
 						return plan.Bullets
 					}(),
 				},
+				Bindable: brokerapi.BindableValue(*plan.Bindable),
+				Free:     brokerapi.FreeValue(*plan.Free),
 			})
 		}
 
