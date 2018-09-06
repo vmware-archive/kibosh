@@ -41,10 +41,12 @@ type MyChart struct {
 }
 
 type Plan struct {
-	Name        string `yaml:"name"`
-	Description string `yaml:"description"`
+	Name        string   `yaml:"name"`
+	Description string   `yaml:"description"`
 	Bullets     []string `yaml:"bullets"`
-	File        string `yaml:"file"`
+	File        string   `yaml:"file"`
+	Free        *bool    `yaml:"free,omitempty"`
+	Bindable    *bool    `yaml:"bindable,omitempty"`
 	Values      []byte
 }
 
@@ -156,6 +158,8 @@ func (c *MyChart) OverrideImageSources(rawVals map[string]interface{}) (map[stri
 }
 
 func (c *MyChart) loadPlans() error {
+	T := true
+
 	plansPath := path.Join(c.Chartpath, "plans.yaml")
 	bytes, err := ioutil.ReadFile(plansPath)
 	if err != nil {
@@ -170,7 +174,12 @@ func (c *MyChart) loadPlans() error {
 
 	c.Plans = map[string]Plan{}
 	for _, p := range plans {
-
+		if p.Free == nil {
+			p.Free = &T
+		}
+		if p.Bindable == nil {
+			p.Bindable = &T
+		}
 		match, err := regexp.MatchString(`^[0-9a-z.\-]+$`, p.Name)
 		if err != nil {
 			return err

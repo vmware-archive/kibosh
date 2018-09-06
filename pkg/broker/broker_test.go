@@ -75,12 +75,16 @@ var _ = Describe("Broker", func() {
 					Name:        "small",
 					Description: "default (small) plan for spacebears",
 					File:        "small.yaml",
+					Free:        brokerapi.FreeValue(true),
+					Bindable:    brokerapi.BindableValue(true),
 				},
 				"medium": {
 					Name:        "medium",
 					Description: "medium plan for spacebears",
 					File:        "medium.yaml",
 					Bullets:     bullets,
+					Free:        brokerapi.FreeValue(false),
+					Bindable:    brokerapi.BindableValue(true),
 				},
 			},
 		}
@@ -96,11 +100,15 @@ var _ = Describe("Broker", func() {
 					Name:        "tiny",
 					Description: "tiny data",
 					File:        "tiny.yaml",
+					Free:        brokerapi.FreeValue(true),
+					Bindable:    brokerapi.BindableValue(true),
 				},
 				"medium": {
 					Name:        "big",
 					Description: "big data",
 					File:        "big.yaml",
+					Free:        brokerapi.FreeValue(false),
+					Bindable:    brokerapi.BindableValue(false),
 				},
 			},
 		}
@@ -153,6 +161,8 @@ var _ = Describe("Broker", func() {
 							"default (small) plan for spacebears",
 						},
 					},
+					Free:     brokerapi.FreeValue(true),
+					Bindable: brokerapi.BindableValue(true),
 				},
 				{
 					ID:          "37b7acb6-6755-56fe-a17f-2307657023ef-medium",
@@ -165,6 +175,8 @@ var _ = Describe("Broker", func() {
 							"bullet2 for plan for spacebears",
 						},
 					},
+					Free:     brokerapi.FreeValue(false),
+					Bindable: brokerapi.BindableValue(true),
 				},
 			}
 
