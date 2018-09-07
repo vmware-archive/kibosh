@@ -670,10 +670,15 @@ var _ = Describe("Broker", func() {
 			podList := api_v1.PodList{
 				Items: []api_v1.Pod{
 					{
-						ObjectMeta: meta_v1.ObjectMeta{Name: "pod1"},
-						Spec:       api_v1.PodSpec{},
+						ObjectMeta: meta_v1.ObjectMeta{
+							Name: "pod1",
+							Labels: map[string]string{
+								"job-name": "test",
+							},
+						},
+						Spec: api_v1.PodSpec{},
 						Status: api_v1.PodStatus{
-							Phase: "Completed",
+							Phase: "Succeeded",
 						},
 					},
 				},
