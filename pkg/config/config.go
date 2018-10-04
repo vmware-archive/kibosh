@@ -106,6 +106,15 @@ func (r RegistryConfig) GetDockerConfigJson() ([]byte, error) {
 	return dockerConfigJson, nil
 }
 
+func EmptyConfig() *Config {
+	return &Config{
+		ClusterCredentials: &ClusterCredentials{},
+		RegistryConfig:     &RegistryConfig{},
+		CFClientConfig:     &CFClientConfig{},
+		HelmTLSConfig:      &HelmTLSConfig{},
+	}
+}
+
 func Parse() (*Config, error) {
 	c := &Config{}
 	err := envconfig.Process("", c)

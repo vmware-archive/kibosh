@@ -134,23 +134,8 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 		return brokerapi.ProvisionedServiceSpec{}, brokerapi.ErrAsyncRequired
 	}
 
-	namespaceName := broker.getNamespace(instanceID)
-	namespace := api_v1.Namespace{
-		Spec: api_v1.NamespaceSpec{},
-		ObjectMeta: meta_v1.ObjectMeta{
-			Name: namespaceName,
-			Labels: map[string]string{
-				"serviceID":        details.ServiceID,
-				"planID":           details.PlanID,
-				"organizationGUID": details.OrganizationGUID,
-				"spaceGUID":        details.SpaceGUID,
-			},
-		},
-	}
-
 	var cluster k8s.Cluster
 	var err error
-
 	clusterCreds, configPresent := ExtractClusterConfig(details.GetRawParameters())
 
 	if configPresent {
@@ -161,19 +146,6 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 
 	if err != nil {
 		return brokerapi.ProvisionedServiceSpec{}, err
-	}
-
-	_, err = cluster.CreateNamespace(&namespace)
-	if err != nil {
-		return brokerapi.ProvisionedServiceSpec{}, err
-	}
-
-	if broker.config.RegistryConfig.HasRegistryConfig() {
-		privateRegistrySetup := k8s.NewPrivateRegistrySetup(namespaceName, "default", cluster, broker.config.RegistryConfig)
-		err := privateRegistrySetup.Setup()
-		if err != nil {
-			return brokerapi.ProvisionedServiceSpec{}, err
-		}
 	}
 
 	planName := strings.TrimPrefix(details.PlanID, details.ServiceID+"-")
@@ -202,6 +174,31 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 		return brokerapi.ProvisionedServiceSpec{}, errors.New(fmt.Sprintf("Chart not found for [%s]", details.ServiceID))
 	}
 
+	namespaceName := broker.getNamespace(instanceID)
+	namespace := api_v1.Namespace{
+		Spec: api_v1.NamespaceSpec{},
+		ObjectMeta: meta_v1.ObjectMeta{
+			Name: namespaceName,
+			Labels: map[string]string{
+				"serviceID":        details.ServiceID,
+				"planID":           details.PlanID,
+				"organizationGUID": details.OrganizationGUID,
+				"spaceGUID":        details.SpaceGUID,
+			},
+		},
+	}
+	_, err = cluster.CreateNamespace(&namespace)
+	if err != nil {
+		return brokerapi.ProvisionedServiceSpec{}, err
+	}
+
+	if broker.config.RegistryConfig.HasRegistryConfig() {
+		privateRegistrySetup := k8s.NewPrivateRegistrySetup(namespaceName, "default", cluster, broker.config.RegistryConfig)
+		err := privateRegistrySetup.Setup()
+		if err != nil {
+			return brokerapi.ProvisionedServiceSpec{}, err
+		}
+	}
 	_, err = myHelmClient.InstallChart(chart, namespaceName, planName, installValues)
 	if err != nil {
 		return brokerapi.ProvisionedServiceSpec{}, err

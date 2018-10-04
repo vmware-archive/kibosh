@@ -16,7 +16,9 @@
 package helm_test
 
 import (
+	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"k8s.io/helm/pkg/chartutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -52,6 +54,50 @@ var _ = Describe("Broker", func() {
 		Expect(chart).NotTo(BeNil())
 	})
 
+	It("should load chart default values.yaml", func() {
+		chart, err := helm.NewChart(chartPath, "", true)
+		Expect(err).To(BeNil())
+
+		values := map[string]interface{}{}
+		err = yaml.Unmarshal(chart.Values, &values)
+
+		Expect(err)
+		Expect(values["count"]).To(Equal(1))
+		Expect(values["name"]).To(Equal("value"))
+	})
+
+	Context("archived chart (tgz)", func() {
+		var chartArchivePath string
+		BeforeEach(func() {
+			chartToSave, err := helm.NewChart(chartPath, "", true)
+
+			chartArchiveDirPath, err := ioutil.TempDir("", "chartarcive-")
+			Expect(err).To(BeNil())
+
+			chartArchivePath, err = chartutil.Save(chartToSave.Chart, chartArchiveDirPath)
+			Expect(err).To(BeNil())
+		})
+
+		It("should load chart tgz", func() {
+			loadedChart, err := helm.NewChart(chartArchivePath, "", false)
+
+			Expect(err).To(BeNil())
+			Expect(loadedChart).NotTo(BeNil())
+			Expect(loadedChart.Metadata.Name).To(Equal("spacebears"))
+		})
+
+		It("should load values in chart tgz", func() {
+			loadedChart, err := helm.NewChart(chartArchivePath, "", false)
+
+			values := map[string]interface{}{}
+			err = yaml.Unmarshal(loadedChart.Values, &values)
+
+			Expect(err)
+			Expect(values["count"]).To(Equal(1))
+			Expect(values["name"]).To(Equal("value"))
+		})
+	})
+
 	It("should return error when no vals file", func() {
 		err := os.Remove(filepath.Join(chartPath, "values.yaml"))
 		Expect(err).To(BeNil())
@@ -60,14 +106,6 @@ var _ = Describe("Broker", func() {
 
 		Expect(err).NotTo(BeNil())
 		Expect(err.Error()).To(ContainSubstring("values.yaml"))
-	})
-
-	It("reading default vals should return parsed contents", func() {
-		chart, err := helm.NewChart(chartPath, "", true)
-		Expect(err).To(BeNil())
-
-		Expect(strings.TrimSpace(string(chart.Values))).
-			To(Equal(strings.TrimSpace(string(testChart.ValuesYaml))))
 	})
 
 	It("returns error on bad base values yaml", func() {

@@ -55,9 +55,17 @@ func NewChart(chartPath string, privateRegistryServer string, requirePlans bool)
 		Chartpath:             chartPath,
 		privateRegistryServer: privateRegistryServer,
 	}
-	err := myChart.EnsureIgnore()
+
+	chartPathStat, err := os.Stat(chartPath)
 	if err != nil {
-		return nil, errors.Wrap(err, "Error fixing .helmignore")
+		return nil, err
+	}
+
+	if chartPathStat.IsDir() {
+		err = myChart.EnsureIgnore()
+		if err != nil {
+			return nil, errors.Wrap(err, "Error fixing .helmignore")
+		}
 	}
 
 	loadedChart, err := chartutil.Load(chartPath)
@@ -82,13 +90,11 @@ func NewChart(chartPath string, privateRegistryServer string, requirePlans bool)
 }
 
 func (c *MyChart) LoadChartValues() error {
-	raw, err := c.ReadDefaultVals(c.Chartpath)
-	if err != nil {
-		return err
-	}
-
 	baseVals := map[string]interface{}{}
-	err = yaml.Unmarshal(raw, &baseVals)
+	if c.Chart.Values == nil {
+		return errors.New("values.yaml is requires")
+	}
+	err := yaml.Unmarshal([]byte(c.Chart.Values.Raw), &baseVals)
 	if err != nil {
 		return err
 	}

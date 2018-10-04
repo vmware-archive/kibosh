@@ -38,6 +38,10 @@ version: 0.0.1
 
 	valuesYaml := []byte(`
 name: value
+count: 1
+nested:
+  inner1: inner 1 value
+  inner2: inner2val
 `)
 	plansYaml := []byte(`
 - name: "small"
