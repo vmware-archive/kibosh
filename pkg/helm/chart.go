@@ -17,6 +17,7 @@ package helm
 
 import (
 	"fmt"
+	"github.com/Sirupsen/logrus"
 	"io/ioutil"
 	"path"
 	"strings"
@@ -48,6 +49,33 @@ type Plan struct {
 	Free        *bool    `yaml:"free,omitempty"`
 	Bindable    *bool    `yaml:"bindable,omitempty"`
 	Values      []byte
+}
+
+func LoadFromDir(dir string, log *logrus.Logger) ([]*MyChart, error) {
+	sourceDirStat, err := os.Stat(dir)
+	if err != nil {
+		return nil, err
+	}
+	if !sourceDirStat.IsDir() {
+		return nil, errors.New(fmt.Sprintf("The provided path [%s] is not a directory", dir))
+	}
+	sources, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	charts := []*MyChart{}
+	for _, source := range sources {
+		chartPath := path.Join(dir, source.Name())
+		c, err := NewChart(chartPath, "", false)
+		if err != nil {
+			log.Debug(fmt.Sprintf("The file [%s] not failed to load as a chart", chartPath), err)
+		} else {
+			charts = append(charts, c)
+		}
+	}
+
+	return charts, nil
 }
 
 func NewChart(chartPath string, privateRegistryServer string, requirePlans bool) (*MyChart, error) {

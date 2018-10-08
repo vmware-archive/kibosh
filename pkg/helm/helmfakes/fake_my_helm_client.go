@@ -4,7 +4,9 @@ package helmfakes
 import (
 	"sync"
 
+	"github.com/cf-platform-eng/kibosh/pkg/config"
 	"github.com/cf-platform-eng/kibosh/pkg/helm"
+	api_v1 "k8s.io/api/core/v1"
 	helmstaller "k8s.io/helm/cmd/helm/installer"
 	helmpkg "k8s.io/helm/pkg/helm"
 	"k8s.io/helm/pkg/proto/hapi/chart"
@@ -224,13 +226,14 @@ type FakeMyHelmClient struct {
 	uninstallReturnsOnCall map[int]struct {
 		result1 error
 	}
-	InstallChartStub        func(chart *helm.MyChart, namespace string, planName string, installValues []byte) (*rls.InstallReleaseResponse, error)
+	InstallChartStub        func(registryConfig *config.RegistryConfig, namespace api_v1.Namespace, chart *helm.MyChart, planName string, installValues []byte) (*rls.InstallReleaseResponse, error)
 	installChartMutex       sync.RWMutex
 	installChartArgsForCall []struct {
-		chart         *helm.MyChart
-		namespace     string
-		planName      string
-		installValues []byte
+		registryConfig *config.RegistryConfig
+		namespace      api_v1.Namespace
+		chart          *helm.MyChart
+		planName       string
+		installValues  []byte
 	}
 	installChartReturns struct {
 		result1 *rls.InstallReleaseResponse
@@ -1077,7 +1080,7 @@ func (fake *FakeMyHelmClient) UninstallReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeMyHelmClient) InstallChart(chart *helm.MyChart, namespace string, planName string, installValues []byte) (*rls.InstallReleaseResponse, error) {
+func (fake *FakeMyHelmClient) InstallChart(registryConfig *config.RegistryConfig, namespace api_v1.Namespace, chart *helm.MyChart, planName string, installValues []byte) (*rls.InstallReleaseResponse, error) {
 	var installValuesCopy []byte
 	if installValues != nil {
 		installValuesCopy = make([]byte, len(installValues))
@@ -1086,15 +1089,16 @@ func (fake *FakeMyHelmClient) InstallChart(chart *helm.MyChart, namespace string
 	fake.installChartMutex.Lock()
 	ret, specificReturn := fake.installChartReturnsOnCall[len(fake.installChartArgsForCall)]
 	fake.installChartArgsForCall = append(fake.installChartArgsForCall, struct {
-		chart         *helm.MyChart
-		namespace     string
-		planName      string
-		installValues []byte
-	}{chart, namespace, planName, installValuesCopy})
-	fake.recordInvocation("InstallChart", []interface{}{chart, namespace, planName, installValuesCopy})
+		registryConfig *config.RegistryConfig
+		namespace      api_v1.Namespace
+		chart          *helm.MyChart
+		planName       string
+		installValues  []byte
+	}{registryConfig, namespace, chart, planName, installValuesCopy})
+	fake.recordInvocation("InstallChart", []interface{}{registryConfig, namespace, chart, planName, installValuesCopy})
 	fake.installChartMutex.Unlock()
 	if fake.InstallChartStub != nil {
-		return fake.InstallChartStub(chart, namespace, planName, installValues)
+		return fake.InstallChartStub(registryConfig, namespace, chart, planName, installValues)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -1108,10 +1112,10 @@ func (fake *FakeMyHelmClient) InstallChartCallCount() int {
 	return len(fake.installChartArgsForCall)
 }
 
-func (fake *FakeMyHelmClient) InstallChartArgsForCall(i int) (*helm.MyChart, string, string, []byte) {
+func (fake *FakeMyHelmClient) InstallChartArgsForCall(i int) (*config.RegistryConfig, api_v1.Namespace, *helm.MyChart, string, []byte) {
 	fake.installChartMutex.RLock()
 	defer fake.installChartMutex.RUnlock()
-	return fake.installChartArgsForCall[i].chart, fake.installChartArgsForCall[i].namespace, fake.installChartArgsForCall[i].planName, fake.installChartArgsForCall[i].installValues
+	return fake.installChartArgsForCall[i].registryConfig, fake.installChartArgsForCall[i].namespace, fake.installChartArgsForCall[i].chart, fake.installChartArgsForCall[i].planName, fake.installChartArgsForCall[i].installValues
 }
 
 func (fake *FakeMyHelmClient) InstallChartReturns(result1 *rls.InstallReleaseResponse, result2 error) {

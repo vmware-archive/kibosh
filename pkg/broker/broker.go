@@ -187,19 +187,8 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 			},
 		},
 	}
-	_, err = cluster.CreateNamespace(&namespace)
-	if err != nil {
-		return brokerapi.ProvisionedServiceSpec{}, err
-	}
 
-	if broker.config.RegistryConfig.HasRegistryConfig() {
-		privateRegistrySetup := k8s.NewPrivateRegistrySetup(namespaceName, "default", cluster, broker.config.RegistryConfig)
-		err := privateRegistrySetup.Setup()
-		if err != nil {
-			return brokerapi.ProvisionedServiceSpec{}, err
-		}
-	}
-	_, err = myHelmClient.InstallChart(chart, namespaceName, planName, installValues)
+	_, err = myHelmClient.InstallChart(broker.config.RegistryConfig, namespace, chart, planName, installValues)
 	if err != nil {
 		return brokerapi.ProvisionedServiceSpec{}, err
 	}

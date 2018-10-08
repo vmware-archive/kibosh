@@ -16,6 +16,7 @@
 package k8s
 
 import (
+	"errors"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	api_v1 "k8s.io/api/core/v1"
 	v1_beta1 "k8s.io/api/extensions/v1beta1"
@@ -23,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -81,6 +83,32 @@ func NewCluster(kuboConfig *config.ClusterCredentials) (Cluster, error) {
 		client:         client,
 		internalClient: internalClient,
 	}, nil
+}
+
+func NewClusterFromDefaultConfig() (Cluster, error) {
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	k8sConfig, err := loadingRules.Load()
+	if err != nil {
+		return nil, err
+	}
+	if k8sConfig.CurrentContext == "" {
+		return nil, errors.New("the default Kubernetes config has no current context")
+	}
+
+	context := k8sConfig.Contexts[k8sConfig.CurrentContext]
+	authInfo := k8sConfig.AuthInfos[context.AuthInfo]
+	token := authInfo.Token
+	server := k8sConfig.Clusters[context.Cluster].Server
+	cert := k8sConfig.Clusters[context.Cluster].CertificateAuthorityData
+
+	var creds *config.ClusterCredentials
+	creds = &config.ClusterCredentials{
+		CAData: cert,
+		Server: server,
+		Token:  token,
+	}
+
+	return NewCluster(creds)
 }
 
 func (cluster *cluster) GetClientConfig() *rest.Config {

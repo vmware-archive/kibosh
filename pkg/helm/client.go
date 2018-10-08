@@ -27,6 +27,7 @@ import (
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
 	"github.com/ghodss/yaml"
+	api_v1 "k8s.io/api/core/v1"
 	helmstaller "k8s.io/helm/cmd/helm/installer"
 	"k8s.io/helm/pkg/helm"
 	"k8s.io/helm/pkg/helm/portforwarder"
@@ -37,10 +38,9 @@ import (
 )
 
 type myHelmClient struct {
-	privateRegistryServer string
-	cluster               k8s.Cluster
-	tlsConf               *config.HelmTLSConfig
-	logger                lager.Logger
+	cluster k8s.Cluster
+	tlsConf *config.HelmTLSConfig
+	logger  lager.Logger
 }
 
 //- go:generate counterfeiter ./ MyHelmClient
@@ -50,7 +50,7 @@ type MyHelmClient interface {
 	Install(*helmstaller.Options) error
 	Upgrade(*helmstaller.Options) error
 	Uninstall(*helmstaller.Options) error
-	InstallChart(chart *MyChart, namespace string, planName string, installValues []byte) (*rls.InstallReleaseResponse, error)
+	InstallChart(registryConfig *config.RegistryConfig, namespace api_v1.Namespace, chart *MyChart, planName string, installValues []byte) (*rls.InstallReleaseResponse, error)
 	InstallOperator(chart *MyChart, namespace string) (*rls.InstallReleaseResponse, error)
 	UpdateChart(chart *MyChart, rlsName string, planName string, updateValues []byte) (*rls.UpdateReleaseResponse, error)
 	MergeValueBytes(base []byte, override []byte) ([]byte, error)
@@ -172,7 +172,21 @@ func (c myHelmClient) InstallReleaseFromChart(myChart *chart.Chart, namespace st
 	return client.InstallReleaseFromChart(myChart, namespace, opts...)
 }
 
-func (c myHelmClient) InstallChart(chart *MyChart, namespace string, planName string, installValues []byte) (*rls.InstallReleaseResponse, error) {
+func (c myHelmClient) InstallChart(registryConfig *config.RegistryConfig, namespace api_v1.Namespace, chart *MyChart, planName string, installValues []byte) (*rls.InstallReleaseResponse, error) {
+	_, err := c.cluster.CreateNamespace(&namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	namespaceName := namespace.Name
+	if registryConfig.HasRegistryConfig() {
+		privateRegistrySetup := k8s.NewPrivateRegistrySetup(namespaceName, "default", c.cluster, registryConfig)
+		err := privateRegistrySetup.Setup()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	overrideValues, err := c.MergeValueBytes(chart.Values, chart.Plans[planName].Values)
 	if err != nil {
 		return nil, err
@@ -182,7 +196,7 @@ func (c myHelmClient) InstallChart(chart *MyChart, namespace string, planName st
 		return nil, err
 	}
 
-	return c.InstallReleaseFromChart(chart.Chart, namespace, helm.ReleaseName(namespace), helm.ValueOverrides(mergedValues))
+	return c.InstallReleaseFromChart(chart.Chart, namespaceName, helm.ReleaseName(namespaceName) /* here he is!*/, helm.ValueOverrides(mergedValues))
 }
 
 func (c myHelmClient) InstallOperator(chart *MyChart, namespace string) (*rls.InstallReleaseResponse, error) {

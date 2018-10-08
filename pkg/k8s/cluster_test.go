@@ -16,8 +16,10 @@
 package k8s_test
 
 import (
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	. "github.com/cf-platform-eng/kibosh/pkg/k8s"
@@ -52,5 +54,40 @@ var _ = Describe("Config", func() {
 		cluster.ListPods("mynamespace", meta_v1.ListOptions{})
 
 		Expect(url).To(Equal("/api/v1/namespaces/mynamespace/pods"))
+	})
+
+	It("loads default config", func() {
+		configFile, err := ioutil.TempFile("", "")
+		Expect(err).To(BeNil())
+
+		configFile.Write([]byte(`
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: Zm9v
+    server: https://127.0.0.1
+  name: my_cluster
+contexts:
+- context:
+    cluster: my_cluster
+    user: my_cluster_user
+  name: my_cluster
+current-context: my_cluster
+kind: Config
+preferences: {}
+users:
+- name: my_cluster_user
+  user:
+    token: cGFzc3dvcmQ=
+`))
+
+		os.Setenv("KUBECONFIG", configFile.Name())
+
+		cluster, err := NewClusterFromDefaultConfig()
+
+		Expect(err).To(BeNil())
+		clientConfig := cluster.GetClientConfig()
+		Expect(clientConfig).NotTo(BeNil())
+		Expect(clientConfig.BearerToken).To(Equal("cGFzc3dvcmQ="))
 	})
 })

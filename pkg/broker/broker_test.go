@@ -285,29 +285,6 @@ var _ = Describe("Broker", func() {
 
 		})
 
-		Context("namespace", func() {
-			It("creates a new namespace", func() {
-				_, err := broker.Provision(nil, "my-instance-guid", details, true)
-
-				Expect(err).To(BeNil())
-
-				Expect(fakeCluster.CreateNamespaceCallCount()).To(Equal(1))
-
-				namespace := fakeCluster.CreateNamespaceArgsForCall(0)
-				Expect(namespace.Name).To(Equal("kibosh-my-instance-guid"))
-			})
-
-			It("returns error on namespace creation failure", func() {
-				errorMessage := "namespace already taken or something"
-				fakeCluster.CreateNamespaceReturns(nil, errors.New(errorMessage))
-
-				_, err := broker.Provision(nil, "my-instance-guid", details, true)
-
-				Expect(err).NotTo(BeNil())
-				Expect(err.Error()).To(ContainSubstring(errorMessage))
-			})
-		})
-
 		Context("registry secrets", func() {
 			It("doesn't mess with secrets when not configured", func() {
 				config = &my_config.Config{RegistryConfig: &my_config.RegistryConfig{}, HelmTLSConfig: &my_config.HelmTLSConfig{}}
@@ -333,9 +310,9 @@ var _ = Describe("Broker", func() {
 				Expect(err).To(BeNil())
 
 				Expect(fakeHelmClient.InstallChartCallCount()).To(Equal(1))
-				chart, namespaceName, plan, opts := fakeHelmClient.InstallChartArgsForCall(0)
+				_, namespace, chart, plan, opts := fakeHelmClient.InstallChartArgsForCall(0)
 				Expect(chart).To(Equal(spacebearsChart))
-				Expect(namespaceName).To(Equal("kibosh-my-instance-guid"))
+				Expect(namespace.Name).To(Equal("kibosh-my-instance-guid"))
 				Expect(plan).To(Equal("small"))
 				Expect(opts).To(BeNil())
 			})
@@ -359,7 +336,7 @@ var _ = Describe("Broker", func() {
 				Expect(err).To(BeNil())
 
 				Expect(fakeHelmClient.InstallChartCallCount()).To(Equal(1))
-				chart, _, _, _ := fakeHelmClient.InstallChartArgsForCall(0)
+				_, _, chart, _, _ := fakeHelmClient.InstallChartArgsForCall(0)
 				Expect(chart).To(Equal(mysqlChart))
 			})
 
@@ -376,9 +353,9 @@ var _ = Describe("Broker", func() {
 				Expect(err).To(BeNil())
 
 				Expect(fakeHelmClient.InstallChartCallCount()).To(Equal(1))
-				chart, namespaceName, plan, opts := fakeHelmClient.InstallChartArgsForCall(0)
+				_, namespace, chart, plan, opts := fakeHelmClient.InstallChartArgsForCall(0)
 				Expect(chart).To(Equal(spacebearsChart))
-				Expect(namespaceName).To(Equal("kibosh-my-instance-guid"))
+				Expect(namespace.Name).To(Equal("kibosh-my-instance-guid"))
 				Expect(plan).To(Equal("small"))
 				Expect(strings.TrimSpace(string(opts))).To(Equal("foo: bar"))
 			})
