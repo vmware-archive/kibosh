@@ -21,7 +21,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"code.cloudfoundry.org/lager"
+	"github.com/Sirupsen/logrus"
 	"github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/pkg/errors"
 	"k8s.io/helm/pkg/chartutil"
@@ -38,10 +38,10 @@ type repository struct {
 	helmChartDir          string
 	privateRegistryServer string
 	expectOSBAPICharts    bool
-	logger                lager.Logger
+	logger                *logrus.Logger
 }
 
-func NewRepository(chartPath string, privateRegistryServer string, expectOSBAPICharts bool, logger lager.Logger) Repository {
+func NewRepository(chartPath string, privateRegistryServer string, expectOSBAPICharts bool, logger *logrus.Logger) Repository {
 	return &repository{
 		helmChartDir:          chartPath,
 		privateRegistryServer: privateRegistryServer,

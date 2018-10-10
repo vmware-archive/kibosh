@@ -16,7 +16,7 @@
 package broker_test
 
 import (
-	"code.cloudfoundry.org/lager"
+	"github.com/Sirupsen/logrus"
 	"github.com/cf-platform-eng/kibosh/pkg/broker"
 	my_config "github.com/cf-platform-eng/kibosh/pkg/config"
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
@@ -33,7 +33,7 @@ var _ = Describe("cluster preparation", func() {
 	var fakeCluster k8sfakes.FakeCluster
 	var fakeServiceAccountInstaller k8sfakes.FakeServiceAccountInstaller
 	var operators []*my_helm.MyChart
-	var logger lager.Logger
+	var logger *logrus.Logger
 	var fakeClusterFactory k8sfakes.FakeClusterFactory
 	var fakeHelmClientFactory helmfakes.FakeHelmClientFactory
 	var fakeServiceAccountInstallerFactory k8sfakes.FakeServiceAccountInstallerFactory
@@ -50,7 +50,7 @@ var _ = Describe("cluster preparation", func() {
 		fakeHelmClientFactory.HelmClientReturns(&fakeHelmClient)
 		fakeServiceAccountInstallerFactory.ServiceAccountInstallerReturns(&fakeServiceAccountInstaller)
 
-		logger = lager.NewLogger("test")
+		logger = logrus.New()
 		config = &my_config.Config{
 			RegistryConfig: &my_config.RegistryConfig{
 				Server: "127.0.0.1",

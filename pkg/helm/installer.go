@@ -20,8 +20,8 @@ import (
 	"strings"
 	"time"
 
-	"code.cloudfoundry.org/lager"
 	"github.com/Masterminds/semver"
+	"github.com/Sirupsen/logrus"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
 	"github.com/pkg/errors"
@@ -35,7 +35,7 @@ type installer struct {
 	config  *config.Config
 	cluster k8s.Cluster
 	client  MyHelmClient
-	logger  lager.Logger
+	logger  *logrus.Logger
 }
 
 type Installer interface {
@@ -53,7 +53,7 @@ const (
 	deploymentName = "tiller-deploy"
 )
 
-func NewInstaller(c *config.Config, cluster k8s.Cluster, client MyHelmClient, logger lager.Logger) Installer {
+func NewInstaller(c *config.Config, cluster k8s.Cluster, client MyHelmClient, logger *logrus.Logger) Installer {
 	return &installer{
 		maxWait: 60 * time.Second,
 		config:  c,

@@ -22,8 +22,7 @@ import (
 
 	"github.com/cf-platform-eng/kibosh/pkg/state"
 
-	"code.cloudfoundry.org/lager"
-
+	"github.com/Sirupsen/logrus"
 	. "github.com/cf-platform-eng/kibosh/pkg/broker"
 	my_config "github.com/cf-platform-eng/kibosh/pkg/config"
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
@@ -44,7 +43,7 @@ var _ = Describe("Broker", func() {
 	const spacebearsServiceGUID = "37b7acb6-6755-56fe-a17f-2307657023ef"
 	const mysqlServiceGUID = "c76ed0a4-9a04-5710-90c2-75e955697b08"
 
-	var logger lager.Logger
+	var logger *logrus.Logger
 
 	var spacebearsChart *my_helm.MyChart
 	var mysqlChart *my_helm.MyChart
@@ -53,7 +52,7 @@ var _ = Describe("Broker", func() {
 	var config *my_config.Config
 
 	BeforeEach(func() {
-		logger = lager.NewLogger("test")
+		logger = logrus.New()
 		config = &my_config.Config{
 			RegistryConfig: &my_config.RegistryConfig{
 				Server: "127.0.0.1",

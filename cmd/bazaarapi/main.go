@@ -17,18 +17,16 @@ package main
 
 import (
 	"fmt"
-	"net/http"
-	"os"
-
-	"code.cloudfoundry.org/lager"
+	"github.com/Sirupsen/logrus"
 	"github.com/cf-platform-eng/kibosh/pkg/bazaar"
 	"github.com/cf-platform-eng/kibosh/pkg/httphelpers"
 	"github.com/cf-platform-eng/kibosh/pkg/repository"
+	"net/http"
 )
 
 func main() {
-	bazaarLogger := lager.NewLogger("bazaar")
-	bazaarLogger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
+	bazaarLogger := logrus.New()
+	bazaarLogger.SetLevel(logrus.DebugLevel)
 	bazaarLogger.Info("Starting PKS Bazaar")
 
 	conf, err := bazaar.ParseConfig()

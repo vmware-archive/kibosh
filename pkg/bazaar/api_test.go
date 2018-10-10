@@ -24,7 +24,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"code.cloudfoundry.org/lager"
+	"github.com/Sirupsen/logrus"
 	"github.com/cf-platform-eng/kibosh/pkg/bazaar"
 	"github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/httphelpers"
@@ -36,7 +36,7 @@ var _ = Describe("Api", func() {
 	const spacebearsServiceGUID = "37b7acb6-6755-56fe-a17f-2307657023ef"
 
 	var repo repositoryfakes.FakeRepository
-	var logger lager.Logger
+	var logger *logrus.Logger
 	var api bazaar.API
 	var kiboshConfig *bazaar.KiboshConfig
 
@@ -50,7 +50,7 @@ var _ = Describe("Api", func() {
 		kiboshAPITestServer = httptest.NewServer(handler)
 
 		repo = repositoryfakes.FakeRepository{}
-		logger = lager.NewLogger("APITest")
+		logger = logrus.New()
 		kiboshConfig = &bazaar.KiboshConfig{
 			Server: kiboshAPITestServer.URL,
 			User:   "bob",

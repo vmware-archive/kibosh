@@ -23,7 +23,7 @@ import (
 	"net"
 	"reflect"
 
-	"code.cloudfoundry.org/lager"
+	"github.com/Sirupsen/logrus"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
 	"github.com/ghodss/yaml"
@@ -47,7 +47,7 @@ import (
 type myHelmClient struct {
 	cluster k8s.Cluster
 	tlsConf *config.HelmTLSConfig
-	logger  lager.Logger
+	logger  *logrus.Logger
 }
 
 //- go:generate counterfeiter ./ MyHelmClient
@@ -65,7 +65,7 @@ type MyHelmClient interface {
 	PrintStatus(out io.Writer, deploymentName string) error
 }
 
-func NewMyHelmClient(cluster k8s.Cluster, tlsConf *config.HelmTLSConfig, logger lager.Logger) MyHelmClient {
+func NewMyHelmClient(cluster k8s.Cluster, tlsConf *config.HelmTLSConfig, logger *logrus.Logger) MyHelmClient {
 	return &myHelmClient{
 		cluster: cluster,
 		tlsConf: tlsConf,
@@ -81,7 +81,7 @@ func (c myHelmClient) open() (*kube.Tunnel, helm.Interface, error) {
 	}
 
 	host := fmt.Sprintf("127.0.0.1:%d", tunnel.Local)
-	c.logger.Debug("Tunnel", lager.Data{"host": host})
+	c.logger.Debug("Tunnel", map[string]interface{}{"host": host})
 
 	opts := []helm.Option{
 		helm.Host(host),

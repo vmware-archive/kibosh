@@ -22,7 +22,7 @@ import (
 
 	"github.com/cf-platform-eng/kibosh/pkg/state"
 
-	"code.cloudfoundry.org/lager"
+	"github.com/Sirupsen/logrus"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
@@ -39,7 +39,7 @@ const registrySecretName = "registry-secret"
 
 // PksServiceBroker contains values passed in from configuration necessary for broker's work.
 type PksServiceBroker struct {
-	Logger                         lager.Logger
+	Logger                         *logrus.Logger
 	config                         *config.Config
 	clusterFactory                 k8s.ClusterFactory
 	helmClientFactory              my_helm.HelmClientFactory
@@ -49,7 +49,7 @@ type PksServiceBroker struct {
 	operators                      []*my_helm.MyChart
 }
 
-func NewPksServiceBroker(config *config.Config, clusterFactory k8s.ClusterFactory, helmClientFactory my_helm.HelmClientFactory, serviceAccountInstallerFactory k8s.ServiceAccountInstallerFactory, charts []*my_helm.MyChart, operators []*my_helm.MyChart, mapInstanceToCluster state.KeyValueStore, logger lager.Logger) *PksServiceBroker {
+func NewPksServiceBroker(config *config.Config, clusterFactory k8s.ClusterFactory, helmClientFactory my_helm.HelmClientFactory, serviceAccountInstallerFactory k8s.ServiceAccountInstallerFactory, charts []*my_helm.MyChart, operators []*my_helm.MyChart, mapInstanceToCluster state.KeyValueStore, logger *logrus.Logger) *PksServiceBroker {
 	broker := &PksServiceBroker{
 		Logger:                         logger,
 		config:                         config,

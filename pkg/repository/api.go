@@ -18,7 +18,7 @@ package repository
 import (
 	"net/http"
 
-	"code.cloudfoundry.org/lager"
+	"github.com/Sirupsen/logrus"
 	"github.com/cf-platform-eng/kibosh/pkg/broker"
 	"github.com/cf-platform-eng/kibosh/pkg/cf"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
@@ -37,10 +37,10 @@ type api struct {
 	repository Repository
 	cfClient   cf.Client
 	conf       *config.Config
-	logger     lager.Logger
+	logger     *logrus.Logger
 }
 
-func NewAPI(b *broker.PksServiceBroker, r Repository, c cf.Client, conf *config.Config, l lager.Logger) API {
+func NewAPI(b *broker.PksServiceBroker, r Repository, c cf.Client, conf *config.Config, l *logrus.Logger) API {
 	return &api{
 		broker:     b,
 		repository: r,

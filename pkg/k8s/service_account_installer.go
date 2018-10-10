@@ -16,8 +16,8 @@
 package k8s
 
 import (
-	"code.cloudfoundry.org/lager"
 	"fmt"
+	"github.com/Sirupsen/logrus"
 	api_v1 "k8s.io/api/core/v1"
 	"k8s.io/api/rbac/v1beta1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,10 +35,10 @@ type ServiceAccountInstaller interface {
 
 type serviceAccountInstaller struct {
 	cluster Cluster
-	logger  lager.Logger
+	logger  *logrus.Logger
 }
 
-func NewServiceAccountInstaller(cluster Cluster, logger lager.Logger) ServiceAccountInstaller {
+func NewServiceAccountInstaller(cluster Cluster, logger *logrus.Logger) ServiceAccountInstaller {
 
 	return &serviceAccountInstaller{
 		cluster: cluster,

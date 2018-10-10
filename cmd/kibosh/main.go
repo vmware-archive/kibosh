@@ -23,6 +23,7 @@ import (
 	"github.com/cf-platform-eng/kibosh/pkg/state"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/Sirupsen/logrus"
 	"github.com/cf-platform-eng/kibosh/pkg/broker"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	"github.com/cf-platform-eng/kibosh/pkg/helm"
@@ -34,21 +35,22 @@ import (
 )
 
 func main() {
-	brokerLogger := lager.NewLogger("kibosh")
-	brokerLogger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
-	brokerLogger.Info("Starting PKS Generic Broker")
+	kiboshLogger := logrus.New()
+	kiboshLogger.SetLevel(logrus.DebugLevel)
+
+	kiboshLogger.Info("Starting PKS Generic Broker")
 
 	conf, err := config.Parse()
 	if err != nil {
-		brokerLogger.Fatal("Loading config file", err)
+		kiboshLogger.Fatal("Loading config file", err)
 	}
 
-	repo := repository.NewRepository(conf.HelmChartDir, conf.RegistryConfig.Server, true, brokerLogger)
+	repo := repository.NewRepository(conf.HelmChartDir, conf.RegistryConfig.Server, true, kiboshLogger)
 	charts, err := repo.LoadCharts()
 	if err != nil {
-		brokerLogger.Fatal("Unable to load charts", err)
+		kiboshLogger.Fatal("Unable to load charts", err)
 	}
-	brokerLogger.Info(fmt.Sprintf("Brokering charts %s", charts))
+	kiboshLogger.Info(fmt.Sprintf("Brokering charts %s", charts))
 
 	var cfAPIClient *cfclient.Client
 	if conf.CFClientConfig.HasCFClientConfig() {
@@ -59,54 +61,57 @@ func main() {
 			SkipSslValidation: conf.CFClientConfig.SkipSslValidation,
 		})
 		if err != nil {
-			brokerLogger.Fatal("Unable to load charts", err)
+			kiboshLogger.Fatal("Unable to load charts", err)
 		}
 	}
 
-	operatorRepo := repository.NewRepository(conf.OperatorDir, conf.RegistryConfig.Server, false, brokerLogger)
+	operatorRepo := repository.NewRepository(conf.OperatorDir, conf.RegistryConfig.Server, false, kiboshLogger)
 	operatorCharts, err := operatorRepo.LoadCharts()
 	if err != nil {
 		if !os.IsNotExist(err) {
-			brokerLogger.Fatal("Unable to load operators", err)
+			kiboshLogger.Fatal("Unable to load operators", err)
 		}
 	}
-	brokerLogger.Info(fmt.Sprintf("Loaded operator charts: %s", operatorCharts))
+	kiboshLogger.Info(fmt.Sprintf("Loaded operator charts: %s", operatorCharts))
 
 	clusterFactory := k8s.NewClusterFactory(*conf.ClusterCredentials)
-	helmClientFactory := helm.NewHelmClientFactory(conf.HelmTLSConfig, brokerLogger)
-	serviceAccountInstallerFactory := k8s.NewServiceAccountInstallerFactory(brokerLogger)
+	helmClientFactory := helm.NewHelmClientFactory(conf.HelmTLSConfig, kiboshLogger)
+	serviceAccountInstallerFactory := k8s.NewServiceAccountInstallerFactory(kiboshLogger)
 
-	err = broker.PrepareDefaultCluster(conf, clusterFactory, helmClientFactory, serviceAccountInstallerFactory, brokerLogger, operatorCharts)
+	err = broker.PrepareDefaultCluster(conf, clusterFactory, helmClientFactory, serviceAccountInstallerFactory, kiboshLogger, operatorCharts)
 
 	if err != nil {
-		brokerLogger.Fatal("Unable to prepare default cluster", err)
+		kiboshLogger.Fatal("Unable to prepare default cluster", err)
 	}
 
 	mapServiceInstanceToCluster := state.NewKeyValueStore()
 	err = mapServiceInstanceToCluster.Open(conf.StateDir)
 
 	if err != nil {
-		brokerLogger.Fatal("Unable to open state db", err)
+		kiboshLogger.Fatal("Unable to open state db", err)
 	}
 
 	defer mapServiceInstanceToCluster.Close()
 
-	serviceBroker := broker.NewPksServiceBroker(conf, clusterFactory, helmClientFactory, serviceAccountInstallerFactory, charts, operatorCharts, mapServiceInstanceToCluster, brokerLogger)
+	serviceBroker := broker.NewPksServiceBroker(conf, clusterFactory, helmClientFactory, serviceAccountInstallerFactory, charts, operatorCharts, mapServiceInstanceToCluster, kiboshLogger)
 	brokerCredentials := brokerapi.BrokerCredentials{
 		Username: conf.AdminUsername,
 		Password: conf.AdminPassword,
 	}
 
+	brokerLogger := lager.NewLogger("broker")
+	brokerLogger.RegisterSink(broker.NewLogrusSink(kiboshLogger))
+
 	brokerAPI := brokerapi.New(serviceBroker, brokerLogger, brokerCredentials)
 	http.Handle("/", brokerAPI)
 
-	repositoryAPI := repository.NewAPI(serviceBroker, repo, cfAPIClient, conf, brokerLogger)
+	repositoryAPI := repository.NewAPI(serviceBroker, repo, cfAPIClient, conf, kiboshLogger)
 	authFilter := httphelpers.NewAuthFilter(conf.AdminUsername, conf.AdminPassword)
 	http.Handle("/reload_charts", authFilter.Filter(
 		repositoryAPI.ReloadCharts(),
 	))
 
-	brokerLogger.Info(fmt.Sprintf("Listening on %v", conf.Port))
+	kiboshLogger.Info(fmt.Sprintf("Listening on %v", conf.Port))
 	err = http.ListenAndServe(fmt.Sprintf(":%v", conf.Port), nil)
-	brokerLogger.Fatal("http-listen", err)
+	kiboshLogger.Fatal("http-listen", err)
 }

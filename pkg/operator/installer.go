@@ -18,7 +18,7 @@ package operator
 import (
 	"fmt"
 
-	"code.cloudfoundry.org/lager"
+	"github.com/Sirupsen/logrus"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
@@ -29,7 +29,7 @@ import (
 )
 
 type PksOperator struct {
-	Logger         lager.Logger
+	Logger         *logrus.Logger
 	registryConfig *config.RegistryConfig
 
 	cluster      k8s.Cluster
@@ -37,7 +37,7 @@ type PksOperator struct {
 	operatorsMap map[string]*my_helm.MyChart
 }
 
-func NewInstaller(registryConfig *config.RegistryConfig, cluster k8s.Cluster, myHelmClient my_helm.MyHelmClient, logger lager.Logger) *PksOperator {
+func NewInstaller(registryConfig *config.RegistryConfig, cluster k8s.Cluster, myHelmClient my_helm.MyHelmClient, logger *logrus.Logger) *PksOperator {
 	operator := &PksOperator{
 		Logger:         logger,
 		registryConfig: registryConfig,

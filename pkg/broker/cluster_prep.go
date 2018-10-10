@@ -16,7 +16,7 @@
 package broker
 
 import (
-	"code.cloudfoundry.org/lager"
+	"github.com/Sirupsen/logrus"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
@@ -27,7 +27,7 @@ func PrepareDefaultCluster(config *config.Config,
 	clusterFactory k8s.ClusterFactory,
 	helmClientFactory my_helm.HelmClientFactory,
 	serviceAccountInstallerFactory k8s.ServiceAccountInstallerFactory,
-	logger lager.Logger,
+	logger *logrus.Logger,
 	operators []*my_helm.MyChart) error {
 
 	cluster, err := clusterFactory.DefaultCluster()
@@ -46,7 +46,7 @@ func PrepareCluster(config *config.Config,
 	cluster k8s.Cluster,
 	helmClient my_helm.MyHelmClient,
 	serviceAccountInstaller k8s.ServiceAccountInstaller,
-	logger lager.Logger,
+	logger *logrus.Logger,
 	operators []*my_helm.MyChart) error {
 
 	err := serviceAccountInstaller.Install()

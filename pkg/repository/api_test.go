@@ -21,7 +21,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"code.cloudfoundry.org/lager"
+	"github.com/Sirupsen/logrus"
 	"github.com/cf-platform-eng/kibosh/pkg/broker"
 	"github.com/cf-platform-eng/kibosh/pkg/cf/cffakes"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
@@ -42,7 +42,7 @@ var _ = Describe("Api", func() {
 	var bro broker.PksServiceBroker
 	var cfClient cffakes.FakeClient
 	var conf *config.Config
-	var logger lager.Logger
+	var logger *logrus.Logger
 	var api repository.API
 
 	BeforeEach(func() {
@@ -65,7 +65,7 @@ var _ = Describe("Api", func() {
 				BrokerURL:  "https://broker.exmaple.com",
 			},
 		}
-		logger = lager.NewLogger("APITest")
+		logger = logrus.New()
 		api = repository.NewAPI(&bro, &repo, &cfClient, conf, logger)
 	})
 

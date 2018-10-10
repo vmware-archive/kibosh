@@ -16,7 +16,7 @@
 package operator_test
 
 import (
-	"code.cloudfoundry.org/lager"
+	"github.com/Sirupsen/logrus"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/helm/helmfakes"
@@ -36,7 +36,7 @@ import (
 
 var _ = Describe("Operator", func() {
 
-	var logger lager.Logger
+	var logger *logrus.Logger
 	var registryConfig config.RegistryConfig
 	var cluster k8sfakes.FakeCluster
 	var client helmfakes.FakeMyHelmClient
@@ -48,7 +48,7 @@ var _ = Describe("Operator", func() {
 	var operatorCharts []*my_helm.MyChart
 
 	BeforeEach(func() {
-		logger = lager.NewLogger("test")
+		logger = logrus.New()
 		registryConfig = config.RegistryConfig{
 			Server: "127.0.0.1",
 			User:   "k8s",

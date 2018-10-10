@@ -19,7 +19,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"code.cloudfoundry.org/lager"
+	"github.com/Sirupsen/logrus"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s/k8sfakes"
 	"github.com/cf-platform-eng/kibosh/pkg/test"
@@ -29,12 +29,12 @@ import (
 )
 
 var _ = Describe("Service Account Installer", func() {
-	var logger lager.Logger
+	var logger *logrus.Logger
 	var cluster k8sfakes.FakeCluster
 	var installer k8s.ServiceAccountInstaller
 
 	BeforeEach(func() {
-		logger = lager.NewLogger("test")
+		logger = logrus.New()
 		k8sClient := test.FakeK8sInterface{}
 		cluster = k8sfakes.FakeCluster{}
 		cluster.GetClientReturns(&k8sClient)

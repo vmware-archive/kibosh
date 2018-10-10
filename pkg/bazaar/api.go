@@ -24,7 +24,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"code.cloudfoundry.org/lager"
+	"github.com/Sirupsen/logrus"
 	"github.com/cf-platform-eng/kibosh/pkg/httphelpers"
 	"github.com/cf-platform-eng/kibosh/pkg/repository"
 	"github.com/pkg/errors"
@@ -41,14 +41,14 @@ type API interface {
 type api struct {
 	repo         repository.Repository
 	kiboshConfig *KiboshConfig
-	logger       lager.Logger
+	logger       *logrus.Logger
 }
 
-func NewAPI(repo repository.Repository, kiboshConfig *KiboshConfig, l lager.Logger) API {
+func NewAPI(repo repository.Repository, kiboshConfig *KiboshConfig, logger *logrus.Logger) API {
 	return &api{
 		repo:         repo,
 		kiboshConfig: kiboshConfig,
-		logger:       l,
+		logger:       logger,
 	}
 }
 

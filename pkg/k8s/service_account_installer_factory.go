@@ -16,7 +16,7 @@
 package k8s
 
 import (
-	"code.cloudfoundry.org/lager"
+	"github.com/Sirupsen/logrus"
 )
 
 //go:generate counterfeiter ./ ServiceAccountInstallerFactory
@@ -25,13 +25,13 @@ type ServiceAccountInstallerFactory interface {
 }
 
 type serviceAccountInstallerFactory struct {
-	logger lager.Logger
+	logger *logrus.Logger
 }
 
 func (saif serviceAccountInstallerFactory) ServiceAccountInstaller(cluster Cluster) ServiceAccountInstaller {
 	return NewServiceAccountInstaller(cluster, saif.logger)
 }
 
-func NewServiceAccountInstallerFactory(logger lager.Logger) ServiceAccountInstallerFactory {
+func NewServiceAccountInstallerFactory(logger *logrus.Logger) ServiceAccountInstallerFactory {
 	return &serviceAccountInstallerFactory{logger}
 }

@@ -19,8 +19,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"code.cloudfoundry.org/lager"
 	"errors"
+	"github.com/Sirupsen/logrus"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	. "github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/helm/helmfakes"
@@ -36,14 +36,14 @@ import (
 const helmVersion = "v2.9.0"
 
 var _ = Describe("KubeConfig", func() {
-	var logger lager.Logger
+	var logger *logrus.Logger
 	var cluster k8sfakes.FakeCluster
 	var client helmfakes.FakeMyHelmClient
 	var conf *config.Config
 	var installer Installer
 
 	BeforeEach(func() {
-		logger = lager.NewLogger("test")
+		logger = logrus.New()
 		conf = &config.Config{
 			RegistryConfig: &config.RegistryConfig{},
 			HelmTLSConfig:  &config.HelmTLSConfig{},

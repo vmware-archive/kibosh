@@ -20,7 +20,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"code.cloudfoundry.org/lager"
+	"github.com/Sirupsen/logrus"
 	"github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/repository"
 	"github.com/cf-platform-eng/kibosh/pkg/test"
@@ -34,7 +34,7 @@ var _ = Describe("Repository", func() {
 	var chartPath string
 	var testChart *test.TestChart
 
-	var logger lager.Logger
+	var logger *logrus.Logger
 
 	Context("no charts", func() {
 		var emptyDir string
@@ -50,7 +50,7 @@ var _ = Describe("Repository", func() {
 			_, err = ioutil.TempDir(nestedEmptyDir, "emptyDir")
 			Expect(err).To(BeNil())
 
-			logger = lager.NewLogger("test")
+			logger = logrus.New()
 		})
 
 		AfterEach(func() {
@@ -89,7 +89,7 @@ var _ = Describe("Repository", func() {
 			err = testChart.WriteChart(chartPath)
 			Expect(err).To(BeNil())
 
-			logger = lager.NewLogger("test")
+			logger = logrus.New()
 		})
 
 		AfterEach(func() {
@@ -116,7 +116,7 @@ var _ = Describe("Repository", func() {
 			err = testChart.WriteChart(chartPath)
 			Expect(err).To(BeNil())
 
-			logger = lager.NewLogger("test")
+			logger = logrus.New()
 		})
 
 		AfterEach(func() {
@@ -180,7 +180,7 @@ version: 0.0.1
 		})
 
 		It("loads multiple charts", func() {
-			logger = lager.NewLogger("test")
+			logger = logrus.New()
 			myRepository := repository.NewRepository(chartPath, "", true, logger)
 
 			charts, err := myRepository.LoadCharts()
@@ -195,7 +195,7 @@ version: 0.0.1
 			err := ioutil.WriteFile(filepath.Join(chartPath, "c2", "Chart.yaml"), []byte(`bad::::yaml`), 0666)
 			Expect(err).To(BeNil())
 
-			logger = lager.NewLogger("test")
+			logger = logrus.New()
 			myRepository := repository.NewRepository(chartPath, "", true, logger)
 
 			_, err = myRepository.LoadCharts()
@@ -351,7 +351,7 @@ version: 0.0.2
 
 			err = testChart.WriteChart(deletePath)
 			Expect(err).To(BeNil())
-			logger = lager.NewLogger("test")
+			logger = logrus.New()
 			myRepository := repository.NewRepository(chartPath, "", true, logger)
 
 			err = myRepository.DeleteChart("spacebears")
@@ -377,7 +377,7 @@ version: 0.0.2
 			err = testChart.WriteChart(mysqlPath)
 			Expect(err).To(BeNil())
 
-			logger = lager.NewLogger("test")
+			logger = logrus.New()
 			myRepository := repository.NewRepository(chartPath, "", true, logger)
 
 			err = myRepository.DeleteChart("spacebears")
@@ -395,7 +395,7 @@ version: 0.0.2
 			chartPath, err := ioutil.TempDir("", "chart-")
 			Expect(err).To(BeNil())
 
-			logger = lager.NewLogger("test")
+			logger = logrus.New()
 			myRepository := repository.NewRepository(chartPath, "", true, logger)
 
 			err = myRepository.DeleteChart("spacebears")
