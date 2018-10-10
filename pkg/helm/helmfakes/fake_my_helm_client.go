@@ -2,6 +2,7 @@
 package helmfakes
 
 import (
+	"io"
 	"sync"
 
 	"github.com/cf-platform-eng/kibosh/pkg/config"
@@ -295,6 +296,18 @@ type FakeMyHelmClient struct {
 	}
 	hasDifferentTLSConfigReturnsOnCall map[int]struct {
 		result1 bool
+	}
+	PrintStatusStub        func(out io.Writer, deploymentName string) error
+	printStatusMutex       sync.RWMutex
+	printStatusArgsForCall []struct {
+		out            io.Writer
+		deploymentName string
+	}
+	printStatusReturns struct {
+		result1 error
+	}
+	printStatusReturnsOnCall map[int]struct {
+		result1 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -1353,6 +1366,55 @@ func (fake *FakeMyHelmClient) HasDifferentTLSConfigReturnsOnCall(i int, result1 
 	}{result1}
 }
 
+func (fake *FakeMyHelmClient) PrintStatus(out io.Writer, deploymentName string) error {
+	fake.printStatusMutex.Lock()
+	ret, specificReturn := fake.printStatusReturnsOnCall[len(fake.printStatusArgsForCall)]
+	fake.printStatusArgsForCall = append(fake.printStatusArgsForCall, struct {
+		out            io.Writer
+		deploymentName string
+	}{out, deploymentName})
+	fake.recordInvocation("PrintStatus", []interface{}{out, deploymentName})
+	fake.printStatusMutex.Unlock()
+	if fake.PrintStatusStub != nil {
+		return fake.PrintStatusStub(out, deploymentName)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.printStatusReturns.result1
+}
+
+func (fake *FakeMyHelmClient) PrintStatusCallCount() int {
+	fake.printStatusMutex.RLock()
+	defer fake.printStatusMutex.RUnlock()
+	return len(fake.printStatusArgsForCall)
+}
+
+func (fake *FakeMyHelmClient) PrintStatusArgsForCall(i int) (io.Writer, string) {
+	fake.printStatusMutex.RLock()
+	defer fake.printStatusMutex.RUnlock()
+	return fake.printStatusArgsForCall[i].out, fake.printStatusArgsForCall[i].deploymentName
+}
+
+func (fake *FakeMyHelmClient) PrintStatusReturns(result1 error) {
+	fake.PrintStatusStub = nil
+	fake.printStatusReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeMyHelmClient) PrintStatusReturnsOnCall(i int, result1 error) {
+	fake.PrintStatusStub = nil
+	if fake.printStatusReturnsOnCall == nil {
+		fake.printStatusReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.printStatusReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeMyHelmClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -1398,6 +1460,8 @@ func (fake *FakeMyHelmClient) Invocations() map[string][][]interface{} {
 	defer fake.mergeValueBytesMutex.RUnlock()
 	fake.hasDifferentTLSConfigMutex.RLock()
 	defer fake.hasDifferentTLSConfigMutex.RUnlock()
+	fake.printStatusMutex.RLock()
+	defer fake.printStatusMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

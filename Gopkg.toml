@@ -89,3 +89,7 @@ ignored = [
 [[constraint]]
   name = "github.com/dgraph-io/badger"
   version = "1.5.3"
+
+[[constraint]]
+  name = "github.com/golang/protobuf"
+  version = "1.2.0"

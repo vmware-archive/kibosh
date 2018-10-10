@@ -56,9 +56,9 @@ func NewPksServiceBroker(config *config.Config, clusterFactory k8s.ClusterFactor
 		clusterFactory:                 clusterFactory,
 		helmClientFactory:              helmClientFactory,
 		serviceAccountInstallerFactory: serviceAccountInstallerFactory,
-		charts:               charts,
-		operators:            operators,
-		mapInstanceToCluster: mapInstanceToCluster,
+		charts:                         charts,
+		operators:                      operators,
+		mapInstanceToCluster:           mapInstanceToCluster,
 	}
 
 	return broker

@@ -1065,7 +1065,7 @@
   version = "kubernetes-1.10.0"
 
 [[projects]]
-  digest = "1:e40b255f16ca4e6bacc4828486302b94bca68d15a98117bc4c689a48d93112f6"
+  digest = "1:29cb62ef0dd6daa849221df9339968a47d78d84e3da2c0a4883410957a4ee62b"
   name = "k8s.io/helm"
   packages = [
     "cmd/helm/installer",
@@ -1080,6 +1080,7 @@
     "pkg/proto/hapi/version",
     "pkg/strvals",
     "pkg/sympath",
+    "pkg/timeconv",
     "pkg/tlsutil",
     "pkg/version",
   ]
@@ -1298,6 +1299,7 @@
     "github.com/ghodss/yaml",
     "github.com/go-openapi/spec",
     "github.com/gosuri/uitable",
+    "github.com/gosuri/uitable/util/strutil",
     "github.com/kelseyhightower/envconfig",
     "github.com/pborman/uuid",
     "github.com/pivotal-cf/brokerapi",
@@ -1342,6 +1344,7 @@
     "k8s.io/client-go/kubernetes/typed/storage/v1alpha1",
     "k8s.io/client-go/kubernetes/typed/storage/v1beta1",
     "k8s.io/client-go/rest",
+    "k8s.io/client-go/tools/clientcmd",
     "k8s.io/helm/cmd/helm/installer",
     "k8s.io/helm/pkg/chartutil",
     "k8s.io/helm/pkg/helm",
@@ -1350,6 +1353,7 @@
     "k8s.io/helm/pkg/proto/hapi/chart",
     "k8s.io/helm/pkg/proto/hapi/release",
     "k8s.io/helm/pkg/proto/hapi/services",
+    "k8s.io/helm/pkg/timeconv",
     "k8s.io/helm/pkg/tlsutil",
     "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset",
   ]

@@ -27,14 +27,21 @@ import (
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
 	"github.com/ghodss/yaml"
+	"github.com/gosuri/uitable"
+	"github.com/gosuri/uitable/util/strutil"
+	"io"
 	api_v1 "k8s.io/api/core/v1"
 	helmstaller "k8s.io/helm/cmd/helm/installer"
 	"k8s.io/helm/pkg/helm"
 	"k8s.io/helm/pkg/helm/portforwarder"
 	"k8s.io/helm/pkg/kube"
 	"k8s.io/helm/pkg/proto/hapi/chart"
+	"k8s.io/helm/pkg/proto/hapi/release"
 	rls "k8s.io/helm/pkg/proto/hapi/services"
+	"k8s.io/helm/pkg/timeconv"
 	"k8s.io/helm/pkg/tlsutil"
+	"regexp"
+	"text/tabwriter"
 )
 
 type myHelmClient struct {
@@ -55,6 +62,7 @@ type MyHelmClient interface {
 	UpdateChart(chart *MyChart, rlsName string, planName string, updateValues []byte) (*rls.UpdateReleaseResponse, error)
 	MergeValueBytes(base []byte, override []byte) ([]byte, error)
 	HasDifferentTLSConfig() bool
+	PrintStatus(out io.Writer, deploymentName string) error
 }
 
 func NewMyHelmClient(cluster k8s.Cluster, tlsConf *config.HelmTLSConfig, logger lager.Logger) MyHelmClient {
@@ -333,4 +341,55 @@ func mergeValueMaps(dest map[string]interface{}, src map[string]interface{}) map
 		dest[k] = mergeValueMaps(destMap, nextMap)
 	}
 	return dest
+}
+
+// This is copied from helm client since it was in the main package
+// https://github.com/helm/helm/blob/v2.9.1/cmd/helm/status.go
+func (c myHelmClient) PrintStatus(out io.Writer, deploymentName string) error {
+	res, err := c.ReleaseStatus(deploymentName)
+	if err != nil {
+		return err
+	}
+
+	if res.Info.LastDeployed != nil {
+		fmt.Fprintf(out, "LAST DEPLOYED: %s\n", timeconv.String(res.Info.LastDeployed))
+	}
+	fmt.Fprintf(out, "NAMESPACE: %s\n", res.Namespace)
+	fmt.Fprintf(out, "STATUS: %s\n", res.Info.Status.Code)
+	fmt.Fprintf(out, "\n")
+	if len(res.Info.Status.Resources) > 0 {
+		re := regexp.MustCompile("  +")
+
+		w := tabwriter.NewWriter(out, 0, 0, 2, ' ', tabwriter.TabIndent)
+		fmt.Fprintf(w, "RESOURCES:\n%s\n", re.ReplaceAllString(res.Info.Status.Resources, "\t"))
+		w.Flush()
+	}
+	if res.Info.Status.LastTestSuiteRun != nil {
+		lastRun := res.Info.Status.LastTestSuiteRun
+		fmt.Fprintf(out, "TEST SUITE:\n%s\n%s\n\n%s\n",
+			fmt.Sprintf("Last Started: %s", timeconv.String(lastRun.StartedAt)),
+			fmt.Sprintf("Last Completed: %s", timeconv.String(lastRun.CompletedAt)),
+			c.formatTestResults(lastRun.Results))
+	}
+
+	if len(res.Info.Status.Notes) > 0 {
+		fmt.Fprintf(out, "NOTES:\n%s\n", res.Info.Status.Notes)
+	}
+	return nil
+}
+
+func (c myHelmClient) formatTestResults(results []*release.TestRun) string {
+	tbl := uitable.New()
+	tbl.MaxColWidth = 50
+	tbl.AddRow("TEST", "STATUS", "INFO", "STARTED", "COMPLETED")
+	for i := 0; i < len(results); i++ {
+		r := results[i]
+		n := r.Name
+		s := strutil.PadRight(r.Status.String(), 10, ' ')
+		i := r.Info
+		ts := timeconv.String(r.StartedAt)
+		tc := timeconv.String(r.CompletedAt)
+		tbl.AddRow(n, s, i, ts, tc)
+	}
+	return tbl.String()
 }
