@@ -1,4 +1,4 @@
-package broker
+package logger
 
 import (
 	"code.cloudfoundry.org/lager"
@@ -18,16 +18,16 @@ type LogrusSink struct {
 func (l *LogrusSink) Log(payload lager.LogFormat) {
 	switch payload.LogLevel {
 	case lager.DEBUG:
-		l.logger.Debug(payload.Message, payload.Error, payload.Data)
+		l.logger.Debug(payload.Message, payload.Data)
 		break
 	case lager.INFO:
-		l.logger.Info(payload.Message, payload.Error, payload.Data)
+		l.logger.Info(payload.Message, payload.Data)
 		break
 	case lager.ERROR:
-		l.logger.Error(payload.Message, payload.Error, payload.Data)
+		l.logger.WithError(payload.Error).Error(payload.Message, payload.Data)
 		break
 	case lager.FATAL:
-		l.logger.Fatal(payload.Message, payload.Error, payload.Data)
+		l.logger.WithError(payload.Error).Fatal(payload.Message, payload.Data)
 		break
 	}
 }

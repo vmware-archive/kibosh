@@ -51,14 +51,14 @@ func PrepareCluster(config *config.Config,
 
 	err := serviceAccountInstaller.Install()
 	if err != nil {
-		logger.Error("failed installing service account", err)
+		logger.WithError(err).Error("failed installing service account")
 		return err
 	}
 
 	helmInstaller := my_helm.NewInstaller(config, cluster, helmClient, logger)
 	err = helmInstaller.Install()
 	if err != nil {
-		logger.Error("failed installing helm", err)
+		logger.WithError(err).Error("failed installing helm")
 		return err
 	}
 
@@ -66,7 +66,7 @@ func PrepareCluster(config *config.Config,
 	operatorInstaller := operator.NewInstaller(config.RegistryConfig, cluster, helmClient, logger)
 	err = operatorInstaller.InstallCharts(operators)
 	if err != nil {
-		logger.Error("failed installing operator charts", err)
+		logger.WithError(err).Error("failed installing operator charts")
 		return err
 	}
 

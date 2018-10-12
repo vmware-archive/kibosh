@@ -20,24 +20,21 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/cf-platform-eng/kibosh/pkg/state"
-
 	"code.cloudfoundry.org/lager"
-	"github.com/Sirupsen/logrus"
 	"github.com/cf-platform-eng/kibosh/pkg/broker"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	"github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/httphelpers"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
+	"github.com/cf-platform-eng/kibosh/pkg/logger"
 	"github.com/cf-platform-eng/kibosh/pkg/repository"
+	"github.com/cf-platform-eng/kibosh/pkg/state"
 	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/pivotal-cf/brokerapi"
 )
 
 func main() {
-	kiboshLogger := logrus.New()
-	kiboshLogger.SetLevel(logrus.DebugLevel)
-
+	kiboshLogger := logger.NewSplitLogger(os.Stdout, os.Stderr)
 	kiboshLogger.Info("Starting PKS Generic Broker")
 
 	conf, err := config.Parse()
@@ -100,7 +97,7 @@ func main() {
 	}
 
 	brokerLogger := lager.NewLogger("broker")
-	brokerLogger.RegisterSink(broker.NewLogrusSink(kiboshLogger))
+	brokerLogger.RegisterSink(logger.NewLogrusSink(kiboshLogger))
 
 	brokerAPI := brokerapi.New(serviceBroker, brokerLogger, brokerCredentials)
 	http.Handle("/", brokerAPI)

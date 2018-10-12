@@ -82,7 +82,7 @@ func (api *api) Charts() http.Handler {
 		}
 
 		if err != nil {
-			api.logger.Error("Error writing response", err)
+			api.logger.WithError(err).Error("Error writing response")
 		}
 	})
 }
@@ -90,7 +90,7 @@ func (api *api) Charts() http.Handler {
 func (api *api) ListCharts(w http.ResponseWriter, r *http.Request) error {
 	charts, err := api.repo.LoadCharts()
 	if err != nil {
-		api.logger.Error("Unable to load charts", err)
+		api.logger.WithError(err).Error("Unable to load charts")
 		api.ServerError(500, "Unable to load charts", w)
 	} else {
 		var displayCharts []DisplayChart
@@ -194,14 +194,14 @@ func (api *api) saveChartToRepository(r *http.Request) error {
 	r.ParseMultipartForm(1000000)
 	file, handler, err := r.FormFile("chart")
 	if err != nil {
-		api.logger.Error("SaveChart: Couldn't read request POST form data", err)
+		api.logger.WithError(err).Error("SaveChart: Couldn't read request POST form data")
 		return err
 	}
 	defer file.Close()
 	chartPath, err := ioutil.TempDir("", "chart-")
 	f, err := os.OpenFile(filepath.Join(chartPath, handler.Filename), os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
-		api.logger.Error("SaveChart: Couldn't write on disk ", err)
+		api.logger.WithError(err).Error("SaveChart: Couldn't write on disk ")
 		return err
 	}
 	defer f.Close()
@@ -210,7 +210,7 @@ func (api *api) saveChartToRepository(r *http.Request) error {
 
 	err = api.repo.SaveChart(filepath.Join(chartPath, handler.Filename))
 	if err != nil {
-		api.logger.Error("SaveChart: Couldn't save the chart", err)
+		api.logger.WithError(err).Error("SaveChart: Couldn't save the chart")
 		return err
 	}
 	return nil
@@ -221,19 +221,19 @@ func (api *api) triggerKiboshReload() error {
 	kiboshURL := fmt.Sprintf("%v/reload_charts", api.kiboshConfig.Server)
 	req, err := http.NewRequest("GET", kiboshURL, nil)
 	if err != nil {
-		api.logger.Error("reload_charts failed", err)
+		api.logger.WithError(err).Error("reload_charts failed")
 		return err
 	}
 
 	httphelpers.AddBasicAuthHeader(req, api.kiboshConfig.User, api.kiboshConfig.Pass)
 	res, err := client.Do(req)
 	if err != nil {
-		api.logger.Error("Couldn't call kibosh to update", err)
+		api.logger.WithError(err).Error("Couldn't call kibosh to update")
 		return err
 	}
 	if res.StatusCode != 200 {
 		err = errors.Errorf("kibosh return non 200 status code [%v]", res.StatusCode)
-		api.logger.Error("Error triggering Kibosh reload", err)
+		api.logger.WithError(err).Error("Error triggering Kibosh reload")
 		return err
 	}
 	return nil

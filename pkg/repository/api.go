@@ -55,7 +55,7 @@ func (api *api) ReloadCharts() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		charts, err := api.repository.LoadCharts()
 		if err != nil {
-			api.logger.Error("Unable to load charts", err)
+			api.logger.WithError(err).Error("Unable to load charts")
 			w.WriteHeader(500)
 			w.Write([]byte("Unable to load charts"))
 			return
@@ -88,7 +88,7 @@ func (api *api) refreshCloudFoundry(charts []*helm.MyChart) error {
 		})
 
 		if err != nil {
-			api.logger.Error("Reloaded charts, but unable to update the broker", err)
+			api.logger.WithError(err).Error("Reloaded charts, but unable to update the broker")
 			return errors.New("Reloaded charts, but unable to update the broker")
 		}
 	} else if strings.Contains(err.Error(), "Unable to find service broker") {
@@ -100,7 +100,7 @@ func (api *api) refreshCloudFoundry(charts []*helm.MyChart) error {
 		})
 
 		if err != nil {
-			api.logger.Error("Reloaded charts, but unable to register broker", err)
+			api.logger.WithError(err).Error("Reloaded charts, but unable to register broker")
 			return errors.New("Reloaded charts, but unable to register broker")
 		}
 	} else {
