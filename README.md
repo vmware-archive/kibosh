@@ -55,13 +55,6 @@ json format
 For some in depth discussion, see this blog post:
 [Use Kubernetes Helm Packages to Build Pivotal Cloud Foundry tiles](https://content.pivotal.io/blog/use-kubernetes-helm-packages-to-build-pivotal-cloud-foundry-tiles-kibosh-a-new-service-broker-makes-it-simple)
 
-One consumer of this repo is
-[tile-generator](https://github.com/cf-platform-eng/tile-generator),
-which provides a packaging abstraction to produce a PCF tile from a helm chart: we BOSH so you don't have to.
-ISVs building out a tile should start there, rather than directly using this binary.
-For documentation using Kibosh to build a tile, use the
-[tile-generator documentation](https://docs.pivotal.io/tiledev/tile-generator.html#-helm-charts-with-kibosh)
-
 ![](docs/kibosh_logo_100.png)
 
 ## Configuration
