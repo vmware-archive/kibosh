@@ -126,10 +126,6 @@ pull request to the master branch of Kibosh. We strongly suggest that you first 
 let us know of your intent, or comment on the issue you are planning to address.
 
 ## Deploying
-To deploy a single chart via a 
-[Pivotal tile](https://docs.pivotal.io/tiledev/),
-see tile-generator's [kibosh package type](https://docs.pivotal.io/tiledev/tile-generator.html#-helm-charts-with-kibosh).
-
 To manually deploy the BOSH release, get the latest BOSH release (`kibosh-release-X.X.XX.tgz`)
 from the  [Github releases](https://github.com/cf-platform-eng/kibosh/releases) and upload
 to your director.
@@ -145,7 +141,7 @@ for example values.
 ## Dev
 #### Setup
 
-Install Go depenencies
+Install Go dependencies
 ```bash
 go get -u github.com/onsi/ginkgo/ginkgo
 go get -u github.com/onsi/gomega
