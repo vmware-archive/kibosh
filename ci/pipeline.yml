@@ -379,7 +379,7 @@ jobs:
           cp -r source-repo/* $SRC
 
           pushd $SRC
-          make cleandep
+          # make cleandep
           make bootstrap
           make test
           make build

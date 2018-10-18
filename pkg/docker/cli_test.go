@@ -13,17 +13,16 @@
 // express or implied. See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main_test
+package docker_test
 
 import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
+	. "github.com/cf-platform-eng/kibosh/pkg/docker"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	. "github.com/cf-platform-eng/kibosh/cmd/loader"
 )
 
 var _ = Describe("Config", func() {

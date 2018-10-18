@@ -13,7 +13,7 @@
 // express or implied. See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main_test
+package docker_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -24,5 +24,5 @@ import (
 
 func TestLoader(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Loader Suite")
+	RunSpecs(t, "Docker Suite")
 }
