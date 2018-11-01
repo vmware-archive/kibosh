@@ -73,7 +73,7 @@ var _ = Describe("moreio", func() {
 			Expect(err.Error()).To(ContainSubstring("/foo/bar/baz"))
 		})
 
-		FIt("success on tarzip", func() {
+		It("success on tarzip", func() {
 			buff := &bytes.Buffer{}
 
 			path, err := ioutil.TempDir("", "")
