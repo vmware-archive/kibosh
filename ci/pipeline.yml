@@ -189,7 +189,7 @@ slack_on_failure: &slack_on_failure
   params:
     icon_emoji: ":concourse-failed:"
     username: Concourse CI
-    channel: "#pe-pks-enablement"
+    channel: "#pe-kubism"
     text: "Kibosh has a CI failure, see https://concourse.cfplatformeng.com/teams/main/pipelines/kibosh"
 
 jobs:
