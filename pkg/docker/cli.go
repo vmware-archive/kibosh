@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
-	"os"
 	"os/exec"
 	"path"
 	"strings"
@@ -100,17 +99,6 @@ func (i *ImageValues) ValidateImages() bool {
 
 func (i *ImageValues) validateImage() bool {
 	if i.Image == "" || i.ImageTag == "" {
-		return false
-	}
-	return true
-}
-
-func DirExistsAndIsReadable(path string) bool {
-	stat, err := os.Stat(path)
-	if err != nil {
-		return false
-	}
-	if !stat.IsDir() {
 		return false
 	}
 	return true

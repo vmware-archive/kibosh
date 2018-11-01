@@ -16,13 +16,13 @@
 package config
 
 import (
+	"github.com/cf-platform-eng/kibosh/pkg/moreio"
 	"github.com/kelseyhightower/envconfig"
 
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 )
 
@@ -164,7 +164,7 @@ func (t *HelmTLSConfig) validateHelmConfig() error {
 			return errors.New("configuring with ssl requires a ca cert, tiller cert/key, and helm cert/key")
 		}
 		if file != "" {
-			exists, err := fileExists(file)
+			exists, err := moreio.FileExists(file)
 			if !exists {
 				return errors.New(fmt.Sprintf("Helm file [%s] does not exist", file))
 			}
@@ -174,17 +174,4 @@ func (t *HelmTLSConfig) validateHelmConfig() error {
 		}
 	}
 	return nil
-}
-
-func fileExists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
-	} else {
-		if os.IsNotExist(err) {
-			return false, nil
-		} else {
-			return false, err
-		}
-	}
 }

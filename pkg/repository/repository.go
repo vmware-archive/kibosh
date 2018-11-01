@@ -17,6 +17,7 @@ package repository
 
 import (
 	"fmt"
+	"github.com/cf-platform-eng/kibosh/pkg/moreio"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -53,7 +54,7 @@ func NewRepository(chartPath string, privateRegistryServer string, expectOSBAPIC
 func (r *repository) LoadCharts() ([]*helm.MyChart, error) {
 	charts := []*helm.MyChart{}
 
-	chartExists, err := fileExists(filepath.Join(r.helmChartDir, "Chart.yaml"))
+	chartExists, err := moreio.FileExists(filepath.Join(r.helmChartDir, "Chart.yaml"))
 	if err != nil {
 		return charts, err
 	}
@@ -76,7 +77,7 @@ func (r *repository) LoadCharts() ([]*helm.MyChart, error) {
 			}
 			if fileInfo.IsDir() {
 				subChartPath := filepath.Join(r.helmChartDir, fileInfo.Name())
-				subdirChartExists, err := fileExists(filepath.Join(subChartPath, "Chart.yaml"))
+				subdirChartExists, err := moreio.FileExists(filepath.Join(subChartPath, "Chart.yaml"))
 				if err != nil {
 					return charts, err
 				}
@@ -169,17 +170,4 @@ func (r *repository) DeleteChart(name string) error {
 
 	return nil
 
-}
-
-func fileExists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
-	} else {
-		if os.IsNotExist(err) {
-			return false, nil
-		} else {
-			return false, err
-		}
-	}
 }

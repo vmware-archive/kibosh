@@ -18,6 +18,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/cf-platform-eng/kibosh/pkg/moreio"
 	"io/ioutil"
 	"os"
 	"path"
@@ -40,13 +41,13 @@ func run() error {
 		return errors.New("single arg expected the path to parse")
 	}
 	chartPath := argsWithoutProgramName[0]
-	if !docker.DirExistsAndIsReadable(chartPath) {
+	if !moreio.DirExistsAndIsReadable(chartPath) {
 		return errors.New(fmt.Sprintf("chart path [%s] is not a directory on disk", chartPath))
 	}
 	registry := argsWithoutProgramName[1]
 
 	imagesPath := path.Join(chartPath, "images")
-	if !docker.DirExistsAndIsReadable(imagesPath) {
+	if !moreio.DirExistsAndIsReadable(imagesPath) {
 		return errors.New(fmt.Sprintf("image chart subpath [%s] is not a directory on disk", imagesPath))
 	}
 

@@ -85,8 +85,8 @@ images:
 `)
 		var chartPath string
 		var err error
-		BeforeEach(func() {
 
+		BeforeEach(func() {
 			chartPath, err = ioutil.TempDir("", "chart-")
 			Expect(err).To(BeNil())
 			err = os.Mkdir(filepath.Join(chartPath, "images"), 0700)
@@ -110,24 +110,9 @@ images:
 		})
 
 		It("file parsed success", func() {
-
 			parsedImages, err := ParseValues(chartPath)
 			Expect(err).To(BeNil())
 			Expect(len(parsedImages.Images)).To(Equal(2))
-
-		})
-	})
-
-	Context("DirExists ", func() {
-		It("dir is not readable", func() {
-			Expect(DirExistsAndIsReadable("/foo/bar/baz")).To(BeFalse())
-
-		})
-		It("dir exist and is readable", func() {
-			chartPath, err := ioutil.TempDir("", "chart-")
-			Expect(err).To(BeNil())
-			Expect(DirExistsAndIsReadable(chartPath)).To(BeTrue())
-			os.RemoveAll(chartPath)
 		})
 	})
 })
