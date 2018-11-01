@@ -16,8 +16,12 @@
 package moreio_test
 
 import (
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	. "github.com/cf-platform-eng/kibosh/pkg/moreio"
 	. "github.com/onsi/ginkgo"
@@ -32,11 +36,11 @@ var _ = Describe("moreio", func() {
 		})
 
 		It("dir exist and is readable", func() {
-			chartPath, err := ioutil.TempDir("", "chart-")
-			defer os.RemoveAll(chartPath)
+			path, err := ioutil.TempDir("", "")
+			defer os.RemoveAll(path)
 
 			Expect(err).To(BeNil())
-			Expect(DirExistsAndIsReadable(chartPath)).To(BeTrue())
+			Expect(DirExistsAndIsReadable(path)).To(BeTrue())
 		})
 	})
 
@@ -57,6 +61,52 @@ var _ = Describe("moreio", func() {
 
 			Expect(err).To(BeNil())
 			Expect(exists).To(BeTrue())
+		})
+	})
+
+	Context("tarzip", func() {
+		It("error on dir no present", func() {
+			buff := &bytes.Buffer{}
+
+			err := TarZip("/foo/bar/baz", buff)
+			Expect(err).NotTo(BeNil())
+			Expect(err.Error()).To(ContainSubstring("/foo/bar/baz"))
+		})
+
+		FIt("success on tarzip", func() {
+			buff := &bytes.Buffer{}
+
+			path, err := ioutil.TempDir("", "")
+			defer os.RemoveAll(path)
+
+			Expect(err).To(BeNil())
+			Expect(DirExistsAndIsReadable(path)).To(BeTrue())
+
+			err = ioutil.WriteFile(filepath.Join(path, "first"), []byte("first file"), 0666)
+			Expect(err).To(BeNil())
+
+			err = ioutil.WriteFile(filepath.Join(path, "second"), []byte("second file"), 0666)
+			Expect(err).To(BeNil())
+
+			err = TarZip(path, buff)
+			Expect(err).To(BeNil())
+
+			gz, err := gzip.NewReader(buff)
+			Expect(err).To(BeNil())
+
+			tr := tar.NewReader(gz)
+
+			// :sadpanda: - this first entry is the "." dir
+			_, err = tr.Next()
+			Expect(err).To(BeNil())
+
+			header, err := tr.Next()
+			Expect(err).To(BeNil())
+			Expect(header.Name).To(Equal("first"))
+
+			header, err = tr.Next()
+			Expect(err).To(BeNil())
+			Expect(header.Name).To(Equal("second"))
 		})
 	})
 })
