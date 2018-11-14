@@ -349,7 +349,3 @@ MVP architecture, including Kibosh packaged by
 
 ![](docs/mvp_architecture.jpg)
 
-### Kibosh Roadmap
-The roadmap is updated periodically. All items on the roadmap are subject to change
-
-[Latest Kibosh Roadmap](docs/kibosh_roadmap_august_2018.pdf)
