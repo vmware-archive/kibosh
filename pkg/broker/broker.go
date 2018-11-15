@@ -37,7 +37,6 @@ import (
 
 const registrySecretName = "registry-secret"
 
-// PksServiceBroker contains values passed in from configuration necessary for broker's work.
 type PksServiceBroker struct {
 	Logger                         *logrus.Logger
 	config                         *config.Config
@@ -69,7 +68,6 @@ func (broker *PksServiceBroker) SetCharts(charts []*my_helm.MyChart) {
 }
 
 func (broker *PksServiceBroker) GetChartsMap() map[string]*my_helm.MyChart {
-	//only really exposed for testing
 	chartsMap := map[string]*my_helm.MyChart{}
 	for _, chart := range broker.charts {
 		chartsMap[broker.getServiceID(chart)] = chart
