@@ -310,9 +310,6 @@ func (broker *PksServiceBroker) Unbind(ctx context.Context, instanceID, bindingI
 	return nil
 }
 
-// Update is perhaps not needed for MVP.
-// Its purpose may be for changing plans, so if we only have a single default plan
-// it is out of scope.
 func (broker *PksServiceBroker) Update(ctx context.Context, instanceID string, details brokerapi.UpdateDetails, asyncAllowed bool) (brokerapi.UpdateServiceSpec, error) {
 	var updateValues []byte
 	var err error
