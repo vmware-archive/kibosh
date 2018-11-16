@@ -17,8 +17,8 @@ package helm
 
 import (
 	"fmt"
-	"github.com/Sirupsen/logrus"
 	"io/ioutil"
+	"k8s.io/client-go/tools/clientcmd"
 	"path"
 	"strings"
 
@@ -26,8 +26,10 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"github.com/ghodss/yaml"
+	"github.com/Sirupsen/logrus"
+	"github.com/go-yaml/yaml"
 	"github.com/pkg/errors"
+	k8sAPI "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/helm/pkg/chartutil"
 	"k8s.io/helm/pkg/proto/hapi/chart"
 )
@@ -42,13 +44,16 @@ type MyChart struct {
 }
 
 type Plan struct {
-	Name        string   `yaml:"name"`
-	Description string   `yaml:"description"`
-	Bullets     []string `yaml:"bullets"`
-	File        string   `yaml:"file"`
-	Free        *bool    `yaml:"free,omitempty"`
-	Bindable    *bool    `yaml:"bindable,omitempty"`
-	Values      []byte
+	Name            string   `yaml:"name"`
+	Description     string   `yaml:"description"`
+	Bullets         []string `yaml:"bullets"`
+	File            string   `yaml:"file"`
+	Free            *bool    `yaml:"free,omitempty"`
+	Bindable        *bool    `yaml:"bindable,omitempty"`
+	CredentialsPath string   `yaml:"credentials"`
+
+	ClusterConfig *k8sAPI.Config
+	Values        []byte
 }
 
 func LoadFromDir(dir string, log *logrus.Logger) ([]*MyChart, error) {
@@ -167,23 +172,25 @@ func (c *MyChart) OverrideImageSources(rawVals map[string]interface{}) (map[stri
 			split := strings.Split(stringVal, "/")
 			transformedVals[key] = fmt.Sprintf("%s/%s", c.privateRegistryServer, split[len(split)-1])
 		} else if key == "images" {
-			transformedImagesVals := map[string]interface{}{}
-			imageMap, ok := val.(map[string]interface{})
-			if !ok {
-				return nil, errors.New("'images' key value isn't correctly structured, see dos")
+			remarshalled, err := yaml.Marshal(val)
+			if err != nil {
+				return nil, err
 			}
-			for imageName, imageDef := range imageMap {
-				imageDefMap, ok := imageDef.(map[string]interface{})
-				if !ok {
-					return nil, errors.New("'images' key value isn't correctly structured, see dos")
-				}
+
+			imageMap := map[string]map[string]interface{}{}
+			err = yaml.Unmarshal(remarshalled, imageMap)
+			if err != nil {
+				return nil, err
+			}
+
+			for imageName, imageDefMap := range imageMap {
 				transformedImage, err := c.OverrideImageSources(imageDefMap)
 				if err != nil {
 					return nil, err
 				}
-				transformedImagesVals[imageName] = transformedImage
+				imageMap[imageName] = transformedImage
 			}
-			transformedVals["images"] = transformedImagesVals
+			transformedVals["images"] = imageMap
 		} else {
 			transformedVals[key] = val
 		}
@@ -192,16 +199,14 @@ func (c *MyChart) OverrideImageSources(rawVals map[string]interface{}) (map[stri
 }
 
 func (c *MyChart) loadPlans() error {
-	T := true
-
 	plansPath := path.Join(c.Chartpath, "plans.yaml")
-	bytes, err := ioutil.ReadFile(plansPath)
+	plansBytes, err := ioutil.ReadFile(plansPath)
 	if err != nil {
 		return err
 	}
 
 	plans := []Plan{}
-	err = yaml.Unmarshal(bytes, &plans)
+	err = yaml.Unmarshal(plansBytes, &plans)
 	if err != nil {
 		return err
 	}
@@ -209,10 +214,12 @@ func (c *MyChart) loadPlans() error {
 	c.Plans = map[string]Plan{}
 	for _, p := range plans {
 		if p.Free == nil {
-			p.Free = &T
+			t := true
+			p.Free = &t
 		}
 		if p.Bindable == nil {
-			p.Bindable = &T
+			t := true
+			p.Bindable = &t
 		}
 		match, err := regexp.MatchString(`^[0-9a-z.\-]+$`, p.Name)
 		if err != nil {
@@ -226,14 +233,24 @@ func (c *MyChart) loadPlans() error {
 		if err != nil {
 			return err
 		}
-
 		p.Values = planValues
-		c.Plans[p.Name] = p
 
+		if p.CredentialsPath != "" {
+			loader := &clientcmd.ClientConfigLoadingRules{
+				ExplicitPath: filepath.Join(c.Chartpath, "plans", p.CredentialsPath),
+			}
+			loadedConfig, err := loader.Load()
+			if err != nil {
+				return err
+			}
+
+			p.ClusterConfig = loadedConfig
+		}
+
+		c.Plans[p.Name] = p
 	}
 
 	return nil
-
 }
 
 func (c *MyChart) EnsureIgnore() error {

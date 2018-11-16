@@ -38,7 +38,6 @@ import (
 const registrySecretName = "registry-secret"
 
 type PksServiceBroker struct {
-	Logger                         *logrus.Logger
 	config                         *config.Config
 	clusterFactory                 k8s.ClusterFactory
 	helmClientFactory              my_helm.HelmClientFactory
@@ -46,11 +45,13 @@ type PksServiceBroker struct {
 	charts                         []*my_helm.MyChart
 	mapInstanceToCluster           state.KeyValueStore
 	operators                      []*my_helm.MyChart
+
+	logger *logrus.Logger
 }
 
 func NewPksServiceBroker(config *config.Config, clusterFactory k8s.ClusterFactory, helmClientFactory my_helm.HelmClientFactory, serviceAccountInstallerFactory k8s.ServiceAccountInstallerFactory, charts []*my_helm.MyChart, operators []*my_helm.MyChart, mapInstanceToCluster state.KeyValueStore, logger *logrus.Logger) *PksServiceBroker {
 	broker := &PksServiceBroker{
-		Logger:                         logger,
+		logger:                         logger,
 		config:                         config,
 		clusterFactory:                 clusterFactory,
 		helmClientFactory:              helmClientFactory,
@@ -160,7 +161,7 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 	myServiceAccountInstaller := broker.serviceAccountInstallerFactory.ServiceAccountInstaller(cluster)
 
 	if configPresent {
-		err = PrepareCluster(broker.config, cluster, myHelmClient, myServiceAccountInstaller, broker.Logger, broker.operators)
+		err = PrepareCluster(broker.config, cluster, myHelmClient, myServiceAccountInstaller, broker.logger, broker.operators)
 
 		if err != nil {
 			return brokerapi.ProvisionedServiceSpec{}, err
@@ -353,7 +354,7 @@ func (broker *PksServiceBroker) Update(ctx context.Context, instanceID string, d
 
 	_, err = helmClient.UpdateChart(chart, broker.getNamespace(instanceID), planName, updateValues)
 	if err != nil {
-		broker.Logger.Debug(fmt.Sprintf("Update failed on update release= %v", err))
+		broker.logger.Debug(fmt.Sprintf("Update failed on update release= %v", err))
 		return brokerapi.UpdateServiceSpec{}, err
 	}
 
