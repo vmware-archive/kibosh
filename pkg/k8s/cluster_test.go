@@ -26,6 +26,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8sAPI "k8s.io/client-go/tools/clientcmd/api"
 )
 
 var _ = Describe("Config", func() {
@@ -89,5 +90,87 @@ users:
 		clientConfig := cluster.GetClientConfig()
 		Expect(clientConfig).NotTo(BeNil())
 		Expect(clientConfig.BearerToken).To(Equal("cGFzc3dvcmQ="))
+	})
+
+	It("load specific config", func() {
+		k8sConfig := &k8sAPI.Config{
+			Clusters: map[string]*k8sAPI.Cluster{
+				"cluster1": {
+					CertificateAuthorityData: []byte("my cat"),
+					Server:                   "myserver",
+				},
+				"cluster2": {
+					CertificateAuthorityData: []byte("my cat"),
+					Server:                   "myserver",
+				},
+			},
+			CurrentContext: "context2",
+			Contexts: map[string]*k8sAPI.Context{
+				"context1": {
+					Cluster:  "cluster1",
+					AuthInfo: "auth1",
+				},
+				"context2": {
+					Cluster:  "cluster2",
+					AuthInfo: "auth2",
+				},
+			},
+			AuthInfos: map[string]*k8sAPI.AuthInfo{
+				"auth1": {
+					Token: "myencoded token",
+				},
+				"auth2": {
+					Token: "myencoded 2nd token",
+				},
+			},
+		}
+
+		cluster, err := GetClusterFromK8sConfig(k8sConfig)
+
+		Expect(err).To(BeNil())
+
+		clientConfig := cluster.GetClientConfig()
+
+		Expect(clientConfig).NotTo(BeNil())
+		Expect(clientConfig.BearerToken).To(Equal("myencoded 2nd token"))
+
+	})
+
+	It("no current context", func() {
+		k8sConfig := &k8sAPI.Config{
+			Clusters: map[string]*k8sAPI.Cluster{
+				"cluster1": {
+					CertificateAuthorityData: []byte("my cat"),
+					Server:                   "myserver",
+				},
+				"cluster2": {
+					CertificateAuthorityData: []byte("my cat"),
+					Server:                   "myserver",
+				},
+			},
+			Contexts: map[string]*k8sAPI.Context{
+				"context1": {
+					Cluster:  "cluster1",
+					AuthInfo: "auth1",
+				},
+				"context2": {
+					Cluster:  "cluster2",
+					AuthInfo: "auth2",
+				},
+			},
+			AuthInfos: map[string]*k8sAPI.AuthInfo{
+				"auth1": {
+					Token: "myencoded token",
+				},
+				"auth2": {
+					Token: "myencoded 2nd token",
+				},
+			},
+		}
+
+		_, err := GetClusterFromK8sConfig(k8sConfig)
+
+		Expect(err).NotTo(BeNil())
+
 	})
 })
