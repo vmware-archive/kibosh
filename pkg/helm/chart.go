@@ -27,8 +27,8 @@ import (
 	"regexp"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/go-yaml/yaml"
 	"github.com/pkg/errors"
+	"gopkg.in/yaml.v2"
 	k8sAPI "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/helm/pkg/chartutil"
 	"k8s.io/helm/pkg/proto/hapi/chart"
