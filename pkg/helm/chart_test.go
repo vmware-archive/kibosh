@@ -337,7 +337,67 @@ images:
 			Expect(len(myChart.Plans)).To(Equal(2))
 			Expect(myChart.Plans["small"].Values).To(Equal(testChart.PlanContents["small"]))
 			Expect(myChart.Plans["medium"].Values).To(Equal(testChart.PlanContents["medium"]))
+		})
 
+		It("loads credentials", func() {
+			credsYaml := []byte(`
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: bXktY2VydA==
+    server: https://127.0.0.1:8443
+  name: my-cluster
+contexts:
+- context:
+    cluster: my-cluster
+    user: my-user
+  name: my-cluster
+current-context: my-cluster
+kind: Config
+preferences: {}
+users:
+- name: my-user
+  user:
+    token: bXktdG9rZW4=
+`)
+
+			testChart.PlansYaml = []byte(`
+- name: "small"
+  description: "default (small) plan for mysql"
+  file: "small.yaml"
+  credentials: "small-creds.yaml"
+- name: "medium"
+  description: "medium sized plan for mysql"
+  file: "medium.yaml"
+`)
+
+			err := testChart.WriteChart(chartPath)
+
+			Expect(err).To(BeNil())
+
+			credsFile, err := os.Create(filepath.Join(chartPath, "plans", "small-creds.yaml"))
+			Expect(err).To(BeNil())
+
+			_, err = credsFile.Write(credsYaml)
+			if err != nil {
+				Expect(err).To(BeNil())
+			}
+			credsFile.Close()
+
+			myChart, err := helm.NewChart(chartPath, "", true)
+
+			Expect(myChart.Plans["medium"].ClusterConfig).To(BeNil())
+
+			smallClusterConfig := myChart.Plans["small"].ClusterConfig
+			Expect(smallClusterConfig).NotTo(BeNil())
+
+			currentContext := smallClusterConfig.CurrentContext
+			Expect(currentContext).NotTo(Equal(""))
+
+			cluster := smallClusterConfig.Clusters[currentContext]
+			Expect(cluster.Server).To(Equal("https://127.0.0.1:8443"))
+			auth := smallClusterConfig.AuthInfos[smallClusterConfig.Contexts[currentContext].AuthInfo]
+			Expect(auth.Token).To(Equal("bXktdG9rZW4="))
 		})
 
 		It("returns error on file read", func() {

@@ -38,7 +38,6 @@ import (
 const registrySecretName = "registry-secret"
 
 type PksServiceBroker struct {
-	Logger                         *logrus.Logger
 	config                         *config.Config
 	clusterFactory                 k8s.ClusterFactory
 	helmClientFactory              my_helm.HelmClientFactory
@@ -46,11 +45,13 @@ type PksServiceBroker struct {
 	charts                         []*my_helm.MyChart
 	mapInstanceToCluster           state.KeyValueStore
 	operators                      []*my_helm.MyChart
+
+	logger *logrus.Logger
 }
 
 func NewPksServiceBroker(config *config.Config, clusterFactory k8s.ClusterFactory, helmClientFactory my_helm.HelmClientFactory, serviceAccountInstallerFactory k8s.ServiceAccountInstallerFactory, charts []*my_helm.MyChart, operators []*my_helm.MyChart, mapInstanceToCluster state.KeyValueStore, logger *logrus.Logger) *PksServiceBroker {
 	broker := &PksServiceBroker{
-		Logger:                         logger,
+		logger:                         logger,
 		config:                         config,
 		clusterFactory:                 clusterFactory,
 		helmClientFactory:              helmClientFactory,
@@ -132,12 +133,28 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 		return brokerapi.ProvisionedServiceSpec{}, brokerapi.ErrAsyncRequired
 	}
 
-	var cluster k8s.Cluster
+	planName := strings.TrimPrefix(details.PlanID, details.ServiceID+"-")
+	chart := broker.GetChartsMap()[details.ServiceID]
+	if chart == nil {
+		return brokerapi.ProvisionedServiceSpec{}, errors.New(fmt.Sprintf("Chart not found for [%s]", details.ServiceID))
+	}
+
+	var installValues []byte // = nil
 	var err error
+	if details.GetRawParameters() != nil {
+		installValues, err = yaml.JSONToYAML(details.GetRawParameters())
+		if err != nil {
+			return brokerapi.ProvisionedServiceSpec{}, err
+		}
+	}
+
+	var cluster k8s.Cluster
 	clusterCreds, configPresent := ExtractClusterConfig(details.GetRawParameters())
 
 	if configPresent {
 		cluster, err = broker.clusterFactory.GetCluster(&clusterCreds)
+	} else if chart.Plans[planName].ClusterConfig != nil {
+		cluster, err = k8s.GetClusterFromK8sConfig(chart.Plans[planName].ClusterConfig)
 	} else {
 		cluster, err = broker.clusterFactory.DefaultCluster()
 	}
@@ -146,30 +163,16 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 		return brokerapi.ProvisionedServiceSpec{}, err
 	}
 
-	planName := strings.TrimPrefix(details.PlanID, details.ServiceID+"-")
-	var installValues []byte // = nil
-	if details.GetRawParameters() != nil {
-		installValues, err = yaml.JSONToYAML(details.GetRawParameters())
-		if err != nil {
-			return brokerapi.ProvisionedServiceSpec{}, err
-		}
-	}
-
 	myHelmClient := broker.helmClientFactory.HelmClient(cluster)
 
 	myServiceAccountInstaller := broker.serviceAccountInstallerFactory.ServiceAccountInstaller(cluster)
 
 	if configPresent {
-		err = PrepareCluster(broker.config, cluster, myHelmClient, myServiceAccountInstaller, broker.Logger, broker.operators)
+		err = PrepareCluster(broker.config, cluster, myHelmClient, myServiceAccountInstaller, broker.logger, broker.operators)
 
 		if err != nil {
 			return brokerapi.ProvisionedServiceSpec{}, err
 		}
-	}
-
-	chart := broker.GetChartsMap()[details.ServiceID]
-	if chart == nil {
-		return brokerapi.ProvisionedServiceSpec{}, errors.New(fmt.Sprintf("Chart not found for [%s]", details.ServiceID))
 	}
 
 	namespaceName := broker.getNamespace(instanceID)
@@ -353,7 +356,7 @@ func (broker *PksServiceBroker) Update(ctx context.Context, instanceID string, d
 
 	_, err = helmClient.UpdateChart(chart, broker.getNamespace(instanceID), planName, updateValues)
 	if err != nil {
-		broker.Logger.Debug(fmt.Sprintf("Update failed on update release= %v", err))
+		broker.logger.Debug(fmt.Sprintf("Update failed on update release= %v", err))
 		return brokerapi.UpdateServiceSpec{}, err
 	}
 

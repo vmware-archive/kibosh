@@ -34,6 +34,7 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	api_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8sAPI "k8s.io/client-go/tools/clientcmd/api"
 	hapi_chart "k8s.io/helm/pkg/proto/hapi/chart"
 	hapi_release "k8s.io/helm/pkg/proto/hapi/release"
 	hapi_services "k8s.io/helm/pkg/proto/hapi/services"
@@ -203,6 +204,7 @@ var _ = Describe("Broker", func() {
 
 		BeforeEach(func() {
 			fakeHelmClient = helmfakes.FakeMyHelmClient{}
+			fakeHelmClientFactory = helmfakes.FakeHelmClientFactory{}
 			fakeHelmClientFactory.HelmClientReturns(&fakeHelmClient)
 			fakeClusterFactory = k8sfakes.FakeClusterFactory{}
 			fakeCluster = k8sfakes.FakeCluster{}
@@ -281,7 +283,51 @@ var _ = Describe("Broker", func() {
 				Expect(err).NotTo(BeNil())
 				Expect(err.Error()).To(ContainSubstring(errorMessage))
 			})
+		})
 
+		Context("Cluster config in plan", func() {
+			It("uses cluster configured in plan to build helm client", func() {
+				k8sConfig := &k8sAPI.Config{
+					Clusters: map[string]*k8sAPI.Cluster{
+						"cluster2": {
+							CertificateAuthorityData: []byte("my cat"),
+							Server:                   "myserver",
+						},
+					},
+					CurrentContext: "context2",
+					Contexts: map[string]*k8sAPI.Context{
+						"context2": {
+							Cluster:  "cluster2",
+							AuthInfo: "auth2",
+						},
+					},
+					AuthInfos: map[string]*k8sAPI.AuthInfo{
+						"auth2": {
+							Token: "my encoded 2nd token",
+						},
+					},
+				}
+
+				plan := spacebearsChart.Plans["small"]
+				plan.ClusterConfig = k8sConfig
+				spacebearsChart.Plans["small"] = plan
+
+				details = brokerapi.ProvisionDetails{
+					ServiceID: spacebearsServiceGUID,
+					PlanID:    spacebearsServiceGUID + "-small",
+				}
+
+				broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, charts, nil, &fakeBrokerState, logger)
+
+				_, err := broker.Provision(nil, "my-instance-guid", details, true)
+
+				Expect(err).To(BeNil())
+
+				Expect(fakeHelmClientFactory.HelmClientCallCount()).To(Equal(1))
+
+				clusterUsed := fakeHelmClientFactory.HelmClientArgsForCall(0)
+				Expect(clusterUsed.GetClientConfig().BearerToken).To(Equal("my encoded 2nd token"))
+			})
 		})
 
 		Context("registry secrets", func() {

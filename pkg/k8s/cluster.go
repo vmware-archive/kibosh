@@ -25,6 +25,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	k8sAPI "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -95,6 +96,15 @@ func NewClusterFromDefaultConfig() (Cluster, error) {
 		return nil, errors.New("the default Kubernetes config has no current context")
 	}
 
+	return GetClusterFromK8sConfig(k8sConfig)
+}
+
+func GetClusterFromK8sConfig(k8sConfig *k8sAPI.Config) (Cluster, error) {
+
+	if k8sConfig.CurrentContext == "" {
+		return nil, errors.New("the default Kubernetes config has no current context")
+	}
+
 	context := k8sConfig.Contexts[k8sConfig.CurrentContext]
 	authInfo := k8sConfig.AuthInfos[context.AuthInfo]
 	token := authInfo.Token
@@ -109,6 +119,7 @@ func NewClusterFromDefaultConfig() (Cluster, error) {
 	}
 
 	return NewCluster(creds)
+
 }
 
 func (cluster *cluster) GetClientConfig() *rest.Config {
