@@ -117,10 +117,10 @@ users:
 			},
 			AuthInfos: map[string]*k8sAPI.AuthInfo{
 				"auth1": {
-					Token: "myencoded token",
+					Token: "my encoded token",
 				},
 				"auth2": {
-					Token: "myencoded 2nd token",
+					Token: "my encoded 2nd token",
 				},
 			},
 		}
@@ -132,8 +132,7 @@ users:
 		clientConfig := cluster.GetClientConfig()
 
 		Expect(clientConfig).NotTo(BeNil())
-		Expect(clientConfig.BearerToken).To(Equal("myencoded 2nd token"))
-
+		Expect(clientConfig.BearerToken).To(Equal("my encoded 2nd token"))
 	})
 
 	It("no current context", func() {
@@ -160,10 +159,10 @@ users:
 			},
 			AuthInfos: map[string]*k8sAPI.AuthInfo{
 				"auth1": {
-					Token: "myencoded token",
+					Token: "my encoded token",
 				},
 				"auth2": {
-					Token: "myencoded 2nd token",
+					Token: "my encoded 2nd token",
 				},
 			},
 		}

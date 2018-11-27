@@ -204,6 +204,7 @@ var _ = Describe("Broker", func() {
 
 		BeforeEach(func() {
 			fakeHelmClient = helmfakes.FakeMyHelmClient{}
+			fakeHelmClientFactory = helmfakes.FakeHelmClientFactory{}
 			fakeHelmClientFactory.HelmClientReturns(&fakeHelmClient)
 			fakeClusterFactory = k8sfakes.FakeClusterFactory{}
 			fakeCluster = k8sfakes.FakeCluster{}
@@ -282,17 +283,12 @@ var _ = Describe("Broker", func() {
 				Expect(err).NotTo(BeNil())
 				Expect(err.Error()).To(ContainSubstring(errorMessage))
 			})
-
 		})
 
 		Context("Cluster config in plan", func() {
-			It("happy path", func() {
+			It("uses cluster configured in plan to build helm client", func() {
 				k8sConfig := &k8sAPI.Config{
 					Clusters: map[string]*k8sAPI.Cluster{
-						"cluster1": {
-							CertificateAuthorityData: []byte("my cat"),
-							Server:                   "myserver",
-						},
 						"cluster2": {
 							CertificateAuthorityData: []byte("my cat"),
 							Server:                   "myserver",
@@ -300,21 +296,14 @@ var _ = Describe("Broker", func() {
 					},
 					CurrentContext: "context2",
 					Contexts: map[string]*k8sAPI.Context{
-						"context1": {
-							Cluster:  "cluster1",
-							AuthInfo: "auth1",
-						},
 						"context2": {
 							Cluster:  "cluster2",
 							AuthInfo: "auth2",
 						},
 					},
 					AuthInfos: map[string]*k8sAPI.AuthInfo{
-						"auth1": {
-							Token: "myencoded token",
-						},
 						"auth2": {
-							Token: "myencoded 2nd token",
+							Token: "my encoded 2nd token",
 						},
 					},
 				}
@@ -333,11 +322,12 @@ var _ = Describe("Broker", func() {
 				_, err := broker.Provision(nil, "my-instance-guid", details, true)
 
 				Expect(err).To(BeNil())
+
+				Expect(fakeHelmClientFactory.HelmClientCallCount()).To(Equal(1))
+
 				clusterUsed := fakeHelmClientFactory.HelmClientArgsForCall(0)
-
-				Expect(clusterUsed.GetClientConfig().BearerToken).To(Equal("myencoded 2nd token"))
+				Expect(clusterUsed.GetClientConfig().BearerToken).To(Equal("my encoded 2nd token"))
 			})
-
 		})
 
 		Context("registry secrets", func() {

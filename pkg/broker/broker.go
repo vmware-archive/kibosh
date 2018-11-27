@@ -153,7 +153,6 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 
 	if configPresent {
 		cluster, err = broker.clusterFactory.GetCluster(&clusterCreds)
-
 	} else if chart.Plans[planName].ClusterConfig != nil {
 		cluster, err = k8s.GetClusterFromK8sConfig(chart.Plans[planName].ClusterConfig)
 	} else {
