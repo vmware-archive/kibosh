@@ -204,6 +204,22 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 	}, nil
 }
 
+func (broker *PksServiceBroker) GetInstance(context context.Context, instanceID string) (brokerapi.GetInstanceDetailsSpec, error) {
+	cluster, err := broker.clusterFactory.DefaultCluster()
+	if err != nil {
+		return brokerapi.GetInstanceDetailsSpec{}, err
+	}
+	namespace, err := cluster.GetNamespace(broker.getNamespace(instanceID), &meta_v1.GetOptions{})
+	if err != nil {
+		return brokerapi.GetInstanceDetailsSpec{}, err
+	}
+
+	return brokerapi.GetInstanceDetailsSpec {
+		PlanID: namespace.ObjectMeta.Labels["planID"],
+		ServiceID: namespace.ObjectMeta.Labels["serviceID"],
+	}, nil
+}
+
 func (broker *PksServiceBroker) Deprovision(ctx context.Context, instanceID string, details brokerapi.DeprovisionDetails, asyncAllowed bool) (brokerapi.DeprovisionServiceSpec, error) {
 	var cluster k8s.Cluster
 	var clusterConfigForInstance clusterConfigState
@@ -239,7 +255,7 @@ func (broker *PksServiceBroker) Deprovision(ctx context.Context, instanceID stri
 	}, nil
 }
 
-func (broker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID string, details brokerapi.BindDetails) (brokerapi.Binding, error) {
+func (broker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID string, details brokerapi.BindDetails, asyncAllowed bool) (brokerapi.Binding, error) {
 	var cluster k8s.Cluster
 	var clusterConfigForInstance clusterConfigState
 
@@ -247,6 +263,8 @@ func (broker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID 
 
 	if err == nil {
 		cluster, err = broker.clusterFactory.GetCluster(&clusterConfigForInstance.ClusterCredentials)
+	} else if false {
+		//todo: case where we have a cluster per plan
 	} else if err == state.KeyNotFoundError {
 		cluster, err = broker.clusterFactory.DefaultCluster()
 		if err != nil {
@@ -256,9 +274,20 @@ func (broker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID 
 		return brokerapi.Binding{}, err
 	}
 
-	secrets, err := cluster.ListSecrets(broker.getNamespace(instanceID), meta_v1.ListOptions{})
+	credentials, err := broker.getCredentials(cluster, instanceID)
 	if err != nil {
 		return brokerapi.Binding{}, err
+	}
+
+	return brokerapi.Binding{
+		Credentials: credentials,
+	}, nil
+}
+
+func (broker *PksServiceBroker) getCredentials(cluster k8s.Cluster, instanceID string) (map[string]interface{}, error) {
+	secrets, err := cluster.ListSecrets(broker.getNamespace(instanceID), meta_v1.ListOptions{})
+	if err != nil {
+		return nil, err
 	}
 
 	secretsMap := []map[string]interface{}{}
@@ -278,7 +307,7 @@ func (broker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID 
 
 	services, err := cluster.ListServices(broker.getNamespace(instanceID), meta_v1.ListOptions{})
 	if err != nil {
-		return brokerapi.Binding{}, err
+		return nil, err
 	}
 
 	servicesMap := []map[string]interface{}{}
@@ -297,18 +326,38 @@ func (broker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID 
 		servicesMap = append(servicesMap, credentialService)
 	}
 
-	return brokerapi.Binding{
-		Credentials: map[string]interface{}{
-			"secrets":  secretsMap,
-			"services": servicesMap,
-		},
+	return map[string]interface{}{
+		"secrets":  secretsMap,
+		"services": servicesMap,
 	}, nil
 }
 
-func (broker *PksServiceBroker) Unbind(ctx context.Context, instanceID, bindingID string, details brokerapi.UnbindDetails) error {
-	// noop
+func (broker *PksServiceBroker) LastBindingOperation(ctx context.Context, instanceID, bindingID string, details brokerapi.PollDetails) (brokerapi.LastOperation, error) {
+	return brokerapi.LastOperation{}, errors.New("this broker does not support async binding")
+}
 
-	return nil
+func (broker *PksServiceBroker) GetBinding(ctx context.Context, instanceID, bindingID string) (brokerapi.GetBindingSpec, error) {
+	//todo: cluster targeting story was missed on the binding call
+	cluster, err := broker.clusterFactory.DefaultCluster()
+	if err != nil {
+		return brokerapi.GetBindingSpec{}, err
+	}
+
+	credentials, err := broker.getCredentials(cluster, instanceID)
+	if err != nil {
+		return brokerapi.GetBindingSpec{}, err
+	}
+
+	return brokerapi.GetBindingSpec{
+		Credentials: credentials,
+	}, nil
+}
+
+func (broker *PksServiceBroker) Unbind(ctx context.Context, instanceID, bindingID string, details brokerapi.UnbindDetails, asyncAllowed bool) (brokerapi.UnbindSpec, error) {
+	// noop
+	return brokerapi.UnbindSpec{
+		IsAsync: false,
+	}, nil
 }
 
 func (broker *PksServiceBroker) Update(ctx context.Context, instanceID string, details brokerapi.UpdateDetails, asyncAllowed bool) (brokerapi.UpdateServiceSpec, error) {
@@ -367,7 +416,7 @@ func (broker *PksServiceBroker) Update(ctx context.Context, instanceID string, d
 }
 
 // LastOperation is for async
-func (broker *PksServiceBroker) LastOperation(ctx context.Context, instanceID, operationData string) (brokerapi.LastOperation, error) {
+func (broker *PksServiceBroker) LastOperation(ctx context.Context, instanceID string, pollDetails brokerapi.PollDetails) (brokerapi.LastOperation, error) {
 	var brokerStatus brokerapi.LastOperationState
 	var description string
 
@@ -395,6 +444,7 @@ func (broker *PksServiceBroker) LastOperation(ctx context.Context, instanceID, o
 	}
 
 	code := response.Info.Status.Code
+	operationData := pollDetails.OperationData
 	if operationData == "provision" {
 		switch code {
 		case hapi_release.Status_DEPLOYED:

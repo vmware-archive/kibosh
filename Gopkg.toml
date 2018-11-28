@@ -3,12 +3,12 @@
 
 required = [
     "github.com/go-openapi/spec",
-    "github.com/emicklei/go-restful"
+    "github.com/emicklei/go-restful",
 ]
 
 ignored = [
     "github.com/onsi/ginkgo",
-    "github.com/onsi/gomega"
+    "github.com/onsi/gomega",
 ]
 
 [prune]
@@ -72,7 +72,7 @@ ignored = [
 
 [[constraint]]
   name = "github.com/pivotal-cf/brokerapi"
-  version = "~v2.0.0"
+  version = "v3.0.2"
 
 [[override]]
   name = "code.cloudfoundry.org/lager"
@@ -89,7 +89,3 @@ ignored = [
 [[constraint]]
   name = "github.com/dgraph-io/badger"
   version = "1.5.3"
-
-[[constraint]]
-  name = "github.com/golang/protobuf"
-  version = "1.2.0"
