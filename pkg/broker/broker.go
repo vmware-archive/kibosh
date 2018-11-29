@@ -149,11 +149,8 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 	}
 
 	var cluster k8s.Cluster
-	clusterCreds, configPresent := ExtractClusterConfig(details.GetRawParameters())
 
-	if configPresent {
-		cluster, err = broker.clusterFactory.GetCluster(&clusterCreds)
-	} else if chart.Plans[planName].ClusterConfig != nil {
+	if chart.Plans[planName].ClusterConfig != nil {
 		cluster, err = k8s.GetClusterFromK8sConfig(chart.Plans[planName].ClusterConfig)
 	} else {
 		cluster, err = broker.clusterFactory.DefaultCluster()
@@ -164,16 +161,6 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 	}
 
 	myHelmClient := broker.helmClientFactory.HelmClient(cluster)
-
-	myServiceAccountInstaller := broker.serviceAccountInstallerFactory.ServiceAccountInstaller(cluster)
-
-	if configPresent {
-		err = PrepareCluster(broker.config, cluster, myHelmClient, myServiceAccountInstaller, broker.logger, broker.operators)
-
-		if err != nil {
-			return brokerapi.ProvisionedServiceSpec{}, err
-		}
-	}
 
 	namespaceName := broker.getNamespace(instanceID)
 	namespace := api_v1.Namespace{
@@ -194,10 +181,6 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 		return brokerapi.ProvisionedServiceSpec{}, err
 	}
 
-	if configPresent {
-		broker.mapInstanceToCluster.PutJson(clusterMapKey(instanceID), clusterConfigState{ClusterCredentials: clusterCreds})
-	}
-
 	return brokerapi.ProvisionedServiceSpec{
 		IsAsync:       true,
 		OperationData: "provision",
@@ -209,21 +192,11 @@ func (broker *PksServiceBroker) GetInstance(context context.Context, instanceID 
 }
 
 func (broker *PksServiceBroker) Deprovision(ctx context.Context, instanceID string, details brokerapi.DeprovisionDetails, asyncAllowed bool) (brokerapi.DeprovisionServiceSpec, error) {
-	var cluster k8s.Cluster
-	var clusterConfigForInstance clusterConfigState
 
-	err := broker.mapInstanceToCluster.GetJson(clusterMapKey(instanceID), &clusterConfigForInstance)
-
-	if err == nil {
-		cluster, err = broker.clusterFactory.GetCluster(&clusterConfigForInstance.ClusterCredentials)
-	} else if err == state.KeyNotFoundError {
-		planID := details.PlanID
-		serviceID := details.ServiceID
-		cluster, err = broker.getCluster(planID, serviceID)
-		if err != nil {
-			return brokerapi.DeprovisionServiceSpec{}, err
-		}
-	} else {
+	planID := details.PlanID
+	serviceID := details.ServiceID
+	cluster, err := broker.getCluster(planID, serviceID)
+	if err != nil {
 		return brokerapi.DeprovisionServiceSpec{}, err
 	}
 
@@ -246,20 +219,11 @@ func (broker *PksServiceBroker) Deprovision(ctx context.Context, instanceID stri
 }
 
 func (broker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID string, details brokerapi.BindDetails, asyncAllowed bool) (brokerapi.Binding, error) {
-	var cluster k8s.Cluster
-	var clusterConfigForInstance clusterConfigState
 
-	err := broker.mapInstanceToCluster.GetJson(clusterMapKey(instanceID), &clusterConfigForInstance)
-	if err == nil {
-		cluster, err = broker.clusterFactory.GetCluster(&clusterConfigForInstance.ClusterCredentials)
-	} else if err == state.KeyNotFoundError {
-		planID := details.PlanID
-		serviceID := details.ServiceID
-		cluster, err = broker.getCluster(planID, serviceID)
-		if err != nil {
-			return brokerapi.Binding{}, err
-		}
-	} else {
+	planID := details.PlanID
+	serviceID := details.ServiceID
+	cluster, err := broker.getCluster(planID, serviceID)
+	if err != nil {
 		return brokerapi.Binding{}, err
 	}
 
@@ -379,21 +343,10 @@ func (broker *PksServiceBroker) Update(ctx context.Context, instanceID string, d
 
 	planName := strings.TrimPrefix(details.PlanID, details.ServiceID+"-")
 
-	var cluster k8s.Cluster
-	var clusterConfigForInstance clusterConfigState
-
-	err = broker.mapInstanceToCluster.GetJson(clusterMapKey(instanceID), &clusterConfigForInstance)
-
-	if err == nil {
-		cluster, err = broker.clusterFactory.GetCluster(&clusterConfigForInstance.ClusterCredentials)
-	} else if err == state.KeyNotFoundError {
-		planID := details.PlanID
-		serviceID := details.ServiceID
-		cluster, err = broker.getCluster(planID, serviceID)
-		if err != nil {
-			return brokerapi.UpdateServiceSpec{}, err
-		}
-	} else {
+	planID := details.PlanID
+	serviceID := details.ServiceID
+	cluster, err := broker.getCluster(planID, serviceID)
+	if err != nil {
 		return brokerapi.UpdateServiceSpec{}, err
 	}
 
@@ -415,21 +368,10 @@ func (broker *PksServiceBroker) LastOperation(ctx context.Context, instanceID st
 	var brokerStatus brokerapi.LastOperationState
 	var description string
 
-	var cluster k8s.Cluster
-	var clusterConfigForInstance clusterConfigState
-
-	err := broker.mapInstanceToCluster.GetJson(clusterMapKey(instanceID), &clusterConfigForInstance)
-
-	if err == nil {
-		cluster, err = broker.clusterFactory.GetCluster(&clusterConfigForInstance.ClusterCredentials)
-	} else if err == state.KeyNotFoundError {
-		planID := details.PlanID
-		serviceID := details.ServiceID
-		cluster, err = broker.getCluster(planID, serviceID)
-		if err != nil {
-			return brokerapi.LastOperation{}, err
-		}
-	} else {
+	planID := details.PlanID
+	serviceID := details.ServiceID
+	cluster, err := broker.getCluster(planID, serviceID)
+	if err != nil {
 		return brokerapi.LastOperation{}, err
 	}
 
