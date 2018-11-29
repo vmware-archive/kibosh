@@ -139,7 +139,7 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 		return brokerapi.ProvisionedServiceSpec{}, errors.New(fmt.Sprintf("Chart not found for [%s]", details.ServiceID))
 	}
 
-	var installValues []byte // = nil
+	var installValues []byte
 	var err error
 	if details.GetRawParameters() != nil {
 		installValues, err = yaml.JSONToYAML(details.GetRawParameters())
@@ -217,22 +217,11 @@ func (broker *PksServiceBroker) Deprovision(ctx context.Context, instanceID stri
 	if err == nil {
 		cluster, err = broker.clusterFactory.GetCluster(&clusterConfigForInstance.ClusterCredentials)
 	} else if err == state.KeyNotFoundError {
-		planName := strings.TrimPrefix(details.PlanID, details.ServiceID+"-")
-		chart := broker.GetChartsMap()[details.ServiceID]
-		if chart != nil {
-			plan, planFound := chart.Plans[planName]
-			if planFound && plan.ClusterConfig != nil {
-				cluster, err = broker.clusterFactory.GetClusterFromK8sConfig(chart.Plans[planName].ClusterConfig)
-				if err != nil {
-					return brokerapi.DeprovisionServiceSpec{}, err
-				}
-			}
-		}
-		if cluster == nil {
-			cluster, err = broker.clusterFactory.DefaultCluster()
-			if err != nil {
-				return brokerapi.DeprovisionServiceSpec{}, err
-			}
+		planID := details.PlanID
+		serviceID := details.ServiceID
+		cluster, err = broker.getCluster(planID, serviceID)
+		if err != nil {
+			return brokerapi.DeprovisionServiceSpec{}, err
 		}
 	} else {
 		return brokerapi.DeprovisionServiceSpec{}, err
@@ -264,22 +253,11 @@ func (broker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID 
 	if err == nil {
 		cluster, err = broker.clusterFactory.GetCluster(&clusterConfigForInstance.ClusterCredentials)
 	} else if err == state.KeyNotFoundError {
-		planName := strings.TrimPrefix(details.PlanID, details.ServiceID+"-")
-		chart := broker.GetChartsMap()[details.ServiceID]
-		if chart != nil {
-			plan, planFound := chart.Plans[planName]
-			if planFound && plan.ClusterConfig != nil {
-				cluster, err = broker.clusterFactory.GetClusterFromK8sConfig(chart.Plans[planName].ClusterConfig)
-				if err != nil {
-					return brokerapi.Binding{}, err
-				}
-			}
-		}
-		if cluster == nil {
-			cluster, err = broker.clusterFactory.DefaultCluster()
-			if err != nil {
-				return brokerapi.Binding{}, err
-			}
+		planID := details.PlanID
+		serviceID := details.ServiceID
+		cluster, err = broker.getCluster(planID, serviceID)
+		if err != nil {
+			return brokerapi.Binding{}, err
 		}
 	} else {
 		return brokerapi.Binding{}, err
@@ -293,6 +271,25 @@ func (broker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID 
 	return brokerapi.Binding{
 		Credentials: credentials,
 	}, nil
+}
+
+func (broker *PksServiceBroker) getCluster(planID, serviceID string) (k8s.Cluster, error) {
+	planName := strings.TrimPrefix(planID, serviceID+"-")
+	chart := broker.GetChartsMap()[serviceID]
+
+	if chart != nil {
+		plan, planFound := chart.Plans[planName]
+		if planFound && plan.ClusterConfig != nil {
+			cluster, err := broker.clusterFactory.GetClusterFromK8sConfig(chart.Plans[planName].ClusterConfig)
+			if err != nil {
+				return nil, err
+			}
+			if cluster != nil {
+				return cluster, err
+			}
+		}
+	}
+	return broker.clusterFactory.DefaultCluster()
 }
 
 func (broker *PksServiceBroker) getCredentials(cluster k8s.Cluster, instanceID string) (map[string]interface{}, error) {
@@ -352,7 +349,6 @@ func (broker *PksServiceBroker) GetBinding(ctx context.Context, instanceID, bind
 }
 
 func (broker *PksServiceBroker) Unbind(ctx context.Context, instanceID, bindingID string, details brokerapi.UnbindDetails, asyncAllowed bool) (brokerapi.UnbindSpec, error) {
-	// noop
 	return brokerapi.UnbindSpec{
 		IsAsync: false,
 	}, nil
@@ -413,7 +409,6 @@ func (broker *PksServiceBroker) Update(ctx context.Context, instanceID string, d
 	}, nil
 }
 
-// LastOperation is for async
 func (broker *PksServiceBroker) LastOperation(ctx context.Context, instanceID string, details brokerapi.PollDetails) (brokerapi.LastOperation, error) {
 	var brokerStatus brokerapi.LastOperationState
 	var description string
@@ -426,22 +421,11 @@ func (broker *PksServiceBroker) LastOperation(ctx context.Context, instanceID st
 	if err == nil {
 		cluster, err = broker.clusterFactory.GetCluster(&clusterConfigForInstance.ClusterCredentials)
 	} else if err == state.KeyNotFoundError {
-		planName := strings.TrimPrefix(details.PlanID, details.ServiceID+"-")
-		chart := broker.GetChartsMap()[details.ServiceID]
-		if chart != nil {
-			plan, planFound := chart.Plans[planName]
-			if planFound && plan.ClusterConfig != nil {
-				cluster, err = broker.clusterFactory.GetClusterFromK8sConfig(chart.Plans[planName].ClusterConfig)
-				if err != nil {
-					return brokerapi.LastOperation{}, err
-				}
-			}
-		}
-		if cluster == nil {
-			cluster, err = broker.clusterFactory.DefaultCluster()
-			if err != nil {
-				return brokerapi.LastOperation{}, err
-			}
+		planID := details.PlanID
+		serviceID := details.ServiceID
+		cluster, err = broker.getCluster(planID, serviceID)
+		if err != nil {
+			return brokerapi.LastOperation{}, err
 		}
 	} else {
 		return brokerapi.LastOperation{}, err
