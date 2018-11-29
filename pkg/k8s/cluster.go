@@ -100,7 +100,6 @@ func NewClusterFromDefaultConfig() (Cluster, error) {
 }
 
 func GetClusterFromK8sConfig(k8sConfig *k8sAPI.Config) (Cluster, error) {
-
 	if k8sConfig.CurrentContext == "" {
 		return nil, errors.New("the default Kubernetes config has no current context")
 	}
@@ -119,7 +118,6 @@ func GetClusterFromK8sConfig(k8sConfig *k8sAPI.Config) (Cluster, error) {
 	}
 
 	return NewCluster(creds)
-
 }
 
 func (cluster *cluster) GetClientConfig() *rest.Config {
