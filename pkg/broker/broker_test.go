@@ -1263,6 +1263,38 @@ var _ = Describe("Broker", func() {
 			Expect(clusterCreds.CADataRaw).To(Equal("some data"))
 			Expect(fakeClusterFactory.DefaultClusterCallCount()).To(Equal(0))
 		})
+
+		It("targets the plan specific cluster", func() {
+			details := brokerapi.UpdateDetails{
+				ServiceID:     spacebearsServiceGUID,
+				PlanID:        spacebearsServiceGUID + "-small",
+				RawParameters: json.RawMessage(`{"foo":"bar"}`),
+			}
+
+			k8sConfig := &k8sAPI.Config{
+				Clusters:       map[string]*k8sAPI.Cluster{"cluster2": {}},
+				CurrentContext: "context2",
+				Contexts:       map[string]*k8sAPI.Context{"context2": {}},
+				AuthInfos:      map[string]*k8sAPI.AuthInfo{"auth2": {}},
+			}
+
+			plan := spacebearsChart.Plans["small"]
+			plan.ClusterConfig = k8sConfig
+			spacebearsChart.Plans["small"] = plan
+
+			fakeClusterFactory.GetClusterFromK8sConfigReturns(&fakeCluster, nil)
+
+			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, charts, nil, &fakeBrokerState, logger)
+
+			_, err := broker.Update(nil, "my-instance-guid", details, true)
+
+			Expect(err).To(BeNil())
+
+			Expect(fakeClusterFactory.DefaultClusterCallCount()).To(Equal(0))
+			Expect(fakeClusterFactory.GetClusterFromK8sConfigCallCount()).To(Equal(1))
+			c := fakeClusterFactory.GetClusterFromK8sConfigArgsForCall(0)
+			Expect(c.CurrentContext).To(Equal("context2"))
+		})
 	})
 
 	Context("unbind", func() {

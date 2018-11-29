@@ -387,7 +387,9 @@ func (broker *PksServiceBroker) Update(ctx context.Context, instanceID string, d
 	if err == nil {
 		cluster, err = broker.clusterFactory.GetCluster(&clusterConfigForInstance.ClusterCredentials)
 	} else if err == state.KeyNotFoundError {
-		cluster, err = broker.clusterFactory.DefaultCluster()
+		planID := details.PlanID
+		serviceID := details.ServiceID
+		cluster, err = broker.getCluster(planID, serviceID)
 		if err != nil {
 			return brokerapi.UpdateServiceSpec{}, err
 		}
