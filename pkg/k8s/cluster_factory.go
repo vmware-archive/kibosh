@@ -17,12 +17,14 @@ package k8s
 
 import (
 	"github.com/cf-platform-eng/kibosh/pkg/config"
+	k8sAPI "k8s.io/client-go/tools/clientcmd/api"
 )
 
 //go:generate counterfeiter ./ ClusterFactory
 type ClusterFactory interface {
 	DefaultCluster() (Cluster, error)
 	GetCluster(creds *config.ClusterCredentials) (Cluster, error)
+	GetClusterFromK8sConfig(k8sConfig *k8sAPI.Config) (Cluster, error)
 }
 
 func NewClusterFactory(clusterCredentials config.ClusterCredentials) ClusterFactory {
@@ -39,4 +41,8 @@ func (cf clusterFactory) DefaultCluster() (Cluster, error) {
 
 func (cf clusterFactory) GetCluster(creds *config.ClusterCredentials) (Cluster, error) {
 	return NewCluster(creds)
+}
+
+func (cf clusterFactory) GetClusterFromK8sConfig(k8sConfig *k8sAPI.Config) (Cluster, error) {
+	return GetClusterFromK8sConfig(k8sConfig)
 }

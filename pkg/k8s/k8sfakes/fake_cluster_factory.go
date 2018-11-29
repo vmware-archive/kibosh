@@ -6,6 +6,7 @@ import (
 
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
+	k8sAPI "k8s.io/client-go/tools/clientcmd/api"
 )
 
 type FakeClusterFactory struct {
@@ -30,6 +31,19 @@ type FakeClusterFactory struct {
 		result2 error
 	}
 	getClusterReturnsOnCall map[int]struct {
+		result1 k8s.Cluster
+		result2 error
+	}
+	GetClusterFromK8sConfigStub        func(k8sConfig *k8sAPI.Config) (k8s.Cluster, error)
+	getClusterFromK8sConfigMutex       sync.RWMutex
+	getClusterFromK8sConfigArgsForCall []struct {
+		k8sConfig *k8sAPI.Config
+	}
+	getClusterFromK8sConfigReturns struct {
+		result1 k8s.Cluster
+		result2 error
+	}
+	getClusterFromK8sConfigReturnsOnCall map[int]struct {
 		result1 k8s.Cluster
 		result2 error
 	}
@@ -131,6 +145,57 @@ func (fake *FakeClusterFactory) GetClusterReturnsOnCall(i int, result1 k8s.Clust
 	}{result1, result2}
 }
 
+func (fake *FakeClusterFactory) GetClusterFromK8sConfig(k8sConfig *k8sAPI.Config) (k8s.Cluster, error) {
+	fake.getClusterFromK8sConfigMutex.Lock()
+	ret, specificReturn := fake.getClusterFromK8sConfigReturnsOnCall[len(fake.getClusterFromK8sConfigArgsForCall)]
+	fake.getClusterFromK8sConfigArgsForCall = append(fake.getClusterFromK8sConfigArgsForCall, struct {
+		k8sConfig *k8sAPI.Config
+	}{k8sConfig})
+	fake.recordInvocation("GetClusterFromK8sConfig", []interface{}{k8sConfig})
+	fake.getClusterFromK8sConfigMutex.Unlock()
+	if fake.GetClusterFromK8sConfigStub != nil {
+		return fake.GetClusterFromK8sConfigStub(k8sConfig)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.getClusterFromK8sConfigReturns.result1, fake.getClusterFromK8sConfigReturns.result2
+}
+
+func (fake *FakeClusterFactory) GetClusterFromK8sConfigCallCount() int {
+	fake.getClusterFromK8sConfigMutex.RLock()
+	defer fake.getClusterFromK8sConfigMutex.RUnlock()
+	return len(fake.getClusterFromK8sConfigArgsForCall)
+}
+
+func (fake *FakeClusterFactory) GetClusterFromK8sConfigArgsForCall(i int) *k8sAPI.Config {
+	fake.getClusterFromK8sConfigMutex.RLock()
+	defer fake.getClusterFromK8sConfigMutex.RUnlock()
+	return fake.getClusterFromK8sConfigArgsForCall[i].k8sConfig
+}
+
+func (fake *FakeClusterFactory) GetClusterFromK8sConfigReturns(result1 k8s.Cluster, result2 error) {
+	fake.GetClusterFromK8sConfigStub = nil
+	fake.getClusterFromK8sConfigReturns = struct {
+		result1 k8s.Cluster
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClusterFactory) GetClusterFromK8sConfigReturnsOnCall(i int, result1 k8s.Cluster, result2 error) {
+	fake.GetClusterFromK8sConfigStub = nil
+	if fake.getClusterFromK8sConfigReturnsOnCall == nil {
+		fake.getClusterFromK8sConfigReturnsOnCall = make(map[int]struct {
+			result1 k8s.Cluster
+			result2 error
+		})
+	}
+	fake.getClusterFromK8sConfigReturnsOnCall[i] = struct {
+		result1 k8s.Cluster
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeClusterFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -138,6 +203,8 @@ func (fake *FakeClusterFactory) Invocations() map[string][][]interface{} {
 	defer fake.defaultClusterMutex.RUnlock()
 	fake.getClusterMutex.RLock()
 	defer fake.getClusterMutex.RUnlock()
+	fake.getClusterFromK8sConfigMutex.RLock()
+	defer fake.getClusterFromK8sConfigMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

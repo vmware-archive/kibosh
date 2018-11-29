@@ -409,57 +409,6 @@ var _ = Describe("Broker", func() {
 		})
 	})
 
-	Context("get instance", func() {
-		var broker *PksServiceBroker
-
-		BeforeEach(func() {
-			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, charts, nil, &fakeBrokerState, logger)
-			Expect(fakeClusterFactory.DefaultClusterCallCount()).To(Equal(0))
-			Expect(fakeClusterFactory.GetClusterCallCount()).To(Equal(0))
-		})
-
-		It("happy path", func() {
-			fakeCluster.GetNamespaceReturns(&api_v1.Namespace{
-				ObjectMeta: meta_v1.ObjectMeta{
-					Name: "my-namespace",
-					Labels: map[string]string{
-						"serviceID":        "my-service-id",
-						"planID":           "my-plan-id",
-						"organizationGUID": "my-org-id",
-						"spaceGUID":        "my-space-id",
-					},
-				},
-			}, nil)
-
-			instance, err := broker.GetInstance(nil, "my-instance-id")
-
-			Expect(err).To(BeNil())
-
-			Expect(instance.PlanID).To(Equal("my-plan-id"))
-			Expect(instance.ServiceID).To(Equal("my-service-id"))
-			namespace, _ := fakeCluster.GetNamespaceArgsForCall(0)
-			Expect(namespace).To(Equal("kibosh-my-instance-id"))
-		})
-
-		It("bubbles up error talking to cluster", func() {
-			fakeCluster.GetNamespaceReturns(nil, errors.New("no namespace for you"))
-			_, err := broker.GetInstance(nil, "my-instance-id")
-
-			Expect(err).NotTo(BeNil())
-			Expect(err.Error()).To(ContainSubstring("no namespace for you"))
-		})
-
-		It("bubbles up error getting cluster", func() {
-			fakeClusterFactory.DefaultClusterReturns(nil, errors.New("no cluster for you"))
-			fakeCluster.GetNamespaceReturns(nil, errors.New("no namespace for you"))
-			_, err := broker.GetInstance(nil, "my-instance-id")
-
-			Expect(err).NotTo(BeNil())
-			Expect(err.Error()).To(ContainSubstring("no cluster for you"))
-		})
-
-	})
-
 	Context("last operation", func() {
 		var broker *PksServiceBroker
 
@@ -792,6 +741,46 @@ var _ = Describe("Broker", func() {
 			Expect(clusterCreds.CADataRaw).To(Equal("some data"))
 			Expect(fakeClusterFactory.DefaultClusterCallCount()).To(Equal(0))
 		})
+
+		It("targets the plan cluster when present", func() {
+			fakeHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
+				Info: &hapi_release.Info{
+					Status: &hapi_release.Status{
+						Code: hapi_release.Status_DEPLOYED,
+					},
+				},
+			}, nil)
+
+			k8sConfig := &k8sAPI.Config{
+				Clusters:       map[string]*k8sAPI.Cluster{"cluster2": {}},
+				CurrentContext: "context2",
+				Contexts:       map[string]*k8sAPI.Context{"context2": {}},
+				AuthInfos:      map[string]*k8sAPI.AuthInfo{"auth2": {}},
+			}
+
+			plan := spacebearsChart.Plans["small"]
+			plan.ClusterConfig = k8sConfig
+			spacebearsChart.Plans["small"] = plan
+
+			fakeClusterFactory.GetClusterFromK8sConfigReturns(&fakeCluster, nil)
+
+			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, charts, nil, &fakeBrokerState, logger)
+
+			details := brokerapi.PollDetails{
+				OperationData: "provision",
+				ServiceID:     spacebearsServiceGUID,
+				PlanID:        spacebearsServiceGUID + "-small",
+			}
+
+			_, err := broker.LastOperation(nil, "my-instance-guid", details)
+
+			Expect(err).To(BeNil())
+
+			Expect(fakeClusterFactory.DefaultClusterCallCount()).To(Equal(0))
+			Expect(fakeClusterFactory.GetClusterFromK8sConfigCallCount()).To(Equal(1))
+			c := fakeClusterFactory.GetClusterFromK8sConfigArgsForCall(0)
+			Expect(c.CurrentContext).To(Equal("context2"))
+		})
 	})
 
 	Context("bind", func() {
@@ -831,7 +820,6 @@ var _ = Describe("Broker", func() {
 			Expect(string(secretsJson)).To(Equal(`[{"data":{"db-password":"abc123"},"name":"passwords"}]`))
 		})
 
-		// NodePort Test
 		It("bind returns externalIPs field when Service Type NodePort is used", func() {
 			nodeList := api_v1.NodeList{
 				Items: []api_v1.Node{
@@ -876,7 +864,7 @@ var _ = Describe("Broker", func() {
 			externalIPs := spec.(api_v1.ServiceSpec).ExternalIPs
 			Expect(externalIPs[0]).To(Equal("1.1.1.1"))
 		})
-		//
+
 		It("bind filters to only opaque secrets", func() {
 			serviceList := api_v1.ServiceList{Items: []api_v1.Service{}}
 			fakeCluster.ListServicesReturns(&serviceList, nil)
@@ -982,6 +970,41 @@ var _ = Describe("Broker", func() {
 			Expect(err).NotTo(BeNil())
 		})
 
+		It("when plan has a specific cluster, fetch binding from that", func() {
+			k8sConfig := &k8sAPI.Config{
+				Clusters:       map[string]*k8sAPI.Cluster{"cluster2": {}},
+				CurrentContext: "context2",
+				Contexts:       map[string]*k8sAPI.Context{"context2": {}},
+				AuthInfos:      map[string]*k8sAPI.AuthInfo{"auth2": {}},
+			}
+
+			plan := spacebearsChart.Plans["small"]
+			plan.ClusterConfig = k8sConfig
+			spacebearsChart.Plans["small"] = plan
+
+			fakeClusterFactory.GetClusterFromK8sConfigReturns(&fakeCluster, nil)
+
+			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, charts, nil, &fakeBrokerState, logger)
+
+			serviceList := api_v1.ServiceList{Items: []api_v1.Service{}}
+			fakeCluster.ListServicesReturns(&serviceList, nil)
+
+			secretsList := api_v1.SecretList{Items: []api_v1.Secret{}}
+			fakeCluster.ListSecretsReturns(&secretsList, nil)
+
+			binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{
+				ServiceID: spacebearsServiceGUID,
+				PlanID:    spacebearsServiceGUID + "-small",
+			}, false)
+
+			Expect(err).To(BeNil())
+			Expect(binding).NotTo(BeNil())
+
+			Expect(fakeClusterFactory.GetClusterFromK8sConfigCallCount()).To(Equal(1))
+			c := fakeClusterFactory.GetClusterFromK8sConfigArgsForCall(0)
+			Expect(c.CurrentContext).To(Equal("context2"))
+		})
+
 		Describe("uses proper cluster", func() {
 			var secretList api_v1.SecretList
 			var serviceList api_v1.ServiceList
@@ -1047,68 +1070,7 @@ var _ = Describe("Broker", func() {
 		})
 	})
 
-	Context("get binding", func() {
-		var broker *PksServiceBroker
-
-		BeforeEach(func() {
-			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, charts, nil, &fakeBrokerState, logger)
-		})
-
-		It("get binding returns secrets for default cluster", func() {
-			serviceList := api_v1.ServiceList{Items: []api_v1.Service{}}
-			fakeCluster.ListServicesReturns(&serviceList, nil)
-
-			secretsList := api_v1.SecretList{
-				Items: []api_v1.Secret{
-					{
-						ObjectMeta: meta_v1.ObjectMeta{Name: "passwords"},
-						Data:       map[string][]byte{"db-password": []byte("abc123")},
-						Type:       api_v1.SecretTypeOpaque,
-					},
-				},
-			}
-			fakeCluster.ListSecretsReturns(&secretsList, nil)
-
-			binding, err := broker.GetBinding(nil, "my-instance-id", "my-binding-id")
-
-			Expect(err).To(BeNil())
-			Expect(fakeCluster.ListSecretsCallCount()).To(Equal(1))
-
-			Expect(binding).NotTo(BeNil())
-
-			creds := binding.Credentials
-			secrets := creds.(map[string]interface{})["secrets"]
-			secretsJson, err := json.Marshal(secrets)
-			Expect(string(secretsJson)).To(Equal(`[{"data":{"db-password":"abc123"},"name":"passwords"}]`))
-		})
-
-		It("bubbles up errors talking to cluster", func() {
-			serviceList := api_v1.ServiceList{Items: []api_v1.Service{}}
-			fakeCluster.ListServicesReturns(&serviceList, nil)
-
-			fakeCluster.ListSecretsReturns(nil, errors.New("foo failed"))
-			_, err := broker.GetBinding(nil, "my-instance-id", "my-binding-id")
-
-			Expect(err).NotTo(BeNil())
-			Expect(fakeCluster.ListSecretsCallCount()).To(Equal(1))
-			Expect(err.Error()).To(ContainSubstring("foo failed"))
-		})
-
-		It("bubbles up list services errors", func() {
-			secretList := api_v1.SecretList{Items: []api_v1.Secret{}}
-			fakeCluster.ListSecretsReturns(&secretList, nil)
-
-			fakeCluster.ListServicesReturns(nil, errors.New("no services for you"))
-
-			_, err := broker.GetBinding(nil, "my-instance-id", "my-binding-id")
-
-			Expect(err).NotTo(BeNil())
-			Expect(err.Error()).To(ContainSubstring("no services for you"))
-		})
-
-	})
-
-	Context("delete", func() {
+	Context("delete / deprovision", func() {
 		var broker *PksServiceBroker
 
 		BeforeEach(func() {
@@ -1187,6 +1149,37 @@ var _ = Describe("Broker", func() {
 			Expect(clusterCreds.Token).To(Equal("some token"))
 			Expect(clusterCreds.CADataRaw).To(Equal("some data"))
 			Expect(fakeClusterFactory.DefaultClusterCallCount()).To(Equal(0))
+		})
+
+		It("targets the plan specific cluster", func() {
+			details := brokerapi.DeprovisionDetails{
+				ServiceID: spacebearsServiceGUID,
+				PlanID:    spacebearsServiceGUID + "-small",
+			}
+
+			k8sConfig := &k8sAPI.Config{
+				Clusters:       map[string]*k8sAPI.Cluster{"cluster2": {}},
+				CurrentContext: "context2",
+				Contexts:       map[string]*k8sAPI.Context{"context2": {}},
+				AuthInfos:      map[string]*k8sAPI.AuthInfo{"auth2": {}},
+			}
+
+			plan := spacebearsChart.Plans["small"]
+			plan.ClusterConfig = k8sConfig
+			spacebearsChart.Plans["small"] = plan
+
+			fakeClusterFactory.GetClusterFromK8sConfigReturns(&fakeCluster, nil)
+
+			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, charts, nil, &fakeBrokerState, logger)
+
+			_, err := broker.Deprovision(nil, "my-instance-guid", details, true)
+
+			Expect(err).To(BeNil())
+
+			Expect(fakeClusterFactory.DefaultClusterCallCount()).To(Equal(0))
+			Expect(fakeClusterFactory.GetClusterFromK8sConfigCallCount()).To(Equal(1))
+			c := fakeClusterFactory.GetClusterFromK8sConfigArgsForCall(0)
+			Expect(c.CurrentContext).To(Equal("context2"))
 		})
 	})
 
