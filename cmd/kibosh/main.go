@@ -74,13 +74,13 @@ func main() {
 	helmClientFactory := helm.NewHelmClientFactory(conf.HelmTLSConfig, kiboshLogger)
 	serviceAccountInstallerFactory := k8s.NewServiceAccountInstallerFactory(kiboshLogger)
 
-	err = broker.PrepareDefaultCluster(conf, clusterFactory, helmClientFactory, serviceAccountInstallerFactory, kiboshLogger, operatorCharts)
+	err = broker.PrepareDefaultCluster(conf, clusterFactory, helmClientFactory, serviceAccountInstallerFactory, helm.InstallerFactoryDefault, kiboshLogger, operatorCharts)
 
 	if err != nil {
 		kiboshLogger.Fatal("Unable to prepare default cluster", err)
 	}
 
-	serviceBroker := broker.NewPksServiceBroker(conf, clusterFactory, helmClientFactory, serviceAccountInstallerFactory, charts, operatorCharts, kiboshLogger)
+	serviceBroker := broker.NewPksServiceBroker(conf, clusterFactory, helmClientFactory, serviceAccountInstallerFactory, helm.InstallerFactoryDefault, charts, operatorCharts, kiboshLogger)
 	brokerCredentials := brokerapi.BrokerCredentials{
 		Username: conf.AdminUsername,
 		Password: conf.AdminPassword,

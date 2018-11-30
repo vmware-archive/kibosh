@@ -36,25 +36,34 @@ import (
 const registrySecretName = "registry-secret"
 
 type PksServiceBroker struct {
-	config                         *config.Config
+	config    *config.Config
+	charts    []*my_helm.MyChart
+	operators []*my_helm.MyChart
+
 	clusterFactory                 k8s.ClusterFactory
 	helmClientFactory              my_helm.HelmClientFactory
 	serviceAccountInstallerFactory k8s.ServiceAccountInstallerFactory
-	charts                         []*my_helm.MyChart
-	operators                      []*my_helm.MyChart
+	helmInstallerFactory           my_helm.InstallerFactory
 
 	logger *logrus.Logger
 }
 
-func NewPksServiceBroker(config *config.Config, clusterFactory k8s.ClusterFactory, helmClientFactory my_helm.HelmClientFactory, serviceAccountInstallerFactory k8s.ServiceAccountInstallerFactory, charts []*my_helm.MyChart, operators []*my_helm.MyChart, logger *logrus.Logger) *PksServiceBroker {
+func NewPksServiceBroker(
+	config *config.Config, clusterFactory k8s.ClusterFactory, helmClientFactory my_helm.HelmClientFactory,
+	serviceAccountInstallerFactory k8s.ServiceAccountInstallerFactory, helmInstallerFactory my_helm.InstallerFactory,
+	charts []*my_helm.MyChart, operators []*my_helm.MyChart, logger *logrus.Logger,
+) *PksServiceBroker {
 	broker := &PksServiceBroker{
-		logger:                         logger,
-		config:                         config,
+		config:    config,
+		charts:    charts,
+		operators: operators,
+
 		clusterFactory:                 clusterFactory,
 		helmClientFactory:              helmClientFactory,
 		serviceAccountInstallerFactory: serviceAccountInstallerFactory,
-		charts:                         charts,
-		operators:                      operators,
+		helmInstallerFactory:           helmInstallerFactory,
+
+		logger: logger,
 	}
 
 	return broker
@@ -145,9 +154,9 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 	}
 
 	var cluster k8s.Cluster
-
-	if chart.Plans[planName].ClusterConfig != nil {
-		cluster, err = k8s.GetClusterFromK8sConfig(chart.Plans[planName].ClusterConfig)
+	planHasCluster := chart.Plans[planName].ClusterConfig != nil
+	if planHasCluster {
+		cluster, err = broker.clusterFactory.GetClusterFromK8sConfig(chart.Plans[planName].ClusterConfig)
 	} else {
 		cluster, err = broker.clusterFactory.DefaultCluster()
 	}
@@ -157,6 +166,14 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 	}
 
 	myHelmClient := broker.helmClientFactory.HelmClient(cluster)
+
+	if planHasCluster {
+		planClusterServiceAccountInstaller := broker.serviceAccountInstallerFactory.ServiceAccountInstaller(cluster)
+		err = PrepareCluster(broker.config, cluster, myHelmClient, planClusterServiceAccountInstaller, broker.helmInstallerFactory, broker.operators, broker.logger)
+		if err != nil {
+			return brokerapi.ProvisionedServiceSpec{}, err
+		}
+	}
 
 	namespaceName := broker.getNamespace(instanceID)
 	namespace := api_v1.Namespace{

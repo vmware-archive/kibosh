@@ -21,6 +21,7 @@ import (
 	my_config "github.com/cf-platform-eng/kibosh/pkg/config"
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/helm/helmfakes"
+	"github.com/cf-platform-eng/kibosh/pkg/k8s"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s/k8sfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -37,6 +38,8 @@ var _ = Describe("cluster preparation", func() {
 	var fakeClusterFactory k8sfakes.FakeClusterFactory
 	var fakeHelmClientFactory helmfakes.FakeHelmClientFactory
 	var fakeServiceAccountInstallerFactory k8sfakes.FakeServiceAccountInstallerFactory
+	var fakeInstaller helmfakes.FakeInstaller
+	var fakeInstallerFactory my_helm.InstallerFactory
 
 	BeforeEach(func() {
 		fakeHelmClient = helmfakes.FakeMyHelmClient{}
@@ -45,10 +48,14 @@ var _ = Describe("cluster preparation", func() {
 		fakeServiceAccountInstaller = k8sfakes.FakeServiceAccountInstaller{}
 		fakeClusterFactory = k8sfakes.FakeClusterFactory{}
 		fakeHelmClientFactory = helmfakes.FakeHelmClientFactory{}
-		fakeServiceAccountInstallerFactory = k8sfakes.FakeServiceAccountInstallerFactory{}
 		fakeClusterFactory.DefaultClusterReturns(&fakeCluster, nil)
 		fakeHelmClientFactory.HelmClientReturns(&fakeHelmClient)
+		fakeInstaller = helmfakes.FakeInstaller{}
+		fakeServiceAccountInstallerFactory = k8sfakes.FakeServiceAccountInstallerFactory{}
 		fakeServiceAccountInstallerFactory.ServiceAccountInstallerReturns(&fakeServiceAccountInstaller)
+		fakeInstallerFactory = func(c *my_config.Config, cluster k8s.Cluster, client my_helm.MyHelmClient, logger *logrus.Logger) my_helm.Installer {
+			return &fakeInstaller
+		}
 
 		logger = logrus.New()
 		config = &my_config.Config{
@@ -81,13 +88,16 @@ var _ = Describe("cluster preparation", func() {
 
 	Context("basic functionality", func() {
 		It("prepare cluster works", func() {
-			err := broker.PrepareCluster(config, &fakeCluster, &fakeHelmClient, &fakeServiceAccountInstaller, logger, operators)
+			err := broker.PrepareCluster(config, &fakeCluster, &fakeHelmClient, &fakeServiceAccountInstaller, fakeInstallerFactory, operators, logger)
+
 			Expect(err).To(BeNil())
 			Expect(fakeHelmClient.InstallOperatorCallCount()).To(Equal(2))
 			Expect(fakeServiceAccountInstaller.InstallCallCount()).To(Equal(1))
 		})
+
 		It("prepare default cluster works", func() {
-			err := broker.PrepareDefaultCluster(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, logger, operators)
+			err := broker.PrepareDefaultCluster(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, logger, operators)
+
 			Expect(err).To(BeNil())
 			Expect(fakeHelmClient.InstallOperatorCallCount()).To(Equal(2))
 			Expect(fakeServiceAccountInstaller.InstallCallCount()).To(Equal(1))

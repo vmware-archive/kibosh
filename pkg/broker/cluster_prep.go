@@ -23,39 +23,35 @@ import (
 	"github.com/cf-platform-eng/kibosh/pkg/operator"
 )
 
-func PrepareDefaultCluster(config *config.Config,
+func PrepareDefaultCluster(
+	config *config.Config,
 	clusterFactory k8s.ClusterFactory,
 	helmClientFactory my_helm.HelmClientFactory,
 	serviceAccountInstallerFactory k8s.ServiceAccountInstallerFactory,
+	installerFactory my_helm.InstallerFactory,
 	logger *logrus.Logger,
-	operators []*my_helm.MyChart) error {
-
+	operators []*my_helm.MyChart,
+) error {
 	cluster, err := clusterFactory.DefaultCluster()
 
 	if err == nil {
 		helmClient := helmClientFactory.HelmClient(cluster)
 		serviceAccountInstaller := serviceAccountInstallerFactory.ServiceAccountInstaller(cluster)
 
-		return PrepareCluster(config, cluster, helmClient, serviceAccountInstaller, logger, operators)
+		return PrepareCluster(config, cluster, helmClient, serviceAccountInstaller, installerFactory, operators, logger)
 	}
 
 	return err
 }
 
-func PrepareCluster(config *config.Config,
-	cluster k8s.Cluster,
-	helmClient my_helm.MyHelmClient,
-	serviceAccountInstaller k8s.ServiceAccountInstaller,
-	logger *logrus.Logger,
-	operators []*my_helm.MyChart) error {
-
+func PrepareCluster(config *config.Config, cluster k8s.Cluster, helmClient my_helm.MyHelmClient, serviceAccountInstaller k8s.ServiceAccountInstaller, installerFactory my_helm.InstallerFactory, operators []*my_helm.MyChart, logger *logrus.Logger) error {
 	err := serviceAccountInstaller.Install()
 	if err != nil {
 		logger.WithError(err).Error("failed installing service account")
 		return err
 	}
 
-	helmInstaller := my_helm.NewInstaller(config, cluster, helmClient, logger)
+	helmInstaller := installerFactory(config, cluster, helmClient, logger)
 	err = helmInstaller.Install()
 	if err != nil {
 		logger.WithError(err).Error("failed installing helm")

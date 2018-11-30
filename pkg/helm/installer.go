@@ -38,6 +38,7 @@ type installer struct {
 	logger  *logrus.Logger
 }
 
+//go:generate counterfeiter ./ Installer
 type Installer interface {
 	Install() error
 	SetMaxWait(duration time.Duration)
@@ -52,6 +53,12 @@ const (
 	nameSpace      = "kube-system"
 	deploymentName = "tiller-deploy"
 )
+
+type InstallerFactory func(c *config.Config, cluster k8s.Cluster, client MyHelmClient, logger *logrus.Logger) Installer
+
+func InstallerFactoryDefault(c *config.Config, cluster k8s.Cluster, client MyHelmClient, logger *logrus.Logger) Installer {
+	return NewInstaller(c, cluster, client, logger)
+}
 
 func NewInstaller(c *config.Config, cluster k8s.Cluster, client MyHelmClient, logger *logrus.Logger) Installer {
 	return &installer{
