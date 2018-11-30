@@ -20,8 +20,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cf-platform-eng/kibosh/pkg/state"
-
 	"github.com/Sirupsen/logrus"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
@@ -43,13 +41,12 @@ type PksServiceBroker struct {
 	helmClientFactory              my_helm.HelmClientFactory
 	serviceAccountInstallerFactory k8s.ServiceAccountInstallerFactory
 	charts                         []*my_helm.MyChart
-	mapInstanceToCluster           state.KeyValueStore
 	operators                      []*my_helm.MyChart
 
 	logger *logrus.Logger
 }
 
-func NewPksServiceBroker(config *config.Config, clusterFactory k8s.ClusterFactory, helmClientFactory my_helm.HelmClientFactory, serviceAccountInstallerFactory k8s.ServiceAccountInstallerFactory, charts []*my_helm.MyChart, operators []*my_helm.MyChart, mapInstanceToCluster state.KeyValueStore, logger *logrus.Logger) *PksServiceBroker {
+func NewPksServiceBroker(config *config.Config, clusterFactory k8s.ClusterFactory, helmClientFactory my_helm.HelmClientFactory, serviceAccountInstallerFactory k8s.ServiceAccountInstallerFactory, charts []*my_helm.MyChart, operators []*my_helm.MyChart, logger *logrus.Logger) *PksServiceBroker {
 	broker := &PksServiceBroker{
 		logger:                         logger,
 		config:                         config,
@@ -58,7 +55,6 @@ func NewPksServiceBroker(config *config.Config, clusterFactory k8s.ClusterFactor
 		serviceAccountInstallerFactory: serviceAccountInstallerFactory,
 		charts:                         charts,
 		operators:                      operators,
-		mapInstanceToCluster:           mapInstanceToCluster,
 	}
 
 	return broker
