@@ -28,7 +28,6 @@ import (
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
 	"github.com/cf-platform-eng/kibosh/pkg/logger"
 	"github.com/cf-platform-eng/kibosh/pkg/repository"
-	"github.com/cf-platform-eng/kibosh/pkg/state"
 	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/pivotal-cf/brokerapi"
 )
@@ -81,16 +80,7 @@ func main() {
 		kiboshLogger.Fatal("Unable to prepare default cluster", err)
 	}
 
-	mapServiceInstanceToCluster := state.NewKeyValueStore()
-	err = mapServiceInstanceToCluster.Open(conf.StateDir)
-
-	if err != nil {
-		kiboshLogger.Fatal("Unable to open state db", err)
-	}
-
-	defer mapServiceInstanceToCluster.Close()
-
-	serviceBroker := broker.NewPksServiceBroker(conf, clusterFactory, helmClientFactory, serviceAccountInstallerFactory, charts, operatorCharts, mapServiceInstanceToCluster, kiboshLogger)
+	serviceBroker := broker.NewPksServiceBroker(conf, clusterFactory, helmClientFactory, serviceAccountInstallerFactory, charts, operatorCharts, kiboshLogger)
 	brokerCredentials := brokerapi.BrokerCredentials{
 		Username: conf.AdminUsername,
 		Password: conf.AdminPassword,

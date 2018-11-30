@@ -787,3 +787,15 @@ jobs:
       CLEAN_ALL: true
     input_mapping:
       bbl-state: kibosh-ci-state
+
+- name: bump-minor
+  plan:
+  - put: version
+    params:
+      bump: minor
+
+- name: bump-major
+  plan:
+  - put: version
+    params:
+      bump: major
