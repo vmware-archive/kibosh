@@ -97,6 +97,44 @@ on the `values.yaml` file structure
         imageTag: "1.2.3"
     ```
 
+### Plan Specific Clusters
+_This feature is experimental and the syntax will likely change in the future_
+
+By default, Kibosh will create all deployments in the same cluster. It's also possible for each plan to 
+target a different cluster. In `plans.yaml`, the plan specifies a credentials file:
+```yaml
+---
+- name: "small"
+  description: "default (small) plan for mysql"
+  file: "small.yaml"
+  credentials: "small-creds.yaml"
+```
+    
+The contents of this file mirror what would appear in the `.kube/config` file. For example, `small-creds.yaml`
+would contain:
+
+```yaml
+---
+apiVersion: v1
+clusters:
+  - cluster:
+      certificate-authority-data: bXktY2VydA==
+      server: https://pks.example.com
+    name: my-cluster
+contexts:
+  - context:
+      cluster: my-cluster
+      user: my-user
+    name: my-cluster
+current-context: my-cluster
+kind: Config
+preferences: {}
+users:
+  - name: my-user
+    user:
+      token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+```
+
 ### Other Requirement
 
 * When defining a `Service`, to expose this back to any applications that are bound,
