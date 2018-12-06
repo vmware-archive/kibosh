@@ -57,7 +57,7 @@ func main() {
 			SkipSslValidation: conf.CFClientConfig.SkipSslValidation,
 		})
 		if err != nil {
-			kiboshLogger.Fatal("Unable to load charts", err)
+			kiboshLogger.Fatal("Unable to build cf client", err)
 		}
 	}
 
