@@ -2,16 +2,17 @@
 package k8sfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/cf-platform-eng/kibosh/pkg/k8s"
+	k8s "github.com/cf-platform-eng/kibosh/pkg/k8s"
 )
 
 type FakeServiceAccountInstaller struct {
 	InstallStub        func() error
 	installMutex       sync.RWMutex
-	installArgsForCall []struct{}
-	installReturns     struct {
+	installArgsForCall []struct {
+	}
+	installReturns struct {
 		result1 error
 	}
 	installReturnsOnCall map[int]struct {
@@ -24,7 +25,8 @@ type FakeServiceAccountInstaller struct {
 func (fake *FakeServiceAccountInstaller) Install() error {
 	fake.installMutex.Lock()
 	ret, specificReturn := fake.installReturnsOnCall[len(fake.installArgsForCall)]
-	fake.installArgsForCall = append(fake.installArgsForCall, struct{}{})
+	fake.installArgsForCall = append(fake.installArgsForCall, struct {
+	}{})
 	fake.recordInvocation("Install", []interface{}{})
 	fake.installMutex.Unlock()
 	if fake.InstallStub != nil {
@@ -33,7 +35,8 @@ func (fake *FakeServiceAccountInstaller) Install() error {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.installReturns.result1
+	fakeReturns := fake.installReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeServiceAccountInstaller) InstallCallCount() int {
@@ -42,7 +45,15 @@ func (fake *FakeServiceAccountInstaller) InstallCallCount() int {
 	return len(fake.installArgsForCall)
 }
 
+func (fake *FakeServiceAccountInstaller) InstallCalls(stub func() error) {
+	fake.installMutex.Lock()
+	defer fake.installMutex.Unlock()
+	fake.InstallStub = stub
+}
+
 func (fake *FakeServiceAccountInstaller) InstallReturns(result1 error) {
+	fake.installMutex.Lock()
+	defer fake.installMutex.Unlock()
 	fake.InstallStub = nil
 	fake.installReturns = struct {
 		result1 error
@@ -50,6 +61,8 @@ func (fake *FakeServiceAccountInstaller) InstallReturns(result1 error) {
 }
 
 func (fake *FakeServiceAccountInstaller) InstallReturnsOnCall(i int, result1 error) {
+	fake.installMutex.Lock()
+	defer fake.installMutex.Unlock()
 	fake.InstallStub = nil
 	if fake.installReturnsOnCall == nil {
 		fake.installReturnsOnCall = make(map[int]struct {

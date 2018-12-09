@@ -10,6 +10,7 @@ bazaarcli.linux
 bazaarcli.mac
 
 vendor
+.vendor-new
 
 .vscode
 .idea

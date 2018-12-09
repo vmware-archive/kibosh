@@ -91,7 +91,7 @@ func (api *api) ListCharts(w http.ResponseWriter, r *http.Request) error {
 	charts, err := api.repo.LoadCharts()
 	if err != nil {
 		api.logger.WithError(err).Error("Unable to load charts")
-		api.ServerError(500, "Unable to load charts", w)
+		api.ServerError(500, errors.Wrap(err, "Unable to load charts").Error(), w)
 	} else {
 		var displayCharts []DisplayChart
 		for _, chart := range charts {
@@ -114,14 +114,14 @@ func (api *api) ListCharts(w http.ResponseWriter, r *http.Request) error {
 func (api *api) SaveChart(w http.ResponseWriter, r *http.Request) error {
 	err := api.saveChartToRepository(r)
 	if err != nil {
-		api.ServerError(500, "Unable to save charts", w)
+		api.ServerError(500, errors.Wrap(err, "Unable to save charts").Error(), w)
 		return nil
 	}
 
 	err = api.triggerKiboshReload()
 	if err != nil {
 		//todo: retry? rollback? what's on disk now doesn't match Kibosh
-		api.ServerError(500, "Chart persisted, but Kibosh reload failed", w)
+		api.ServerError(500, errors.Wrap(err, "Chart persisted, but Kibosh reload failed").Error(), w)
 		return nil
 	}
 	return api.WriteJSONResponse(w, DisplayResponse{Message: "Chart saved"})
@@ -130,13 +130,13 @@ func (api *api) SaveChart(w http.ResponseWriter, r *http.Request) error {
 func (api *api) DeleteChart(w http.ResponseWriter, r *http.Request) error {
 	chartName, err := getUrlPart(1, r)
 	if err != nil {
-		api.ServerError(500, "Unable to parse url path parameters", w)
+		api.ServerError(500, errors.Wrap(err, "Unable to parse url path parameters").Error(), w)
 		return nil
 	}
 
 	charts, err := api.repo.LoadCharts()
 	if err != nil {
-		api.ServerError(500, "Unable to delete chart", w)
+		api.ServerError(500, errors.Wrap(err, "Unable to delete chart").Error(), w)
 		return nil
 	}
 	if len(charts) == 1 {
@@ -148,14 +148,14 @@ func (api *api) DeleteChart(w http.ResponseWriter, r *http.Request) error {
 
 	err = api.repo.DeleteChart(chartName)
 	if err != nil {
-		api.ServerError(500, "Unable to delete chart", w)
+		api.ServerError(500, errors.Wrap(err, "Unable to delete chart").Error(), w)
 		return nil
 	}
 
 	err = api.triggerKiboshReload()
 	if err != nil {
 		//todo: retry? rollback? what's on disk now doesn't match Kibosh
-		api.ServerError(500, "Chart deleted, but Kibosh reload failed", w)
+		api.ServerError(500, errors.Wrap(err, "Chart deleted, but Kibosh reload failed").Error(), w)
 		return nil
 	}
 	return api.WriteJSONResponse(w, DisplayResponse{

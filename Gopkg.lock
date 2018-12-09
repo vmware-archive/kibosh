@@ -11,14 +11,6 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:9569a7b92f7af54783a882e5d37596401540a0cd5d97201f0b7d8ef457657733"
-  name = "github.com/AndreasBriese/bbloom"
-  packages = ["."]
-  pruneopts = "U"
-  revision = "28f7e881ca57bc00e028f9ede9f0d9104cfeef5e"
-
-[[projects]]
-  branch = "master"
   digest = "1:6978a38432a017763a148afbc7ce6491734b54292af7d3e969d84d2e9dd242e2"
   name = "github.com/Azure/go-ansiterm"
   packages = [
@@ -107,29 +99,6 @@
   pruneopts = "U"
   revision = "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
   version = "v1.1.1"
-
-[[projects]]
-  digest = "1:a4af69fc957ccdd03565a064089a79e55fa5de931995483025eb7108a9716b1c"
-  name = "github.com/dgraph-io/badger"
-  packages = [
-    ".",
-    "options",
-    "protos",
-    "skl",
-    "table",
-    "y",
-  ]
-  pruneopts = "U"
-  revision = "391b6d3b93e6014fe8c2971fcc0c1266e47dbbd9"
-  version = "v1.5.3"
-
-[[projects]]
-  branch = "master"
-  digest = "1:2407d73d2349c9dd9d7b2c9fafcee9412444cb6cb261ee47ebb751b2a5507976"
-  name = "github.com/dgryski/go-farm"
-  packages = ["."]
-  pruneopts = "U"
-  revision = "2de33835d10275975374b37b2dcfd22c9020a1f5"
 
 [[projects]]
   digest = "1:89fcb59054e079c88b308dba2d493d5e8735366f79b7cf71c1fd03cbe7bc5f45"
@@ -1294,7 +1263,6 @@
     "github.com/Masterminds/semver",
     "github.com/Sirupsen/logrus",
     "github.com/cloudfoundry-community/go-cfclient",
-    "github.com/dgraph-io/badger",
     "github.com/emicklei/go-restful",
     "github.com/ghodss/yaml",
     "github.com/go-openapi/spec",

@@ -2,16 +2,16 @@
 package k8sfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/cf-platform-eng/kibosh/pkg/k8s"
+	k8s "github.com/cf-platform-eng/kibosh/pkg/k8s"
 )
 
 type FakeServiceAccountInstallerFactory struct {
-	ServiceAccountInstallerStub        func(cluster k8s.Cluster) k8s.ServiceAccountInstaller
+	ServiceAccountInstallerStub        func(k8s.Cluster) k8s.ServiceAccountInstaller
 	serviceAccountInstallerMutex       sync.RWMutex
 	serviceAccountInstallerArgsForCall []struct {
-		cluster k8s.Cluster
+		arg1 k8s.Cluster
 	}
 	serviceAccountInstallerReturns struct {
 		result1 k8s.ServiceAccountInstaller
@@ -23,21 +23,22 @@ type FakeServiceAccountInstallerFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeServiceAccountInstallerFactory) ServiceAccountInstaller(cluster k8s.Cluster) k8s.ServiceAccountInstaller {
+func (fake *FakeServiceAccountInstallerFactory) ServiceAccountInstaller(arg1 k8s.Cluster) k8s.ServiceAccountInstaller {
 	fake.serviceAccountInstallerMutex.Lock()
 	ret, specificReturn := fake.serviceAccountInstallerReturnsOnCall[len(fake.serviceAccountInstallerArgsForCall)]
 	fake.serviceAccountInstallerArgsForCall = append(fake.serviceAccountInstallerArgsForCall, struct {
-		cluster k8s.Cluster
-	}{cluster})
-	fake.recordInvocation("ServiceAccountInstaller", []interface{}{cluster})
+		arg1 k8s.Cluster
+	}{arg1})
+	fake.recordInvocation("ServiceAccountInstaller", []interface{}{arg1})
 	fake.serviceAccountInstallerMutex.Unlock()
 	if fake.ServiceAccountInstallerStub != nil {
-		return fake.ServiceAccountInstallerStub(cluster)
+		return fake.ServiceAccountInstallerStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.serviceAccountInstallerReturns.result1
+	fakeReturns := fake.serviceAccountInstallerReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeServiceAccountInstallerFactory) ServiceAccountInstallerCallCount() int {
@@ -46,13 +47,22 @@ func (fake *FakeServiceAccountInstallerFactory) ServiceAccountInstallerCallCount
 	return len(fake.serviceAccountInstallerArgsForCall)
 }
 
+func (fake *FakeServiceAccountInstallerFactory) ServiceAccountInstallerCalls(stub func(k8s.Cluster) k8s.ServiceAccountInstaller) {
+	fake.serviceAccountInstallerMutex.Lock()
+	defer fake.serviceAccountInstallerMutex.Unlock()
+	fake.ServiceAccountInstallerStub = stub
+}
+
 func (fake *FakeServiceAccountInstallerFactory) ServiceAccountInstallerArgsForCall(i int) k8s.Cluster {
 	fake.serviceAccountInstallerMutex.RLock()
 	defer fake.serviceAccountInstallerMutex.RUnlock()
-	return fake.serviceAccountInstallerArgsForCall[i].cluster
+	argsForCall := fake.serviceAccountInstallerArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeServiceAccountInstallerFactory) ServiceAccountInstallerReturns(result1 k8s.ServiceAccountInstaller) {
+	fake.serviceAccountInstallerMutex.Lock()
+	defer fake.serviceAccountInstallerMutex.Unlock()
 	fake.ServiceAccountInstallerStub = nil
 	fake.serviceAccountInstallerReturns = struct {
 		result1 k8s.ServiceAccountInstaller
@@ -60,6 +70,8 @@ func (fake *FakeServiceAccountInstallerFactory) ServiceAccountInstallerReturns(r
 }
 
 func (fake *FakeServiceAccountInstallerFactory) ServiceAccountInstallerReturnsOnCall(i int, result1 k8s.ServiceAccountInstaller) {
+	fake.serviceAccountInstallerMutex.Lock()
+	defer fake.serviceAccountInstallerMutex.Unlock()
 	fake.ServiceAccountInstallerStub = nil
 	if fake.serviceAccountInstallerReturnsOnCall == nil {
 		fake.serviceAccountInstallerReturnsOnCall = make(map[int]struct {
