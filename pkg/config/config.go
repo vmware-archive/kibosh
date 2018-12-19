@@ -57,6 +57,13 @@ type HelmTLSConfig struct {
 	HelmTLSCertFile   string `envconfig:"HELM_CERT_FILE"`
 }
 
+type ChartMuseumConfig struct {
+	ApiAddress        string `envconfig:"MUSEUM_API_ADDRESS"`
+	Username          string `envconfig:"MUSEUM_USERNAME"`
+	Password          string `envconfig:"MUSEUM_PASSWORD"`
+	SkipSslValidation bool   `envconfig:"MUSEUM_SKIP_SSL_VALIDATION"`
+}
+
 type Config struct {
 	AdminUsername string `envconfig:"SECURITY_USER_NAME" required:"true"`
 	AdminPassword string `envconfig:"SECURITY_USER_PASSWORD" required:"true"`
@@ -69,6 +76,7 @@ type Config struct {
 	RegistryConfig     *RegistryConfig
 	CFClientConfig     *CFClientConfig
 	HelmTLSConfig      *HelmTLSConfig
+	ChartMuseumConfig  *ChartMuseumConfig
 }
 
 func (r RegistryConfig) HasRegistryConfig() bool {
@@ -111,6 +119,7 @@ func EmptyConfig() *Config {
 		RegistryConfig:     &RegistryConfig{},
 		CFClientConfig:     &CFClientConfig{},
 		HelmTLSConfig:      &HelmTLSConfig{},
+		ChartMuseumConfig:  &ChartMuseumConfig{},
 	}
 }
 
