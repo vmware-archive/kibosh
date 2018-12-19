@@ -248,24 +248,5 @@ my cert data
 				Expect(err).NotTo(BeNil())
 			})
 		})
-		Context("chart museum config", func() {
-			BeforeEach(func() {
-				os.Setenv("MUSEUM_API_ADDRESS", "https://chartmuseum.example.com:8080")
-				os.Setenv("MUSEUM_USERNAME", "admin")
-				os.Setenv("MUSEUM_PASSWORD", "monkey123")
-				os.Setenv("MUSEUM_SKIP_SSL_VALIDATION", "true")
-			})
-
-			It("parses chart museum config", func() {
-				c, err := Parse()
-				Expect(err).To(BeNil())
-
-				Expect(c.ChartMuseumConfig.ApiAddress).To(Equal("https://chartmuseum.example.com:8080"))
-				Expect(c.ChartMuseumConfig.Username).To(Equal("admin"))
-				Expect(c.ChartMuseumConfig.Password).To(Equal("monkey123"))
-				Expect(c.ChartMuseumConfig.SkipSslValidation).To(BeTrue())
-
-			})
-		})
 	})
 })

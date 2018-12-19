@@ -16,9 +16,9 @@
 package repository
 
 import (
-	"github.com/cf-platform-eng/kibosh/pkg/config"
+	"fmt"
+	"github.com/cf-platform-eng/kibosh/pkg/moreio"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"path/filepath"
 
@@ -36,22 +36,15 @@ type Repository interface {
 }
 
 type repository struct {
-	ApiAddress        string
-	Username          string
-	Password          string
-	SkipSslValidation bool
-
+	helmChartDir          string
 	privateRegistryServer string
 	expectOSBAPICharts    bool
 	logger                *logrus.Logger
 }
 
-func NewRepository(chartMuseumConfig *config.ChartMuseumConfig, privateRegistryServer string, expectOSBAPICharts bool, logger *logrus.Logger) Repository {
+func NewRepository(chartPath string, privateRegistryServer string, expectOSBAPICharts bool, logger *logrus.Logger) Repository {
 	return &repository{
-		ApiAddress:            chartMuseumConfig.ApiAddress,
-		Username:              chartMuseumConfig.Username,
-		Password:              chartMuseumConfig.Password,
-		SkipSslValidation:     chartMuseumConfig.SkipSslValidation,
+		helmChartDir:          chartPath,
 		privateRegistryServer: privateRegistryServer,
 		expectOSBAPICharts:    expectOSBAPICharts,
 		logger:                logger,
@@ -59,58 +52,60 @@ func NewRepository(chartMuseumConfig *config.ChartMuseumConfig, privateRegistryS
 }
 
 func (r *repository) LoadCharts() ([]*helm.MyChart, error) {
-	panic("implement me")
+	charts := []*helm.MyChart{}
 
+	chartExists, err := moreio.FileExists(filepath.Join(r.helmChartDir, "Chart.yaml"))
+	if err != nil {
+		return charts, err
+	}
+
+	if chartExists {
+		myChart, err := helm.NewChart(r.helmChartDir, r.privateRegistryServer, r.expectOSBAPICharts)
+		if err != nil {
+			return charts, err
+		}
+		charts = append(charts, myChart)
+	} else {
+		helmDirFiles, err := ioutil.ReadDir(r.helmChartDir)
+		if err != nil {
+			return charts, err
+		}
+		for _, fileInfo := range helmDirFiles {
+			if fileInfo.Name() == "workspace_tmp" {
+				//rename doesn't support moving things across disks, so we're expanding to a working dir
+				continue
+			}
+			if fileInfo.IsDir() {
+				subChartPath := filepath.Join(r.helmChartDir, fileInfo.Name())
+				subdirChartExists, err := moreio.FileExists(filepath.Join(subChartPath, "Chart.yaml"))
+				if err != nil {
+					return charts, err
+				}
+				if subdirChartExists {
+					myChart, err := helm.NewChart(filepath.Join(subChartPath), r.privateRegistryServer, r.expectOSBAPICharts)
+					if err != nil {
+						return charts, err
+					}
+					charts = append(charts, myChart)
+				} else {
+					r.logger.Info(fmt.Sprintf("[%s] does not contain Chart.yml, skipping", subChartPath))
+				}
+			}
+		}
+	}
+
+	return charts, nil
 }
 
-//func (r *repository) LoadCharts() ([]*helm.MyChart, error) {
-//	charts := []*helm.MyChart{}
-//
-//	chartExists, err := moreio.FileExists(filepath.Join(r.helmChartDir, "Chart.yaml"))
-//	if err != nil {
-//		return charts, err
-//	}
-//
-//	if chartExists {
-//		myChart, err := helm.NewChart(r.helmChartDir, r.privateRegistryServer, r.expectOSBAPICharts)
-//		if err != nil {
-//			return charts, err
-//		}
-//		charts = append(charts, myChart)
-//	} else {
-//		helmDirFiles, err := ioutil.ReadDir(r.helmChartDir)
-//		if err != nil {
-//			return charts, err
-//		}
-//		for _, fileInfo := range helmDirFiles {
-//			if fileInfo.Name() == "workspace_tmp" {
-//				//rename doesn't support moving things across disks, so we're expanding to a working dir
-//				continue
-//			}
-//			if fileInfo.IsDir() {
-//				subChartPath := filepath.Join(r.helmChartDir, fileInfo.Name())
-//				subdirChartExists, err := moreio.FileExists(filepath.Join(subChartPath, "Chart.yaml"))
-//				if err != nil {
-//					return charts, err
-//				}
-//				if subdirChartExists {
-//					myChart, err := helm.NewChart(filepath.Join(subChartPath), r.privateRegistryServer, r.expectOSBAPICharts)
-//					if err != nil {
-//						return charts, err
-//					}
-//					charts = append(charts, myChart)
-//				} else {
-//					r.logger.Info(fmt.Sprintf("[%s] does not contain Chart.yml, skipping", subChartPath))
-//				}
-//			}
-//		}
-//	}
-//
-//	return charts, nil
-//}
-
 func (r *repository) SaveChart(path string) error {
-	expandedTarPath, err := ioutil.TempDir("", "")
+	expandedTarPath := filepath.Join(r.helmChartDir, "workspace_tmp")
+	err := os.RemoveAll(expandedTarPath)
+
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
+	err = os.Mkdir(expandedTarPath, 0700)
 	if err != nil {
 		return err
 	}
@@ -141,63 +136,38 @@ func (r *repository) SaveChart(path string) error {
 		return err
 	}
 
+	destinationPath := filepath.Join(r.helmChartDir, chartPathInfo.Name())
+	info, _ := os.Stat(destinationPath)
+	if info != nil {
+		os.RemoveAll(destinationPath)
+	}
+
 	if chartPathInfo.Name() != chart.Metadata.Name {
 		return errors.New("Chart metadata name and top level directory in archive for chart does not match")
 	}
 
-	//upload chart to chart museum /post
-	return nil
-}
-
-func (r *repository) uploadChart(path string) error {
-	client := http.Client{}
-
-	file, err := os.Open(path)
+	err = os.Rename(chartPath, filepath.Join(r.helmChartDir, chartPathInfo.Name()))
 	if err != nil {
 		return err
 	}
-
-	req, err := http.NewRequest("POST", r.ApiAddress, file)
-	if err != nil {
-		return err
-	}
-
-	info, err := file.Stat()
-	if err != nil {
-		return err
-	}
-
-	req.ContentLength = info.Size()
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-
-	//todo: look at response, validate it work
 
 	return nil
 }
 
 func (r *repository) DeleteChart(name string) error {
-	panic("foo")
-}
+	deletePath := filepath.Join(r.helmChartDir, name)
 
-//func (r *repository) DeleteChart(name string) error {
-//	deletePath := filepath.Join(r.helmChartDir, name)
-//
-//	_, err := os.Stat(deletePath)
-//
-//	if os.IsNotExist(err) {
-//		r.logger.Info(fmt.Sprintf("[%s] does not exist, skipping", deletePath))
-//		return nil
-//	} else if err != nil {
-//		r.logger.Info(fmt.Sprintf("[%s] error reading at path, skipping", deletePath))
-//		return err
-//	}
-//	os.RemoveAll(deletePath)
-//
-//	return nil
-//
-//}
+	_, err := os.Stat(deletePath)
+
+	if os.IsNotExist(err) {
+		r.logger.Info(fmt.Sprintf("[%s] does not exist, skipping", deletePath))
+		return nil
+	} else if err != nil {
+		r.logger.Info(fmt.Sprintf("[%s] error reading at path, skipping", deletePath))
+		return err
+	}
+	os.RemoveAll(deletePath)
+
+	return nil
+
+}
