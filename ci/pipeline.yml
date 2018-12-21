@@ -432,6 +432,8 @@ jobs:
       passed: [unit-tests]
     - get: bazaar-linux
       passed: [unit-tests]
+    - get: bazaarcli-linux
+      passed: [unit-tests]
     - get: delete-all-and-deregister
       passed: [build-delete-all-and-deregister]
     - get: cf-cli-binary
@@ -443,6 +445,7 @@ jobs:
       - name: kibosh-linux
       - name: loader-linux
       - name: bazaar-linux
+      - name: bazaarcli-linux
       - name: delete-all-and-deregister
       - name: cf-cli-binary
       - name: version
@@ -470,6 +473,7 @@ jobs:
           bosh add-blob ../../../bazaar-linux/bazaar-*.linux bazaar.linux
           bosh add-blob ../../../delete-all-and-deregister/delete_all_and_deregister.linux delete_all_and_deregister.linux
           bosh add-blob ../../../cf-cli-binary/cf-cli.tgz cf-cli.tgz
+          bosh add-blob ../../../bazaarcli-linux/bazaar* bazaar
 
           bosh create-release --name=kibosh --version=${VERSION} \
             --tarball=kibosh-release-${VERSION}.tgz --force
