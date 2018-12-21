@@ -5,7 +5,9 @@ name: bazaar
 releases:
   - name: kibosh
     version: latest
-  - name: cf-cli
+  - name: example-chart
+    version: latest
+  - name: docker
     version: latest
   - name: routing
     version: latest
@@ -22,6 +24,47 @@ update:
   update_watch_time: 1000-30000
 
 instance_groups:
+- name: loader
+  instances: 1
+  azs: [z1]
+  lifecycle: errand
+  jobs:
+    - name: load-image
+      release: kibosh
+    - name: example-chart
+      release: example-chart
+    - name: docker
+      release: docker
+  properties:
+    chart_path: /var/vcap/packages/example-chart/example-chart
+    registry:
+      server: ((registry-server))
+      username: ((registry-user))
+      password: ((registry-pass))
+  vm_type: default
+  stemcell: ((stemcell))
+  networks:
+    - name: default
+
+
+- name: smoketest
+  instances: 1
+  azs: [z1]
+  lifecycle: errand
+  jobs:
+    - name: smoketest
+      release: kibosh
+    - name: example-chart
+      release: example-chart
+    - name: docker
+      release: docker
+  properties:
+    chart_path: /var/vcap/packages/example-chart/example-chart
+  vm_type: default
+  stemcell: ((stemcell))
+  networks:
+    - name: default
+
 - name: kibosh_node
   instances: 1
   azs: [z1]

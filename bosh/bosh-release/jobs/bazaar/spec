@@ -23,3 +23,12 @@ properties:
     default: 8081
   bazaar.helm_chart_dir:
     description: Location of the helm chart kibosh will deploy
+
+provides:
+- name: bazaar
+  type: bazaar
+  properties:
+  - bazaar.port
+  - bazaar.username
+  - bazaar.password
+  - bazaar.helm_chart_dir

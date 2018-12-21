@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -e
+
+export LOG_DIR="/var/vcap/sys/log/smoke-test"
+
+mkdir -p "$LOG_DIR"
+
+/var/vcap/jobs/smoke-test/bin/smoke_test.sh \
+    > >(tee -a "$LOG_DIR/smoke-test.out.log") \
+    2> >(tee -a "$LOG_DIR/smoke-test.err.log" >&2)

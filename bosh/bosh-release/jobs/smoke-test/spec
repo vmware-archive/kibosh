@@ -1,0 +1,13 @@
+---
+name: smoke-test
+
+templates:
+  run.erb: bin/run
+  load_image.erb: bin/smoke_test.sh
+
+packages:
+- bazaarcli
+
+consumes:
+  - name: bazaar
+    type: bazaar

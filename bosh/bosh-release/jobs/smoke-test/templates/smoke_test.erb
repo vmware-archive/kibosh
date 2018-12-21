@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+# If a command fails, exit immediately
+set -e
+
+<%
+def escape_shell(str)
+  "'#{str.to_s.gsub(/'/, "'\\\\''")}'"
+end
+%>
+
+export BAZAAR_SERVER=http://<%= link('bazaar').instances[0].address %>:<%= link('bazaar').p('bazaar.port') %>
+export BAZAAR_USER_NAME=<%= escape_shell(link('bazaar').p('bazaar.username')) %>
+export BAZAAR_USER_PASSWORD=<%= escape_shell(link('bazaar').p('bazaar.password')) %>
+
+bazaar offer save -v -t $BAZAAR_SERVER -u $BAZAAR_USER_NAME -p $BAZAAR_USER_PASSWORD yugabyte-0.1.0.tgz
