@@ -1,0 +1,4 @@
+set -e
+
+chmod +x bazaarcli.linux
+cp bazaarcli.linux ${BOSH_INSTALL_TARGET}

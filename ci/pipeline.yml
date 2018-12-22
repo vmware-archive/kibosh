@@ -471,9 +471,10 @@ jobs:
           bosh add-blob ../../../kibosh-linux/kibosh-*.linux kibosh.linux
           bosh add-blob ../../../loader-linux/loader-*.linux loader.linux
           bosh add-blob ../../../bazaar-linux/bazaar-*.linux bazaar.linux
+          bosh add-blob ../../../bazaarcli-linux/bazaarcli-*.linux bazaarcli.linux
           bosh add-blob ../../../delete-all-and-deregister/delete_all_and_deregister.linux delete_all_and_deregister.linux
           bosh add-blob ../../../cf-cli-binary/cf-cli.tgz cf-cli.tgz
-          bosh add-blob ../../../bazaarcli-linux/bazaar* bazaar
+
 
           bosh create-release --name=kibosh --version=${VERSION} \
             --tarball=kibosh-release-${VERSION}.tgz --force
