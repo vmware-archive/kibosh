@@ -9,8 +9,7 @@ releases:
     version: latest
   - name: docker
     version: latest
-  - name: routing
-    version: latest
+
 
 stemcells:
   - alias: ((stemcell))
@@ -69,27 +68,12 @@ instance_groups:
   instances: 1
   azs: [z1]
   jobs:
-    - name: route_registrar
-      properties:
-        route_registrar:
-          routes:
-          - name: bazaar-broker
-            port: 8080
-            registration_interval: 20s
-            uris:
-            - bazaar-broker.v3.pcfdev.io
-          - name: bazaar
-            port: 8081
-            registration_interval: 20s
-            uris:
-            - bazaar.v3.pcfdev.io
-      release: routing
-      consumes:
-        nats: {from: nats, deployment: cf}
     - name: kibosh
       release: kibosh
     - name: bazaar
       release: kibosh
+    - name: example-chart
+      release: example-chart
   properties:
     bazaar:
       username: admin
@@ -102,13 +86,11 @@ instance_groups:
       ca_data: ((k8s-cluster-ca-cert))
       server: ((k8s-cluster-server))
       token: ((k8s-cluster-token))
-      cf:
-        api_url: https://api.v3.pcfdev.io
-        broker_name: bazaar
-        broker_url: https://bazaar-broker.v3.pcfdev.io
-        admin_username: admin
-        admin_password: admin
-        skip_ssl_validation: true
+    registry:
+      server: ((registry-server))
+      username: ((registry-user))
+      password: ((registry-pass))
+
   vm_type: default
   cloud_properties:
     tags:
@@ -118,26 +100,3 @@ instance_groups:
   networks:
     - name: default
 
-- name: deregistrar
-  instances: 1
-  azs: [z1]
-  lifecycle: errand
-  jobs:
-    - name: delete-all-and-deregister
-      release: kibosh
-  properties:
-    broker_name: spacebears-broker
-    disable_ssl_cert_verification: true
-    cf:
-      api_url: https://api.v3.pcfdev.io
-      uaa_url: https://uaa.v3.pcfdev.io
-      admin_username: admin
-      admin_password: admin
-  vm_type: default
-  stemcell: ((stemcell))
-  networks:
-    - name: default
-
-variables:
-- name: kibosh-password
-  type: password
