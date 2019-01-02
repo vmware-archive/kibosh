@@ -51,7 +51,7 @@ instance_groups:
   azs: [z1]
   lifecycle: errand
   jobs:
-    - name: smoketest
+    - name: smoke-test
       release: kibosh
     - name: example-chart
       release: example-chart
