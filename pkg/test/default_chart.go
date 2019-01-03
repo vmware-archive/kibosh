@@ -50,6 +50,8 @@ nested:
 - name: "medium"
   description: "medium sized plan for mysql"
   file: "medium.yaml"
+  free: false
+  credentials: "medium-creds.yaml"
 `)
 
 	smallYaml := []byte(``)
@@ -57,9 +59,24 @@ nested:
 persistence:
   size: 16Gi
 `)
+	mediumCredsYaml := []byte(`
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: c29tZS1jZXI=
+    server: https://pks-cluster.example.com
+  name: my-cluster
+contexts:
+- context:
+    cluster: my-cluster
+  name: context
+current-context: my-context
+`)
+
 	planContents := map[string][]byte{
-		"small":  smallYaml,
-		"medium": mediumYaml,
+		"small":        smallYaml,
+		"medium":       mediumYaml,
+		"medium-creds": mediumCredsYaml,
 	}
 
 	return &TestChart{

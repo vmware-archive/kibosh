@@ -16,19 +16,21 @@
 package helm
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"fmt"
+	"io"
 	"io/ioutil"
-	"k8s.io/client-go/tools/clientcmd"
-	"path"
-	"strings"
-
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
+	"k8s.io/client-go/tools/clientcmd"
 	k8sAPI "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/helm/pkg/chartutil"
 	"k8s.io/helm/pkg/proto/hapi/chart"
@@ -56,7 +58,7 @@ type Plan struct {
 	Values        []byte
 }
 
-func LoadFromDir(dir string, log *logrus.Logger) ([]*MyChart, error) {
+func LoadFromDir(dir string, log *logrus.Logger, requirePlans bool) ([]*MyChart, error) {
 	sourceDirStat, err := os.Stat(dir)
 	if err != nil {
 		return nil, err
@@ -72,7 +74,7 @@ func LoadFromDir(dir string, log *logrus.Logger) ([]*MyChart, error) {
 	charts := []*MyChart{}
 	for _, source := range sources {
 		chartPath := path.Join(dir, source.Name())
-		c, err := NewChart(chartPath, "", false)
+		c, err := NewChart(chartPath, "", requirePlans)
 		if err != nil {
 			log.Debug(fmt.Sprintf("The file [%s] not failed to load as a chart", chartPath), err)
 		} else {
@@ -113,7 +115,11 @@ func NewChart(chartPath string, privateRegistryServer string, requirePlans bool)
 	}
 
 	if requirePlans {
-		err = myChart.loadPlans()
+		if chartPathStat.IsDir() {
+			err = myChart.loadPlansFromDirectory()
+		} else {
+			err = myChart.loadPlansFromArchive()
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -198,7 +204,63 @@ func (c *MyChart) OverrideImageSources(rawVals map[string]interface{}) (map[stri
 	return transformedVals, nil
 }
 
-func (c *MyChart) loadPlans() error {
+func (c *MyChart) loadPlansFromArchive() error {
+	chartFile, err := os.Open(c.Chartpath)
+	if err != nil {
+		return err
+	}
+	defer chartFile.Close()
+
+	gzipReader, err := gzip.NewReader(chartFile)
+	if err != nil {
+		return err
+	}
+	defer gzipReader.Close()
+	tarReader := tar.NewReader(gzipReader)
+
+	tempDir, err := ioutil.TempDir("", c.Metadata.Name+"-plans")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tempDir)
+
+	plans := []Plan{}
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break
+		}
+
+		if strings.HasSuffix(header.Name, "plans.yaml") {
+			plansBytes, err := ioutil.ReadAll(tarReader)
+			if err != nil {
+				return err
+			}
+
+			err = yaml.Unmarshal(plansBytes, &plans)
+			if err != nil {
+				return err
+			}
+		} else if strings.Contains(header.Name, "/plans") {
+			filePath := path.Join(tempDir, header.Name[strings.Index(header.Name, "plans/")+6:])
+			dst, err := os.Create(filePath)
+			if err != nil {
+				return err
+			}
+
+			_, err = io.Copy(dst, tarReader)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	err = c.loadPlans(tempDir, plans)
+
+	return err
+}
+
+func (c *MyChart) loadPlansFromDirectory() error {
 	plansPath := path.Join(c.Chartpath, "plans.yaml")
 	plansBytes, err := ioutil.ReadFile(plansPath)
 	if err != nil {
@@ -211,8 +273,19 @@ func (c *MyChart) loadPlans() error {
 		return err
 	}
 
+	return c.loadPlans(filepath.Join(c.Chartpath, "plans"), plans)
+}
+
+func (c *MyChart) loadPlans(plansPath string, plans []Plan) error {
 	c.Plans = map[string]Plan{}
+
 	for _, p := range plans {
+		planValues, err := ioutil.ReadFile(filepath.Join(plansPath, p.File))
+		if err != nil {
+			return err
+		}
+		p.Values = planValues
+
 		if p.Free == nil {
 			t := true
 			p.Free = &t
@@ -229,15 +302,9 @@ func (c *MyChart) loadPlans() error {
 			return errors.New(fmt.Sprintf("Name [%s] contains invalid characters", p.Name))
 		}
 
-		planValues, err := ioutil.ReadFile(filepath.Join(c.Chartpath, "plans", p.File))
-		if err != nil {
-			return err
-		}
-		p.Values = planValues
-
 		if p.CredentialsPath != "" {
 			loader := &clientcmd.ClientConfigLoadingRules{
-				ExplicitPath: filepath.Join(c.Chartpath, "plans", p.CredentialsPath),
+				ExplicitPath: filepath.Join(plansPath, p.CredentialsPath),
 			}
 			loadedConfig, err := loader.Load()
 			if err != nil {

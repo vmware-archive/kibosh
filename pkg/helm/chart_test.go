@@ -97,10 +97,32 @@ var _ = Describe("Broker", func() {
 			Expect(values["count"]).To(Equal(1))
 			Expect(values["name"]).To(Equal("value"))
 		})
+
+		It("loads plans", func() {
+			loadedChart, err := helm.NewChart(chartArchivePath, "", true)
+
+			Expect(err).To(BeNil())
+
+			Expect(loadedChart.Plans).To(HaveLen(2))
+			small := loadedChart.Plans["small"]
+			Expect(small).NotTo(BeNil())
+			Expect(*small.Free).To(BeTrue())
+
+			medium := loadedChart.Plans["medium"]
+			Expect(medium).NotTo(BeNil())
+			Expect(*medium.Free).To(BeFalse())
+
+			vals := map[string]interface{}{}
+			err = yaml.Unmarshal(medium.Values, &vals)
+			Expect(err).To(BeNil())
+			Expect(vals["persistence"]).To(Equal(map[interface{}]interface{}{"size": "16Gi"}))
+			Expect(medium.ClusterConfig.CurrentContext).To(Equal("my-context"))
+		})
 	})
 
 	Context("load from dir", func() {
 		var chartArchiveDirPath string
+
 		BeforeEach(func() {
 			chartToSave, err := helm.NewChart(chartPath, "", true)
 
@@ -112,7 +134,7 @@ var _ = Describe("Broker", func() {
 		})
 
 		It("single chart", func() {
-			charts, err := helm.LoadFromDir(chartArchiveDirPath, logrus.New())
+			charts, err := helm.LoadFromDir(chartArchiveDirPath, logrus.New(), false)
 
 			Expect(err).To(BeNil())
 
@@ -120,10 +142,20 @@ var _ = Describe("Broker", func() {
 			Expect(charts[0].Metadata.Name).To(Equal("spacebears"))
 		})
 
+		It("loads plans", func() {
+			charts, err := helm.LoadFromDir(chartArchiveDirPath, logrus.New(), true)
+
+			Expect(err).To(BeNil())
+
+			Expect(charts).To(HaveLen(1))
+			Expect(charts[0].Plans).To(HaveLen(2))
+			Expect(charts[0].Plans["small"]).NotTo(BeNil())
+		})
+
 		It("skips non-charts", func() {
 			err := ioutil.WriteFile(filepath.Join(chartPath, "not-a-chart.tgz"), []byte("nope"), 0666)
 
-			charts, err := helm.LoadFromDir(chartArchiveDirPath, logrus.New())
+			charts, err := helm.LoadFromDir(chartArchiveDirPath, logrus.New(), false)
 
 			Expect(err).To(BeNil())
 
@@ -137,7 +169,7 @@ var _ = Describe("Broker", func() {
 			_, err = chartutil.Save(chartToSave2.Chart, chartArchiveDirPath)
 			Expect(err).To(BeNil())
 
-			charts, err := helm.LoadFromDir(chartArchiveDirPath, logrus.New())
+			charts, err := helm.LoadFromDir(chartArchiveDirPath, logrus.New(), false)
 
 			Expect(err).To(BeNil())
 
@@ -145,7 +177,6 @@ var _ = Describe("Broker", func() {
 			Expect(charts[0].Metadata.Name).To(Equal("spacebears"))
 			Expect(charts[1].Metadata.Name).To(Equal("spacebears2"))
 		})
-
 	})
 
 	It("should return error when no vals file", func() {
@@ -454,7 +485,6 @@ users:
 
 			Expect(err).NotTo(BeNil())
 			Expect(err.Error()).To(ContainSubstring("invalid characters"))
-
 		})
 
 		It("returns error invalid uppercase letters in name ", func() {
@@ -471,5 +501,4 @@ users:
 			Expect(err.Error()).To(ContainSubstring("invalid characters"))
 		})
 	})
-
 })
