@@ -2,27 +2,26 @@
 package helmfakes
 
 import (
-	sync "sync"
-	time "time"
+	"sync"
+	"time"
 
-	helm "github.com/cf-platform-eng/kibosh/pkg/helm"
+	"github.com/cf-platform-eng/kibosh/pkg/helm"
 )
 
 type FakeInstaller struct {
 	InstallStub        func() error
 	installMutex       sync.RWMutex
-	installArgsForCall []struct {
-	}
-	installReturns struct {
+	installArgsForCall []struct{}
+	installReturns     struct {
 		result1 error
 	}
 	installReturnsOnCall map[int]struct {
 		result1 error
 	}
-	SetMaxWaitStub        func(time.Duration)
+	SetMaxWaitStub        func(duration time.Duration)
 	setMaxWaitMutex       sync.RWMutex
 	setMaxWaitArgsForCall []struct {
-		arg1 time.Duration
+		duration time.Duration
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -31,8 +30,7 @@ type FakeInstaller struct {
 func (fake *FakeInstaller) Install() error {
 	fake.installMutex.Lock()
 	ret, specificReturn := fake.installReturnsOnCall[len(fake.installArgsForCall)]
-	fake.installArgsForCall = append(fake.installArgsForCall, struct {
-	}{})
+	fake.installArgsForCall = append(fake.installArgsForCall, struct{}{})
 	fake.recordInvocation("Install", []interface{}{})
 	fake.installMutex.Unlock()
 	if fake.InstallStub != nil {
@@ -41,8 +39,7 @@ func (fake *FakeInstaller) Install() error {
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.installReturns
-	return fakeReturns.result1
+	return fake.installReturns.result1
 }
 
 func (fake *FakeInstaller) InstallCallCount() int {
@@ -51,15 +48,7 @@ func (fake *FakeInstaller) InstallCallCount() int {
 	return len(fake.installArgsForCall)
 }
 
-func (fake *FakeInstaller) InstallCalls(stub func() error) {
-	fake.installMutex.Lock()
-	defer fake.installMutex.Unlock()
-	fake.InstallStub = stub
-}
-
 func (fake *FakeInstaller) InstallReturns(result1 error) {
-	fake.installMutex.Lock()
-	defer fake.installMutex.Unlock()
 	fake.InstallStub = nil
 	fake.installReturns = struct {
 		result1 error
@@ -67,8 +56,6 @@ func (fake *FakeInstaller) InstallReturns(result1 error) {
 }
 
 func (fake *FakeInstaller) InstallReturnsOnCall(i int, result1 error) {
-	fake.installMutex.Lock()
-	defer fake.installMutex.Unlock()
 	fake.InstallStub = nil
 	if fake.installReturnsOnCall == nil {
 		fake.installReturnsOnCall = make(map[int]struct {
@@ -80,15 +67,15 @@ func (fake *FakeInstaller) InstallReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeInstaller) SetMaxWait(arg1 time.Duration) {
+func (fake *FakeInstaller) SetMaxWait(duration time.Duration) {
 	fake.setMaxWaitMutex.Lock()
 	fake.setMaxWaitArgsForCall = append(fake.setMaxWaitArgsForCall, struct {
-		arg1 time.Duration
-	}{arg1})
-	fake.recordInvocation("SetMaxWait", []interface{}{arg1})
+		duration time.Duration
+	}{duration})
+	fake.recordInvocation("SetMaxWait", []interface{}{duration})
 	fake.setMaxWaitMutex.Unlock()
 	if fake.SetMaxWaitStub != nil {
-		fake.SetMaxWaitStub(arg1)
+		fake.SetMaxWaitStub(duration)
 	}
 }
 
@@ -98,17 +85,10 @@ func (fake *FakeInstaller) SetMaxWaitCallCount() int {
 	return len(fake.setMaxWaitArgsForCall)
 }
 
-func (fake *FakeInstaller) SetMaxWaitCalls(stub func(time.Duration)) {
-	fake.setMaxWaitMutex.Lock()
-	defer fake.setMaxWaitMutex.Unlock()
-	fake.SetMaxWaitStub = stub
-}
-
 func (fake *FakeInstaller) SetMaxWaitArgsForCall(i int) time.Duration {
 	fake.setMaxWaitMutex.RLock()
 	defer fake.setMaxWaitMutex.RUnlock()
-	argsForCall := fake.setMaxWaitArgsForCall[i]
-	return argsForCall.arg1
+	return fake.setMaxWaitArgsForCall[i].duration
 }
 
 func (fake *FakeInstaller) Invocations() map[string][][]interface{} {

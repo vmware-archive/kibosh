@@ -9,6 +9,7 @@ export TOKEN=''
 
 export SECURITY_USER_NAME=admin
 export SECURITY_USER_PASSWORD=pass
+export TILLER_NAMESPACE=kibosh
 
 # tiller ssl good practice, but not strictly required in dev
 export CERT_DIR=$GOPATH/src/github.com/cf-platform-eng/kibosh/docs/tiller-ssl

@@ -2,29 +2,17 @@
 package repositoryfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	helm "github.com/cf-platform-eng/kibosh/pkg/helm"
-	repository "github.com/cf-platform-eng/kibosh/pkg/repository"
+	"github.com/cf-platform-eng/kibosh/pkg/helm"
+	"github.com/cf-platform-eng/kibosh/pkg/repository"
 )
 
 type FakeRepository struct {
-	DeleteChartStub        func(string) error
-	deleteChartMutex       sync.RWMutex
-	deleteChartArgsForCall []struct {
-		arg1 string
-	}
-	deleteChartReturns struct {
-		result1 error
-	}
-	deleteChartReturnsOnCall map[int]struct {
-		result1 error
-	}
 	LoadChartsStub        func() ([]*helm.MyChart, error)
 	loadChartsMutex       sync.RWMutex
-	loadChartsArgsForCall []struct {
-	}
-	loadChartsReturns struct {
+	loadChartsArgsForCall []struct{}
+	loadChartsReturns     struct {
 		result1 []*helm.MyChart
 		result2 error
 	}
@@ -32,10 +20,10 @@ type FakeRepository struct {
 		result1 []*helm.MyChart
 		result2 error
 	}
-	SaveChartStub        func(string) error
+	SaveChartStub        func(path string) error
 	saveChartMutex       sync.RWMutex
 	saveChartArgsForCall []struct {
-		arg1 string
+		path string
 	}
 	saveChartReturns struct {
 		result1 error
@@ -43,75 +31,25 @@ type FakeRepository struct {
 	saveChartReturnsOnCall map[int]struct {
 		result1 error
 	}
+	DeleteChartStub        func(name string) error
+	deleteChartMutex       sync.RWMutex
+	deleteChartArgsForCall []struct {
+		name string
+	}
+	deleteChartReturns struct {
+		result1 error
+	}
+	deleteChartReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
-}
-
-func (fake *FakeRepository) DeleteChart(arg1 string) error {
-	fake.deleteChartMutex.Lock()
-	ret, specificReturn := fake.deleteChartReturnsOnCall[len(fake.deleteChartArgsForCall)]
-	fake.deleteChartArgsForCall = append(fake.deleteChartArgsForCall, struct {
-		arg1 string
-	}{arg1})
-	fake.recordInvocation("DeleteChart", []interface{}{arg1})
-	fake.deleteChartMutex.Unlock()
-	if fake.DeleteChartStub != nil {
-		return fake.DeleteChartStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.deleteChartReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeRepository) DeleteChartCallCount() int {
-	fake.deleteChartMutex.RLock()
-	defer fake.deleteChartMutex.RUnlock()
-	return len(fake.deleteChartArgsForCall)
-}
-
-func (fake *FakeRepository) DeleteChartCalls(stub func(string) error) {
-	fake.deleteChartMutex.Lock()
-	defer fake.deleteChartMutex.Unlock()
-	fake.DeleteChartStub = stub
-}
-
-func (fake *FakeRepository) DeleteChartArgsForCall(i int) string {
-	fake.deleteChartMutex.RLock()
-	defer fake.deleteChartMutex.RUnlock()
-	argsForCall := fake.deleteChartArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakeRepository) DeleteChartReturns(result1 error) {
-	fake.deleteChartMutex.Lock()
-	defer fake.deleteChartMutex.Unlock()
-	fake.DeleteChartStub = nil
-	fake.deleteChartReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeRepository) DeleteChartReturnsOnCall(i int, result1 error) {
-	fake.deleteChartMutex.Lock()
-	defer fake.deleteChartMutex.Unlock()
-	fake.DeleteChartStub = nil
-	if fake.deleteChartReturnsOnCall == nil {
-		fake.deleteChartReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.deleteChartReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
 }
 
 func (fake *FakeRepository) LoadCharts() ([]*helm.MyChart, error) {
 	fake.loadChartsMutex.Lock()
 	ret, specificReturn := fake.loadChartsReturnsOnCall[len(fake.loadChartsArgsForCall)]
-	fake.loadChartsArgsForCall = append(fake.loadChartsArgsForCall, struct {
-	}{})
+	fake.loadChartsArgsForCall = append(fake.loadChartsArgsForCall, struct{}{})
 	fake.recordInvocation("LoadCharts", []interface{}{})
 	fake.loadChartsMutex.Unlock()
 	if fake.LoadChartsStub != nil {
@@ -120,8 +58,7 @@ func (fake *FakeRepository) LoadCharts() ([]*helm.MyChart, error) {
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.loadChartsReturns
-	return fakeReturns.result1, fakeReturns.result2
+	return fake.loadChartsReturns.result1, fake.loadChartsReturns.result2
 }
 
 func (fake *FakeRepository) LoadChartsCallCount() int {
@@ -130,15 +67,7 @@ func (fake *FakeRepository) LoadChartsCallCount() int {
 	return len(fake.loadChartsArgsForCall)
 }
 
-func (fake *FakeRepository) LoadChartsCalls(stub func() ([]*helm.MyChart, error)) {
-	fake.loadChartsMutex.Lock()
-	defer fake.loadChartsMutex.Unlock()
-	fake.LoadChartsStub = stub
-}
-
 func (fake *FakeRepository) LoadChartsReturns(result1 []*helm.MyChart, result2 error) {
-	fake.loadChartsMutex.Lock()
-	defer fake.loadChartsMutex.Unlock()
 	fake.LoadChartsStub = nil
 	fake.loadChartsReturns = struct {
 		result1 []*helm.MyChart
@@ -147,8 +76,6 @@ func (fake *FakeRepository) LoadChartsReturns(result1 []*helm.MyChart, result2 e
 }
 
 func (fake *FakeRepository) LoadChartsReturnsOnCall(i int, result1 []*helm.MyChart, result2 error) {
-	fake.loadChartsMutex.Lock()
-	defer fake.loadChartsMutex.Unlock()
 	fake.LoadChartsStub = nil
 	if fake.loadChartsReturnsOnCall == nil {
 		fake.loadChartsReturnsOnCall = make(map[int]struct {
@@ -162,22 +89,21 @@ func (fake *FakeRepository) LoadChartsReturnsOnCall(i int, result1 []*helm.MyCha
 	}{result1, result2}
 }
 
-func (fake *FakeRepository) SaveChart(arg1 string) error {
+func (fake *FakeRepository) SaveChart(path string) error {
 	fake.saveChartMutex.Lock()
 	ret, specificReturn := fake.saveChartReturnsOnCall[len(fake.saveChartArgsForCall)]
 	fake.saveChartArgsForCall = append(fake.saveChartArgsForCall, struct {
-		arg1 string
-	}{arg1})
-	fake.recordInvocation("SaveChart", []interface{}{arg1})
+		path string
+	}{path})
+	fake.recordInvocation("SaveChart", []interface{}{path})
 	fake.saveChartMutex.Unlock()
 	if fake.SaveChartStub != nil {
-		return fake.SaveChartStub(arg1)
+		return fake.SaveChartStub(path)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.saveChartReturns
-	return fakeReturns.result1
+	return fake.saveChartReturns.result1
 }
 
 func (fake *FakeRepository) SaveChartCallCount() int {
@@ -186,22 +112,13 @@ func (fake *FakeRepository) SaveChartCallCount() int {
 	return len(fake.saveChartArgsForCall)
 }
 
-func (fake *FakeRepository) SaveChartCalls(stub func(string) error) {
-	fake.saveChartMutex.Lock()
-	defer fake.saveChartMutex.Unlock()
-	fake.SaveChartStub = stub
-}
-
 func (fake *FakeRepository) SaveChartArgsForCall(i int) string {
 	fake.saveChartMutex.RLock()
 	defer fake.saveChartMutex.RUnlock()
-	argsForCall := fake.saveChartArgsForCall[i]
-	return argsForCall.arg1
+	return fake.saveChartArgsForCall[i].path
 }
 
 func (fake *FakeRepository) SaveChartReturns(result1 error) {
-	fake.saveChartMutex.Lock()
-	defer fake.saveChartMutex.Unlock()
 	fake.SaveChartStub = nil
 	fake.saveChartReturns = struct {
 		result1 error
@@ -209,8 +126,6 @@ func (fake *FakeRepository) SaveChartReturns(result1 error) {
 }
 
 func (fake *FakeRepository) SaveChartReturnsOnCall(i int, result1 error) {
-	fake.saveChartMutex.Lock()
-	defer fake.saveChartMutex.Unlock()
 	fake.SaveChartStub = nil
 	if fake.saveChartReturnsOnCall == nil {
 		fake.saveChartReturnsOnCall = make(map[int]struct {
@@ -222,15 +137,63 @@ func (fake *FakeRepository) SaveChartReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeRepository) DeleteChart(name string) error {
+	fake.deleteChartMutex.Lock()
+	ret, specificReturn := fake.deleteChartReturnsOnCall[len(fake.deleteChartArgsForCall)]
+	fake.deleteChartArgsForCall = append(fake.deleteChartArgsForCall, struct {
+		name string
+	}{name})
+	fake.recordInvocation("DeleteChart", []interface{}{name})
+	fake.deleteChartMutex.Unlock()
+	if fake.DeleteChartStub != nil {
+		return fake.DeleteChartStub(name)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.deleteChartReturns.result1
+}
+
+func (fake *FakeRepository) DeleteChartCallCount() int {
+	fake.deleteChartMutex.RLock()
+	defer fake.deleteChartMutex.RUnlock()
+	return len(fake.deleteChartArgsForCall)
+}
+
+func (fake *FakeRepository) DeleteChartArgsForCall(i int) string {
+	fake.deleteChartMutex.RLock()
+	defer fake.deleteChartMutex.RUnlock()
+	return fake.deleteChartArgsForCall[i].name
+}
+
+func (fake *FakeRepository) DeleteChartReturns(result1 error) {
+	fake.DeleteChartStub = nil
+	fake.deleteChartReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeRepository) DeleteChartReturnsOnCall(i int, result1 error) {
+	fake.DeleteChartStub = nil
+	if fake.deleteChartReturnsOnCall == nil {
+		fake.deleteChartReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.deleteChartReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeRepository) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.deleteChartMutex.RLock()
-	defer fake.deleteChartMutex.RUnlock()
 	fake.loadChartsMutex.RLock()
 	defer fake.loadChartsMutex.RUnlock()
 	fake.saveChartMutex.RLock()
 	defer fake.saveChartMutex.RUnlock()
+	fake.deleteChartMutex.RLock()
+	defer fake.deleteChartMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

@@ -45,8 +45,9 @@ var _ = Describe("KubeConfig", func() {
 	BeforeEach(func() {
 		logger = logrus.New()
 		conf = &config.Config{
-			RegistryConfig: &config.RegistryConfig{},
-			HelmTLSConfig:  &config.HelmTLSConfig{},
+			RegistryConfig:  &config.RegistryConfig{},
+			TillerNamespace: "my-kibosh-namespace",
+			HelmTLSConfig:   &config.HelmTLSConfig{},
 		}
 
 		k8sClient := test.FakeK8sInterface{}
@@ -66,7 +67,8 @@ var _ = Describe("KubeConfig", func() {
 					Pass:   "monkey123",
 					Email:  "k8s@example.com",
 				},
-				HelmTLSConfig: &config.HelmTLSConfig{},
+				HelmTLSConfig:   &config.HelmTLSConfig{},
+				TillerNamespace: "my-kibosh-namespace",
 			}
 
 			installer = NewInstaller(conf, &cluster, &client, logger)
@@ -80,8 +82,8 @@ var _ = Describe("KubeConfig", func() {
 			Expect(cluster.PatchCallCount()).To(Equal(1))
 
 			namespace, name, _, data, _ := cluster.PatchArgsForCall(0)
-			Expect(namespace).To(Equal("kube-system"))
-			Expect(name).To(Equal("tiller"))
+			Expect(namespace).To(Equal("my-kibosh-namespace"))
+			Expect(name).To(Equal("kibosh-tiller"))
 			Expect(data).To(Equal([]byte(`{"imagePullSecrets":[{"name":"registry-secret"}]}`)))
 		})
 
@@ -103,7 +105,7 @@ var _ = Describe("KubeConfig", func() {
 			Expect(client.UpgradeCallCount()).To(Equal(0))
 
 			opts := client.InstallArgsForCall(0)
-			Expect(opts.Namespace).To(Equal("kube-system"))
+			Expect(opts.Namespace).To(Equal("my-kibosh-namespace"))
 			Expect(opts.ImageSpec).To(Equal("registry.example.com/tiller:" + helmVersion))
 		})
 
@@ -140,7 +142,7 @@ var _ = Describe("KubeConfig", func() {
 			Expect(client.UpgradeCallCount()).To(Equal(0))
 
 			opts := client.InstallArgsForCall(0)
-			Expect(opts.Namespace).To(Equal("kube-system"))
+			Expect(opts.Namespace).To(Equal("my-kibosh-namespace"))
 			Expect(opts.ImageSpec).To(Equal("gcr.io/kubernetes-helm/tiller:" + helmVersion))
 
 			Expect(client.UninstallCallCount()).To(Equal(0))
@@ -215,7 +217,8 @@ var _ = Describe("KubeConfig", func() {
 	Context("secure", func() {
 		BeforeEach(func() {
 			conf = &config.Config{
-				RegistryConfig: &config.RegistryConfig{},
+				RegistryConfig:  &config.RegistryConfig{},
+				TillerNamespace: "my-kibosh-namespace",
 				HelmTLSConfig: &config.HelmTLSConfig{
 					TLSCaCertFile:     "foo",
 					TillerTLSKeyFile:  "bar",
@@ -238,7 +241,7 @@ var _ = Describe("KubeConfig", func() {
 			Expect(opts.TLSCaCertFile).To(Equal("foo"))
 			Expect(opts.TLSKeyFile).To(Equal("bar"))
 			Expect(opts.TLSCertFile).To(Equal("baz"))
-			Expect(opts.Namespace).To(Equal("kube-system"))
+			Expect(opts.Namespace).To(Equal("my-kibosh-namespace"))
 			Expect(opts.ImageSpec).To(Equal("gcr.io/kubernetes-helm/tiller:" + helmVersion))
 		})
 

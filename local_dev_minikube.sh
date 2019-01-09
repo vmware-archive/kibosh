@@ -19,6 +19,7 @@ export TOKEN=$(echo $secret_val | base64 -D)
 
 export SECURITY_USER_NAME=admin
 export SECURITY_USER_PASSWORD=pass
+export TILLER_NAMESPACE=kibosh
 
 # REG_* settings are optional, for configuring a private docker registry
 # export REG_SERVER='gcr.io'

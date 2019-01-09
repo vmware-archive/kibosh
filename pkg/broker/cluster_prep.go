@@ -21,6 +21,8 @@ import (
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
 	"github.com/cf-platform-eng/kibosh/pkg/operator"
+	api_v1 "k8s.io/api/core/v1"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func PrepareDefaultCluster(
@@ -45,7 +47,20 @@ func PrepareDefaultCluster(
 }
 
 func PrepareCluster(config *config.Config, cluster k8s.Cluster, helmClient my_helm.MyHelmClient, serviceAccountInstaller k8s.ServiceAccountInstaller, installerFactory my_helm.InstallerFactory, operators []*my_helm.MyChart, logger *logrus.Logger) error {
-	err := serviceAccountInstaller.Install()
+	namespace := &api_v1.Namespace{
+		Spec: api_v1.NamespaceSpec{},
+		ObjectMeta: meta_v1.ObjectMeta{
+			Name:   config.TillerNamespace,
+			Labels: map[string]string{"kibosh": "internal"},
+		},
+	}
+	_, err := cluster.CreateNamespaceIfNotExists(namespace)
+	if err != nil {
+		logger.WithError(err).Error("failed creating namespace for tiller")
+		return err
+	}
+
+	err = serviceAccountInstaller.Install()
 	if err != nil {
 		logger.WithError(err).Error("failed installing service account")
 		return err

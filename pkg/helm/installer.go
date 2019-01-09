@@ -49,8 +49,6 @@ var (
 )
 
 const (
-	serviceAccount = "tiller"
-	nameSpace      = "kube-system"
 	deploymentName = "tiller-deploy"
 )
 
@@ -78,7 +76,7 @@ func (i *installer) Install() error {
 
 	tillerImage := "gcr.io/kubernetes-helm/tiller:" + tillerTag
 	if i.config.RegistryConfig.HasRegistryConfig() {
-		privateRegistrySetup := k8s.NewPrivateRegistrySetup("kube-system", serviceAccount, i.cluster, i.config.RegistryConfig)
+		privateRegistrySetup := k8s.NewPrivateRegistrySetup(i.config.TillerNamespace, k8s.ServiceAccountName, i.cluster, i.config.RegistryConfig)
 		err := privateRegistrySetup.Setup()
 		if err != nil {
 			return err
@@ -151,7 +149,7 @@ func (i *installer) installWithTLS(tillerImage string) error {
 	if i.client.HasDifferentTLSConfig() {
 		i.logger.Debug("Uninstalling to remove existing TLS")
 		err := i.client.Uninstall(&helmstaller.Options{
-			Namespace: nameSpace,
+			Namespace: i.config.TillerNamespace,
 		})
 		if err != nil {
 			return errors.Wrap(err, "Error uninstalling previous helm")
@@ -160,9 +158,9 @@ func (i *installer) installWithTLS(tillerImage string) error {
 	}
 
 	options := helmstaller.Options{
-		Namespace:      nameSpace,
+		Namespace:      i.config.TillerNamespace,
 		ImageSpec:      tillerImage,
-		ServiceAccount: serviceAccount,
+		ServiceAccount: k8s.ServiceAccountName,
 		VerifyTLS:      true,
 		TLSCertFile:    i.config.HelmTLSConfig.TillerTLSCertFile,
 		TLSKeyFile:     i.config.HelmTLSConfig.TillerTLSKeyFile,
@@ -178,9 +176,9 @@ func (i *installer) installWithTLS(tillerImage string) error {
 
 func (i *installer) installInsecure(tillerImage string) error {
 	options := helmstaller.Options{
-		Namespace:      nameSpace,
+		Namespace:      i.config.TillerNamespace,
 		ImageSpec:      tillerImage,
-		ServiceAccount: serviceAccount,
+		ServiceAccount: k8s.ServiceAccountName,
 	}
 
 	err := i.client.Install(&options)
@@ -189,7 +187,7 @@ func (i *installer) installInsecure(tillerImage string) error {
 			return errors.Wrap(err, "Error installing new helm")
 		}
 
-		obj, err := i.cluster.GetDeployment(nameSpace, deploymentName, meta_v1.GetOptions{})
+		obj, err := i.cluster.GetDeployment(i.config.TillerNamespace, deploymentName, meta_v1.GetOptions{})
 		if err != nil {
 			return err
 		}

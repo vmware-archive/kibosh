@@ -38,13 +38,13 @@ var _ = Describe("Config", func() {
 			os.Setenv("SECURITY_USER_NAME", "bob")
 			os.Setenv("SECURITY_USER_PASSWORD", "abc123")
 			os.Setenv("PORT", "9001")
+			os.Setenv("TILLER_NAMESPACE", "kibosh")
 			os.Setenv("HELM_CHART_DIR", "/home/somewhere")
 
 			os.Setenv("CF_API_ADDRESS", "https://api.mycf.example.com")
 			os.Setenv("CF_USERNAME", "admin")
 			os.Setenv("CF_PASSWORD", "monkey123")
 			os.Setenv("CF_SKIP_SSL_VALIDATION", "true")
-
 		})
 
 		It("parses config from environment", func() {
@@ -52,6 +52,8 @@ var _ = Describe("Config", func() {
 			Expect(err).To(BeNil())
 			Expect(c.AdminUsername).To(Equal("bob"))
 			Expect(c.AdminPassword).To(Equal("abc123"))
+			Expect(c.TillerNamespace).To(Equal("kibosh"))
+
 			Expect(c.HelmChartDir).To(Equal("/home/somewhere"))
 			Expect(c.Port).To(Equal(9001))
 
