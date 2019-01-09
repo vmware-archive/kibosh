@@ -24,8 +24,7 @@ import (
 )
 
 const (
-	serviceAccountName = "tiller"
-	roleBindingName    = "tiller-cluster-admin"
+	ServiceAccountName = "kibosh-tiller"
 )
 
 //go:generate counterfeiter ./ ServiceAccountInstaller
@@ -34,38 +33,39 @@ type ServiceAccountInstaller interface {
 }
 
 type serviceAccountInstaller struct {
-	cluster Cluster
-	logger  *logrus.Logger
+	cluster   Cluster
+	namespace string
+	logger    *logrus.Logger
 }
 
-func NewServiceAccountInstaller(cluster Cluster, logger *logrus.Logger) ServiceAccountInstaller {
-
+func NewServiceAccountInstaller(cluster Cluster, namespace string, logger *logrus.Logger) ServiceAccountInstaller {
 	return &serviceAccountInstaller{
-		cluster: cluster,
-		logger:  logger,
+		cluster:   cluster,
+		namespace: namespace,
+		logger:    logger,
 	}
 }
 
-func (serviceAccountInstaller *serviceAccountInstaller) Install() error {
-	err := serviceAccountInstaller.ensureAccount()
+func (sai *serviceAccountInstaller) Install() error {
+	err := sai.ensureAccount()
 	if err != nil {
 		return err
 	}
-	return serviceAccountInstaller.ensureRole()
+	return sai.ensureRole()
 }
 
-func (serviceAccountInstaller *serviceAccountInstaller) ensureAccount() error {
-	result, err := serviceAccountInstaller.cluster.ListServiceAccounts("kube-system", meta_v1.ListOptions{
-		FieldSelector: "metadata.name=" + serviceAccountName,
+func (sai *serviceAccountInstaller) ensureAccount() error {
+	result, err := sai.cluster.ListServiceAccounts(sai.namespace, meta_v1.ListOptions{
+		FieldSelector: "metadata.name=" + ServiceAccountName,
 	})
 	if err != nil {
 		return err
 	}
 
 	if len(result.Items) < 1 {
-		_, err = serviceAccountInstaller.cluster.CreateServiceAccount("kube-system", &api_v1.ServiceAccount{
+		_, err = sai.cluster.CreateServiceAccount(sai.namespace, &api_v1.ServiceAccount{
 			ObjectMeta: meta_v1.ObjectMeta{
-				Name:   serviceAccountName,
+				Name:   ServiceAccountName,
 				Labels: map[string]string{"kibosh": "tiller-service-account"},
 			},
 		})
@@ -73,17 +73,17 @@ func (serviceAccountInstaller *serviceAccountInstaller) ensureAccount() error {
 		if err != nil {
 			return err
 		}
-		serviceAccountInstaller.logger.Info(fmt.Sprintf("Created service account [%s]", serviceAccountName))
+		sai.logger.Info(fmt.Sprintf("Created service account [%s]", ServiceAccountName))
 	} else {
-		serviceAccountInstaller.logger.Info(fmt.Sprintf("Service account [%s] already exists", serviceAccountName))
+		sai.logger.Info(fmt.Sprintf("Service account [%s] already exists", ServiceAccountName))
 	}
 
 	return nil
 }
 
-func (serviceAccountInstaller *serviceAccountInstaller) ensureRole() error {
-
-	result, err := serviceAccountInstaller.cluster.ListClusterRoleBindings(meta_v1.ListOptions{
+func (sai *serviceAccountInstaller) ensureRole() error {
+	roleBindingName := "kibosh:" + sai.namespace + ":kibosh-tiller-cluster-admin"
+	result, err := sai.cluster.ListClusterRoleBindings(meta_v1.ListOptions{
 		FieldSelector: "metadata.name=" + roleBindingName,
 	})
 	if err != nil {
@@ -91,8 +91,7 @@ func (serviceAccountInstaller *serviceAccountInstaller) ensureRole() error {
 	}
 
 	if len(result.Items) < 1 {
-		// we should create
-		_, err := serviceAccountInstaller.cluster.CreateClusterRoleBinding(&v1beta1.ClusterRoleBinding{
+		_, err := sai.cluster.CreateClusterRoleBinding(&v1beta1.ClusterRoleBinding{
 			ObjectMeta: meta_v1.ObjectMeta{
 				Name:   roleBindingName,
 				Labels: map[string]string{"kibosh": "tiller-service-admin-binding"},
@@ -105,17 +104,17 @@ func (serviceAccountInstaller *serviceAccountInstaller) ensureRole() error {
 			Subjects: []v1beta1.Subject{
 				{
 					Kind:      "ServiceAccount",
-					Name:      serviceAccountName,
-					Namespace: "kube-system",
+					Name:      ServiceAccountName,
+					Namespace: sai.namespace,
 				},
 			},
 		})
 		if err != nil {
 			return err
 		}
-		serviceAccountInstaller.logger.Info(fmt.Sprintf("Created role binding [%s]", roleBindingName))
+		sai.logger.Info(fmt.Sprintf("Created role binding [%s]", roleBindingName))
 	} else {
-		serviceAccountInstaller.logger.Info(fmt.Sprintf("Role binding [%s] already exists", roleBindingName))
+		sai.logger.Info(fmt.Sprintf("Role binding [%s] already exists", roleBindingName))
 	}
 
 	return nil

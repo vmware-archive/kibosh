@@ -27,17 +27,19 @@ type HelmClientFactory interface {
 }
 
 type helmClientFactory struct {
-	logger  *logrus.Logger
-	tlsConf *config.HelmTLSConfig
+	logger    *logrus.Logger
+	tlsConf   *config.HelmTLSConfig
+	namespace string
 }
 
 func (hcf helmClientFactory) HelmClient(cluster k8s.Cluster) MyHelmClient {
-	return NewMyHelmClient(cluster, hcf.tlsConf, hcf.logger)
+	return NewMyHelmClient(cluster, hcf.tlsConf, hcf.namespace, hcf.logger)
 }
 
-func NewHelmClientFactory(tlsConf *config.HelmTLSConfig, logger *logrus.Logger) HelmClientFactory {
+func NewHelmClientFactory(tlsConf *config.HelmTLSConfig, namespace string, logger *logrus.Logger) HelmClientFactory {
 	return &helmClientFactory{
-		logger:  logger,
-		tlsConf: tlsConf,
+		logger:    logger,
+		namespace: namespace,
+		tlsConf:   tlsConf,
 	}
 }

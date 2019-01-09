@@ -2,41 +2,17 @@
 package cffakes
 
 import (
-	sync "sync"
+	"sync"
 
-	cf "github.com/cf-platform-eng/kibosh/pkg/cf"
+	"github.com/cf-platform-eng/kibosh/pkg/cf"
 	cfclient "github.com/cloudfoundry-community/go-cfclient"
 )
 
 type FakeClient struct {
-	CreateServiceBrokerStub        func(cfclient.CreateServiceBrokerRequest) (cfclient.ServiceBroker, error)
-	createServiceBrokerMutex       sync.RWMutex
-	createServiceBrokerArgsForCall []struct {
-		arg1 cfclient.CreateServiceBrokerRequest
-	}
-	createServiceBrokerReturns struct {
-		result1 cfclient.ServiceBroker
-		result2 error
-	}
-	createServiceBrokerReturnsOnCall map[int]struct {
-		result1 cfclient.ServiceBroker
-		result2 error
-	}
-	DeleteServiceBrokerStub        func(string) error
-	deleteServiceBrokerMutex       sync.RWMutex
-	deleteServiceBrokerArgsForCall []struct {
-		arg1 string
-	}
-	deleteServiceBrokerReturns struct {
-		result1 error
-	}
-	deleteServiceBrokerReturnsOnCall map[int]struct {
-		result1 error
-	}
-	GetServiceBrokerByNameStub        func(string) (cfclient.ServiceBroker, error)
+	GetServiceBrokerByNameStub        func(name string) (cfclient.ServiceBroker, error)
 	getServiceBrokerByNameMutex       sync.RWMutex
 	getServiceBrokerByNameArgsForCall []struct {
-		arg1 string
+		name string
 	}
 	getServiceBrokerByNameReturns struct {
 		result1 cfclient.ServiceBroker
@@ -46,11 +22,24 @@ type FakeClient struct {
 		result1 cfclient.ServiceBroker
 		result2 error
 	}
-	UpdateServiceBrokerStub        func(string, cfclient.UpdateServiceBrokerRequest) (cfclient.ServiceBroker, error)
+	CreateServiceBrokerStub        func(csb cfclient.CreateServiceBrokerRequest) (cfclient.ServiceBroker, error)
+	createServiceBrokerMutex       sync.RWMutex
+	createServiceBrokerArgsForCall []struct {
+		csb cfclient.CreateServiceBrokerRequest
+	}
+	createServiceBrokerReturns struct {
+		result1 cfclient.ServiceBroker
+		result2 error
+	}
+	createServiceBrokerReturnsOnCall map[int]struct {
+		result1 cfclient.ServiceBroker
+		result2 error
+	}
+	UpdateServiceBrokerStub        func(guid string, csb cfclient.UpdateServiceBrokerRequest) (cfclient.ServiceBroker, error)
 	updateServiceBrokerMutex       sync.RWMutex
 	updateServiceBrokerArgsForCall []struct {
-		arg1 string
-		arg2 cfclient.UpdateServiceBrokerRequest
+		guid string
+		csb  cfclient.UpdateServiceBrokerRequest
 	}
 	updateServiceBrokerReturns struct {
 		result1 cfclient.ServiceBroker
@@ -60,149 +49,36 @@ type FakeClient struct {
 		result1 cfclient.ServiceBroker
 		result2 error
 	}
+	DeleteServiceBrokerStub        func(guid string) error
+	deleteServiceBrokerMutex       sync.RWMutex
+	deleteServiceBrokerArgsForCall []struct {
+		guid string
+	}
+	deleteServiceBrokerReturns struct {
+		result1 error
+	}
+	deleteServiceBrokerReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeClient) CreateServiceBroker(arg1 cfclient.CreateServiceBrokerRequest) (cfclient.ServiceBroker, error) {
-	fake.createServiceBrokerMutex.Lock()
-	ret, specificReturn := fake.createServiceBrokerReturnsOnCall[len(fake.createServiceBrokerArgsForCall)]
-	fake.createServiceBrokerArgsForCall = append(fake.createServiceBrokerArgsForCall, struct {
-		arg1 cfclient.CreateServiceBrokerRequest
-	}{arg1})
-	fake.recordInvocation("CreateServiceBroker", []interface{}{arg1})
-	fake.createServiceBrokerMutex.Unlock()
-	if fake.CreateServiceBrokerStub != nil {
-		return fake.CreateServiceBrokerStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	fakeReturns := fake.createServiceBrokerReturns
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakeClient) CreateServiceBrokerCallCount() int {
-	fake.createServiceBrokerMutex.RLock()
-	defer fake.createServiceBrokerMutex.RUnlock()
-	return len(fake.createServiceBrokerArgsForCall)
-}
-
-func (fake *FakeClient) CreateServiceBrokerCalls(stub func(cfclient.CreateServiceBrokerRequest) (cfclient.ServiceBroker, error)) {
-	fake.createServiceBrokerMutex.Lock()
-	defer fake.createServiceBrokerMutex.Unlock()
-	fake.CreateServiceBrokerStub = stub
-}
-
-func (fake *FakeClient) CreateServiceBrokerArgsForCall(i int) cfclient.CreateServiceBrokerRequest {
-	fake.createServiceBrokerMutex.RLock()
-	defer fake.createServiceBrokerMutex.RUnlock()
-	argsForCall := fake.createServiceBrokerArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakeClient) CreateServiceBrokerReturns(result1 cfclient.ServiceBroker, result2 error) {
-	fake.createServiceBrokerMutex.Lock()
-	defer fake.createServiceBrokerMutex.Unlock()
-	fake.CreateServiceBrokerStub = nil
-	fake.createServiceBrokerReturns = struct {
-		result1 cfclient.ServiceBroker
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeClient) CreateServiceBrokerReturnsOnCall(i int, result1 cfclient.ServiceBroker, result2 error) {
-	fake.createServiceBrokerMutex.Lock()
-	defer fake.createServiceBrokerMutex.Unlock()
-	fake.CreateServiceBrokerStub = nil
-	if fake.createServiceBrokerReturnsOnCall == nil {
-		fake.createServiceBrokerReturnsOnCall = make(map[int]struct {
-			result1 cfclient.ServiceBroker
-			result2 error
-		})
-	}
-	fake.createServiceBrokerReturnsOnCall[i] = struct {
-		result1 cfclient.ServiceBroker
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeClient) DeleteServiceBroker(arg1 string) error {
-	fake.deleteServiceBrokerMutex.Lock()
-	ret, specificReturn := fake.deleteServiceBrokerReturnsOnCall[len(fake.deleteServiceBrokerArgsForCall)]
-	fake.deleteServiceBrokerArgsForCall = append(fake.deleteServiceBrokerArgsForCall, struct {
-		arg1 string
-	}{arg1})
-	fake.recordInvocation("DeleteServiceBroker", []interface{}{arg1})
-	fake.deleteServiceBrokerMutex.Unlock()
-	if fake.DeleteServiceBrokerStub != nil {
-		return fake.DeleteServiceBrokerStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.deleteServiceBrokerReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeClient) DeleteServiceBrokerCallCount() int {
-	fake.deleteServiceBrokerMutex.RLock()
-	defer fake.deleteServiceBrokerMutex.RUnlock()
-	return len(fake.deleteServiceBrokerArgsForCall)
-}
-
-func (fake *FakeClient) DeleteServiceBrokerCalls(stub func(string) error) {
-	fake.deleteServiceBrokerMutex.Lock()
-	defer fake.deleteServiceBrokerMutex.Unlock()
-	fake.DeleteServiceBrokerStub = stub
-}
-
-func (fake *FakeClient) DeleteServiceBrokerArgsForCall(i int) string {
-	fake.deleteServiceBrokerMutex.RLock()
-	defer fake.deleteServiceBrokerMutex.RUnlock()
-	argsForCall := fake.deleteServiceBrokerArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakeClient) DeleteServiceBrokerReturns(result1 error) {
-	fake.deleteServiceBrokerMutex.Lock()
-	defer fake.deleteServiceBrokerMutex.Unlock()
-	fake.DeleteServiceBrokerStub = nil
-	fake.deleteServiceBrokerReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeClient) DeleteServiceBrokerReturnsOnCall(i int, result1 error) {
-	fake.deleteServiceBrokerMutex.Lock()
-	defer fake.deleteServiceBrokerMutex.Unlock()
-	fake.DeleteServiceBrokerStub = nil
-	if fake.deleteServiceBrokerReturnsOnCall == nil {
-		fake.deleteServiceBrokerReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.deleteServiceBrokerReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeClient) GetServiceBrokerByName(arg1 string) (cfclient.ServiceBroker, error) {
+func (fake *FakeClient) GetServiceBrokerByName(name string) (cfclient.ServiceBroker, error) {
 	fake.getServiceBrokerByNameMutex.Lock()
 	ret, specificReturn := fake.getServiceBrokerByNameReturnsOnCall[len(fake.getServiceBrokerByNameArgsForCall)]
 	fake.getServiceBrokerByNameArgsForCall = append(fake.getServiceBrokerByNameArgsForCall, struct {
-		arg1 string
-	}{arg1})
-	fake.recordInvocation("GetServiceBrokerByName", []interface{}{arg1})
+		name string
+	}{name})
+	fake.recordInvocation("GetServiceBrokerByName", []interface{}{name})
 	fake.getServiceBrokerByNameMutex.Unlock()
 	if fake.GetServiceBrokerByNameStub != nil {
-		return fake.GetServiceBrokerByNameStub(arg1)
+		return fake.GetServiceBrokerByNameStub(name)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getServiceBrokerByNameReturns
-	return fakeReturns.result1, fakeReturns.result2
+	return fake.getServiceBrokerByNameReturns.result1, fake.getServiceBrokerByNameReturns.result2
 }
 
 func (fake *FakeClient) GetServiceBrokerByNameCallCount() int {
@@ -211,22 +87,13 @@ func (fake *FakeClient) GetServiceBrokerByNameCallCount() int {
 	return len(fake.getServiceBrokerByNameArgsForCall)
 }
 
-func (fake *FakeClient) GetServiceBrokerByNameCalls(stub func(string) (cfclient.ServiceBroker, error)) {
-	fake.getServiceBrokerByNameMutex.Lock()
-	defer fake.getServiceBrokerByNameMutex.Unlock()
-	fake.GetServiceBrokerByNameStub = stub
-}
-
 func (fake *FakeClient) GetServiceBrokerByNameArgsForCall(i int) string {
 	fake.getServiceBrokerByNameMutex.RLock()
 	defer fake.getServiceBrokerByNameMutex.RUnlock()
-	argsForCall := fake.getServiceBrokerByNameArgsForCall[i]
-	return argsForCall.arg1
+	return fake.getServiceBrokerByNameArgsForCall[i].name
 }
 
 func (fake *FakeClient) GetServiceBrokerByNameReturns(result1 cfclient.ServiceBroker, result2 error) {
-	fake.getServiceBrokerByNameMutex.Lock()
-	defer fake.getServiceBrokerByNameMutex.Unlock()
 	fake.GetServiceBrokerByNameStub = nil
 	fake.getServiceBrokerByNameReturns = struct {
 		result1 cfclient.ServiceBroker
@@ -235,8 +102,6 @@ func (fake *FakeClient) GetServiceBrokerByNameReturns(result1 cfclient.ServiceBr
 }
 
 func (fake *FakeClient) GetServiceBrokerByNameReturnsOnCall(i int, result1 cfclient.ServiceBroker, result2 error) {
-	fake.getServiceBrokerByNameMutex.Lock()
-	defer fake.getServiceBrokerByNameMutex.Unlock()
 	fake.GetServiceBrokerByNameStub = nil
 	if fake.getServiceBrokerByNameReturnsOnCall == nil {
 		fake.getServiceBrokerByNameReturnsOnCall = make(map[int]struct {
@@ -250,23 +115,73 @@ func (fake *FakeClient) GetServiceBrokerByNameReturnsOnCall(i int, result1 cfcli
 	}{result1, result2}
 }
 
-func (fake *FakeClient) UpdateServiceBroker(arg1 string, arg2 cfclient.UpdateServiceBrokerRequest) (cfclient.ServiceBroker, error) {
-	fake.updateServiceBrokerMutex.Lock()
-	ret, specificReturn := fake.updateServiceBrokerReturnsOnCall[len(fake.updateServiceBrokerArgsForCall)]
-	fake.updateServiceBrokerArgsForCall = append(fake.updateServiceBrokerArgsForCall, struct {
-		arg1 string
-		arg2 cfclient.UpdateServiceBrokerRequest
-	}{arg1, arg2})
-	fake.recordInvocation("UpdateServiceBroker", []interface{}{arg1, arg2})
-	fake.updateServiceBrokerMutex.Unlock()
-	if fake.UpdateServiceBrokerStub != nil {
-		return fake.UpdateServiceBrokerStub(arg1, arg2)
+func (fake *FakeClient) CreateServiceBroker(csb cfclient.CreateServiceBrokerRequest) (cfclient.ServiceBroker, error) {
+	fake.createServiceBrokerMutex.Lock()
+	ret, specificReturn := fake.createServiceBrokerReturnsOnCall[len(fake.createServiceBrokerArgsForCall)]
+	fake.createServiceBrokerArgsForCall = append(fake.createServiceBrokerArgsForCall, struct {
+		csb cfclient.CreateServiceBrokerRequest
+	}{csb})
+	fake.recordInvocation("CreateServiceBroker", []interface{}{csb})
+	fake.createServiceBrokerMutex.Unlock()
+	if fake.CreateServiceBrokerStub != nil {
+		return fake.CreateServiceBrokerStub(csb)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.updateServiceBrokerReturns
-	return fakeReturns.result1, fakeReturns.result2
+	return fake.createServiceBrokerReturns.result1, fake.createServiceBrokerReturns.result2
+}
+
+func (fake *FakeClient) CreateServiceBrokerCallCount() int {
+	fake.createServiceBrokerMutex.RLock()
+	defer fake.createServiceBrokerMutex.RUnlock()
+	return len(fake.createServiceBrokerArgsForCall)
+}
+
+func (fake *FakeClient) CreateServiceBrokerArgsForCall(i int) cfclient.CreateServiceBrokerRequest {
+	fake.createServiceBrokerMutex.RLock()
+	defer fake.createServiceBrokerMutex.RUnlock()
+	return fake.createServiceBrokerArgsForCall[i].csb
+}
+
+func (fake *FakeClient) CreateServiceBrokerReturns(result1 cfclient.ServiceBroker, result2 error) {
+	fake.CreateServiceBrokerStub = nil
+	fake.createServiceBrokerReturns = struct {
+		result1 cfclient.ServiceBroker
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) CreateServiceBrokerReturnsOnCall(i int, result1 cfclient.ServiceBroker, result2 error) {
+	fake.CreateServiceBrokerStub = nil
+	if fake.createServiceBrokerReturnsOnCall == nil {
+		fake.createServiceBrokerReturnsOnCall = make(map[int]struct {
+			result1 cfclient.ServiceBroker
+			result2 error
+		})
+	}
+	fake.createServiceBrokerReturnsOnCall[i] = struct {
+		result1 cfclient.ServiceBroker
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) UpdateServiceBroker(guid string, csb cfclient.UpdateServiceBrokerRequest) (cfclient.ServiceBroker, error) {
+	fake.updateServiceBrokerMutex.Lock()
+	ret, specificReturn := fake.updateServiceBrokerReturnsOnCall[len(fake.updateServiceBrokerArgsForCall)]
+	fake.updateServiceBrokerArgsForCall = append(fake.updateServiceBrokerArgsForCall, struct {
+		guid string
+		csb  cfclient.UpdateServiceBrokerRequest
+	}{guid, csb})
+	fake.recordInvocation("UpdateServiceBroker", []interface{}{guid, csb})
+	fake.updateServiceBrokerMutex.Unlock()
+	if fake.UpdateServiceBrokerStub != nil {
+		return fake.UpdateServiceBrokerStub(guid, csb)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.updateServiceBrokerReturns.result1, fake.updateServiceBrokerReturns.result2
 }
 
 func (fake *FakeClient) UpdateServiceBrokerCallCount() int {
@@ -275,22 +190,13 @@ func (fake *FakeClient) UpdateServiceBrokerCallCount() int {
 	return len(fake.updateServiceBrokerArgsForCall)
 }
 
-func (fake *FakeClient) UpdateServiceBrokerCalls(stub func(string, cfclient.UpdateServiceBrokerRequest) (cfclient.ServiceBroker, error)) {
-	fake.updateServiceBrokerMutex.Lock()
-	defer fake.updateServiceBrokerMutex.Unlock()
-	fake.UpdateServiceBrokerStub = stub
-}
-
 func (fake *FakeClient) UpdateServiceBrokerArgsForCall(i int) (string, cfclient.UpdateServiceBrokerRequest) {
 	fake.updateServiceBrokerMutex.RLock()
 	defer fake.updateServiceBrokerMutex.RUnlock()
-	argsForCall := fake.updateServiceBrokerArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return fake.updateServiceBrokerArgsForCall[i].guid, fake.updateServiceBrokerArgsForCall[i].csb
 }
 
 func (fake *FakeClient) UpdateServiceBrokerReturns(result1 cfclient.ServiceBroker, result2 error) {
-	fake.updateServiceBrokerMutex.Lock()
-	defer fake.updateServiceBrokerMutex.Unlock()
 	fake.UpdateServiceBrokerStub = nil
 	fake.updateServiceBrokerReturns = struct {
 		result1 cfclient.ServiceBroker
@@ -299,8 +205,6 @@ func (fake *FakeClient) UpdateServiceBrokerReturns(result1 cfclient.ServiceBroke
 }
 
 func (fake *FakeClient) UpdateServiceBrokerReturnsOnCall(i int, result1 cfclient.ServiceBroker, result2 error) {
-	fake.updateServiceBrokerMutex.Lock()
-	defer fake.updateServiceBrokerMutex.Unlock()
 	fake.UpdateServiceBrokerStub = nil
 	if fake.updateServiceBrokerReturnsOnCall == nil {
 		fake.updateServiceBrokerReturnsOnCall = make(map[int]struct {
@@ -314,17 +218,65 @@ func (fake *FakeClient) UpdateServiceBrokerReturnsOnCall(i int, result1 cfclient
 	}{result1, result2}
 }
 
+func (fake *FakeClient) DeleteServiceBroker(guid string) error {
+	fake.deleteServiceBrokerMutex.Lock()
+	ret, specificReturn := fake.deleteServiceBrokerReturnsOnCall[len(fake.deleteServiceBrokerArgsForCall)]
+	fake.deleteServiceBrokerArgsForCall = append(fake.deleteServiceBrokerArgsForCall, struct {
+		guid string
+	}{guid})
+	fake.recordInvocation("DeleteServiceBroker", []interface{}{guid})
+	fake.deleteServiceBrokerMutex.Unlock()
+	if fake.DeleteServiceBrokerStub != nil {
+		return fake.DeleteServiceBrokerStub(guid)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.deleteServiceBrokerReturns.result1
+}
+
+func (fake *FakeClient) DeleteServiceBrokerCallCount() int {
+	fake.deleteServiceBrokerMutex.RLock()
+	defer fake.deleteServiceBrokerMutex.RUnlock()
+	return len(fake.deleteServiceBrokerArgsForCall)
+}
+
+func (fake *FakeClient) DeleteServiceBrokerArgsForCall(i int) string {
+	fake.deleteServiceBrokerMutex.RLock()
+	defer fake.deleteServiceBrokerMutex.RUnlock()
+	return fake.deleteServiceBrokerArgsForCall[i].guid
+}
+
+func (fake *FakeClient) DeleteServiceBrokerReturns(result1 error) {
+	fake.DeleteServiceBrokerStub = nil
+	fake.deleteServiceBrokerReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeClient) DeleteServiceBrokerReturnsOnCall(i int, result1 error) {
+	fake.DeleteServiceBrokerStub = nil
+	if fake.deleteServiceBrokerReturnsOnCall == nil {
+		fake.deleteServiceBrokerReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.deleteServiceBrokerReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.createServiceBrokerMutex.RLock()
-	defer fake.createServiceBrokerMutex.RUnlock()
-	fake.deleteServiceBrokerMutex.RLock()
-	defer fake.deleteServiceBrokerMutex.RUnlock()
 	fake.getServiceBrokerByNameMutex.RLock()
 	defer fake.getServiceBrokerByNameMutex.RUnlock()
+	fake.createServiceBrokerMutex.RLock()
+	defer fake.createServiceBrokerMutex.RUnlock()
 	fake.updateServiceBrokerMutex.RLock()
 	defer fake.updateServiceBrokerMutex.RUnlock()
+	fake.deleteServiceBrokerMutex.RLock()
+	defer fake.deleteServiceBrokerMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

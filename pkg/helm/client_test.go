@@ -32,7 +32,7 @@ var _ = Describe("Client", func() {
 	var chartPath string
 
 	BeforeEach(func() {
-		myHelmClient = NewMyHelmClient(nil, nil, nil)
+		myHelmClient = NewMyHelmClient(nil, nil, "my-kibosh-namespace", nil)
 
 		var err error
 		chartPath, err = ioutil.TempDir("", "chart-")

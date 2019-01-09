@@ -71,8 +71,8 @@ func main() {
 	kiboshLogger.Info(fmt.Sprintf("Loaded operator charts: %s", operatorCharts))
 
 	clusterFactory := k8s.NewClusterFactory(*conf.ClusterCredentials)
-	helmClientFactory := helm.NewHelmClientFactory(conf.HelmTLSConfig, kiboshLogger)
-	serviceAccountInstallerFactory := k8s.NewServiceAccountInstallerFactory(kiboshLogger)
+	helmClientFactory := helm.NewHelmClientFactory(conf.HelmTLSConfig, conf.TillerNamespace, kiboshLogger)
+	serviceAccountInstallerFactory := k8s.NewServiceAccountInstallerFactory(conf.TillerNamespace, kiboshLogger)
 
 	err = broker.PrepareDefaultCluster(conf, clusterFactory, helmClientFactory, serviceAccountInstallerFactory, helm.InstallerFactoryDefault, kiboshLogger, operatorCharts)
 

@@ -129,6 +129,7 @@ var _ = Describe("Broker", func() {
 		fakeCluster = k8sfakes.FakeCluster{}
 		fakeClusterFactory.DefaultClusterReturns(&fakeCluster, nil)
 		fakeClusterFactory.GetClusterReturns(&fakeCluster, nil)
+		fakeClusterFactory.GetClusterFromK8sConfigReturns(&fakeCluster, nil)
 		fakeServiceAccountInstaller = k8sfakes.FakeServiceAccountInstaller{}
 		fakeServiceAccountInstallerFactory = k8sfakes.FakeServiceAccountInstallerFactory{}
 		fakeServiceAccountInstallerFactory.ServiceAccountInstallerReturns(&fakeServiceAccountInstaller)
