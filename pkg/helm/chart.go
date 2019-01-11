@@ -45,6 +45,16 @@ type MyChart struct {
 	Plans                 map[string]Plan
 }
 
+func NewChartValidationError(err error) *ChartValidationError {
+	return &ChartValidationError{
+		error: err,
+	}
+}
+
+type ChartValidationError struct {
+	error
+}
+
 type Plan struct {
 	Name            string   `yaml:"name"`
 	Description     string   `yaml:"description"`
@@ -93,7 +103,7 @@ func NewChart(chartPath string, privateRegistryServer string, requirePlans bool)
 
 	chartPathStat, err := os.Stat(chartPath)
 	if err != nil {
-		return nil, err
+		return nil, NewChartValidationError(err)
 	}
 
 	if chartPathStat.IsDir() {
@@ -105,13 +115,13 @@ func NewChart(chartPath string, privateRegistryServer string, requirePlans bool)
 
 	loadedChart, err := chartutil.Load(chartPath)
 	if err != nil {
-		return nil, err
+		return nil, NewChartValidationError(err)
 	}
 	myChart.Chart = loadedChart
 
 	err = myChart.LoadChartValues()
 	if err != nil {
-		return nil, err
+		return nil, NewChartValidationError(err)
 	}
 
 	if requirePlans {
@@ -121,7 +131,7 @@ func NewChart(chartPath string, privateRegistryServer string, requirePlans bool)
 			err = myChart.loadPlansFromArchive()
 		}
 		if err != nil {
-			return nil, err
+			return nil, NewChartValidationError(err)
 		}
 	}
 
