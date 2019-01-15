@@ -18,8 +18,6 @@ package broker
 import (
 	"context"
 	"fmt"
-	"strings"
-
 	"github.com/Sirupsen/logrus"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
@@ -31,6 +29,7 @@ import (
 	api_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	hapi_release "k8s.io/helm/pkg/proto/hapi/release"
+	"strings"
 )
 
 const registrySecretName = "registry-secret"
@@ -218,12 +217,16 @@ func (broker *PksServiceBroker) Deprovision(ctx context.Context, instanceID stri
 	go func() {
 		_, err = helmClient.DeleteRelease(broker.getNamespace(instanceID))
 		if err != nil {
-			broker.logger.Error("Delete Release failed", err)
+			broker.logger.Error(
+				"Delete Release failed for planID=", planID, " serviceID=", serviceID, " instanceID=", instanceID, " ", err,
+			)
 		}
 
 		err = cluster.DeleteNamespace(broker.getNamespace(instanceID), &meta_v1.DeleteOptions{})
 		if err != nil {
-			broker.logger.Error("Delete Namespace failed", err)
+			broker.logger.Error(
+				"Delete Namespace failed for planID=", planID, " serviceID=", serviceID, " instanceID=", instanceID, " ", err,
+			)
 		}
 	}()
 
@@ -394,6 +397,8 @@ func (broker *PksServiceBroker) LastOperation(ctx context.Context, instanceID st
 
 	response, err := helmClient.ReleaseStatus(broker.getNamespace(instanceID))
 	if err != nil {
+		//This err potentially should result in 410 / ok response, in the case where the release is no-found
+		//Will require some changes if we want to support release purging or other flows
 		return brokerapi.LastOperation{}, err
 	}
 
