@@ -215,15 +215,17 @@ func (broker *PksServiceBroker) Deprovision(ctx context.Context, instanceID stri
 
 	helmClient := broker.helmClientFactory.HelmClient(cluster)
 
-	_, err = helmClient.DeleteRelease(broker.getNamespace(instanceID))
-	if err != nil {
-		return brokerapi.DeprovisionServiceSpec{}, err
-	}
+	go func() {
+		_, err = helmClient.DeleteRelease(broker.getNamespace(instanceID))
+		if err != nil {
+			broker.logger.Error("Delete Release failed", err)
+		}
 
-	err = cluster.DeleteNamespace(broker.getNamespace(instanceID), &meta_v1.DeleteOptions{})
-	if err != nil {
-		return brokerapi.DeprovisionServiceSpec{}, err
-	}
+		err = cluster.DeleteNamespace(broker.getNamespace(instanceID), &meta_v1.DeleteOptions{})
+		if err != nil {
+			broker.logger.Error("Delete Namespace failed", err)
+		}
+	}()
 
 	return brokerapi.DeprovisionServiceSpec{
 		IsAsync:       true,
