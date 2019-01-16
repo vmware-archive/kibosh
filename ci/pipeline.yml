@@ -621,17 +621,6 @@ jobs:
 
           pushd source-repo
 
-          echo '
-          stemcell: bosh-google-kvm-ubuntu-trusty-go_agent
-          kibosh-password: {{deployment_broker_password}}
-          k8s-cluster-ca-cert: {{deployment_cluster_ca_cert}}
-          k8s-cluster-server: {{deployment_k8s_cluster_server}}
-          k8s-cluster-token: {{deployment_cluster_token}}
-          registry-server: {{deployment_registry_server}}
-          registry-user: {{deployment_registry_user}}
-          registry-pass: {{deployment_registry_pass}}
-          ' > values.yml
-
           yes | bosh -d kibosh run-errand loader
           popd
     on_failure: *slack_on_failure
