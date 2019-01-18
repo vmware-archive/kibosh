@@ -55,6 +55,10 @@ type ChartValidationError struct {
 	error
 }
 
+type NoPlansError struct {
+	error
+}
+
 type Plan struct {
 	Name            string   `yaml:"name"`
 	Description     string   `yaml:"description"`
@@ -130,8 +134,18 @@ func NewChart(chartPath string, privateRegistryServer string, requirePlans bool)
 		} else {
 			err = myChart.loadPlansFromArchive()
 		}
+
 		if err != nil {
-			return nil, NewChartValidationError(err)
+
+			_, ok := err.(*NoPlansError)
+			if ok {
+				myChart.Plans["default"] = Plan{
+					Name: "default",
+				}
+			} else {
+				return nil, NewChartValidationError(err)
+			}
+
 		}
 	}
 
@@ -272,6 +286,19 @@ func (c *MyChart) loadPlansFromArchive() error {
 
 func (c *MyChart) loadPlansFromDirectory() error {
 	plansPath := path.Join(c.Chartpath, "plans.yaml")
+	_, err := os.Stat(plansPath)
+	if err != nil {
+		_, ok := err.(*os.PathError)
+
+		if ok {
+			return &NoPlansError{
+				error: err,
+			}
+		} else {
+			return err
+		}
+	}
+
 	plansBytes, err := ioutil.ReadFile(plansPath)
 	if err != nil {
 		return err

@@ -177,6 +177,19 @@ var _ = Describe("Broker", func() {
 			Expect(charts[0].Metadata.Name).To(Equal("spacebears"))
 			Expect(charts[1].Metadata.Name).To(Equal("spacebears2"))
 		})
+
+	})
+
+	FIt("plans.yaml doesn't exist", func() {
+
+		err := os.Remove(filepath.Join(chartPath, "plans.yaml"))
+		Expect(err).To(BeNil())
+		charts, err := helm.LoadFromDir(chartPath, logrus.New(), true)
+		Expect(err).To(BeNil())
+		Expect(charts).To(HaveLen(1))
+		Expect(charts[0].Plans).To(HaveLen(1))
+		_, ok := charts[0].Plans["default"]
+		Expect(ok).To(BeTrue())
 	})
 
 	It("should return error when no vals file", func() {
