@@ -41,7 +41,7 @@ func main() {
 		kiboshLogger.Fatal("Loading config file", err)
 	}
 
-	repo := repository.NewRepository(conf.HelmChartDir, conf.RegistryConfig.Server, true, kiboshLogger)
+	repo := repository.NewRepository(conf.HelmChartDir, conf.RegistryConfig.Server, kiboshLogger)
 	charts, err := repo.LoadCharts()
 	if err != nil {
 		kiboshLogger.Fatal("Unable to load charts", err)
@@ -61,7 +61,7 @@ func main() {
 		}
 	}
 
-	operatorRepo := repository.NewRepository(conf.OperatorDir, conf.RegistryConfig.Server, false, kiboshLogger)
+	operatorRepo := repository.NewRepository(conf.OperatorDir, conf.RegistryConfig.Server, kiboshLogger)
 	operatorCharts, err := operatorRepo.LoadCharts()
 	if err != nil {
 		if !os.IsNotExist(err) {

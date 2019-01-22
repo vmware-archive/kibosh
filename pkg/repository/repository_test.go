@@ -59,20 +59,20 @@ var _ = Describe("Repository", func() {
 		})
 
 		It("returns error on empty path", func() {
-			myRepository := repository.NewRepository("", "", true, logger)
+			myRepository := repository.NewRepository("", "", logger)
 			_, err := myRepository.LoadCharts()
 			Expect(err).NotTo(BeNil())
 		})
 
 		It("returns empty slice on directory with no charts", func() {
-			myRepository := repository.NewRepository(emptyDir, "", true, logger)
+			myRepository := repository.NewRepository(emptyDir, "", logger)
 			charts, err := myRepository.LoadCharts()
 			Expect(charts).To(BeEmpty())
 			Expect(err).To(BeNil())
 		})
 
 		It("returns empty slice on directory with empty directories", func() {
-			myRepository := repository.NewRepository(nestedEmptyDir, "", true, logger)
+			myRepository := repository.NewRepository(nestedEmptyDir, "", logger)
 			charts, err := myRepository.LoadCharts()
 			Expect(charts).To(BeEmpty())
 			Expect(err).To(BeNil())
@@ -97,7 +97,7 @@ var _ = Describe("Repository", func() {
 		})
 
 		It("returns single chart", func() {
-			myRepository := repository.NewRepository(chartPath, "", true, logger)
+			myRepository := repository.NewRepository(chartPath, "", logger)
 			charts, err := myRepository.LoadCharts()
 			Expect(err).To(BeNil())
 
@@ -123,14 +123,8 @@ var _ = Describe("Repository", func() {
 			os.RemoveAll(chartPath)
 		})
 
-		It("returns err when expecting an osbapi chart", func() {
-			myRepository := repository.NewRepository(chartPath, "", true, logger)
-			_, err := myRepository.LoadCharts()
-			Expect(err).ToNot(BeNil())
-		})
-
 		It("returns a single plain chart", func() {
-			myRepository := repository.NewRepository(chartPath, "", false, logger)
+			myRepository := repository.NewRepository(chartPath, "", logger)
 			charts, err := myRepository.LoadCharts()
 			Expect(err).To(BeNil())
 
@@ -181,7 +175,7 @@ version: 0.0.1
 
 		It("loads multiple charts", func() {
 			logger = logrus.New()
-			myRepository := repository.NewRepository(chartPath, "", true, logger)
+			myRepository := repository.NewRepository(chartPath, "", logger)
 
 			charts, err := myRepository.LoadCharts()
 			Expect(err).To(BeNil())
@@ -196,7 +190,7 @@ version: 0.0.1
 			Expect(err).To(BeNil())
 
 			logger = logrus.New()
-			myRepository := repository.NewRepository(chartPath, "", true, logger)
+			myRepository := repository.NewRepository(chartPath, "", logger)
 
 			_, err = myRepository.LoadCharts()
 			Expect(err).NotTo(BeNil())
@@ -227,10 +221,10 @@ version: 0.0.1
 			err := testChart.WriteChart(tarDir)
 			Expect(err).To(BeNil())
 
-			chart, err := helm.NewChart(tarDir, "docker.example.com", true)
+			chart, err := helm.NewChart(tarDir, "docker.example.com")
 			tarFile, err := chartutil.Save(chart.Chart, tarDir)
 
-			myRepository := repository.NewRepository(repoDir, "", true, logger)
+			myRepository := repository.NewRepository(repoDir, "", logger)
 			files, err := ioutil.ReadDir(repoDir)
 			Expect(err).To(BeNil())
 			Expect(files).To(HaveLen(0))
@@ -258,7 +252,7 @@ version: 0.0.1
 			err := ioutil.WriteFile(notChartFilePath, []byte("foo"), 0666)
 			Expect(err).To(BeNil())
 
-			myRepository := repository.NewRepository(repoDir, "", true, logger)
+			myRepository := repository.NewRepository(repoDir, "", logger)
 
 			err = myRepository.SaveChart(notChartFilePath)
 			Expect(err).NotTo(BeNil())
@@ -276,10 +270,10 @@ version: 0.0.1
 			err = testChart.WriteChart(tarDir)
 			Expect(err).To(BeNil())
 
-			chart, err := helm.NewChart(tarDir, "docker.example.com", true)
+			chart, err := helm.NewChart(tarDir, "docker.example.com")
 			tarFile, err := chartutil.Save(chart.Chart, tarDir)
 
-			myRepository := repository.NewRepository(repoDir, "", true, logger)
+			myRepository := repository.NewRepository(repoDir, "", logger)
 			_, err = ioutil.ReadDir(repoDir)
 			Expect(err).To(BeNil())
 
@@ -294,10 +288,10 @@ version: 0.0.1
 			err := testChart.WriteChart(tarDir)
 			Expect(err).To(BeNil())
 
-			chart, err := helm.NewChart(tarDir, "docker.example.com", true)
+			chart, err := helm.NewChart(tarDir, "docker.example.com")
 			tarFile, err := chartutil.Save(chart.Chart, tarDir)
 
-			myRepository := repository.NewRepository(repoDir, "", true, logger)
+			myRepository := repository.NewRepository(repoDir, "", logger)
 			files, err := ioutil.ReadDir(repoDir)
 			Expect(err).To(BeNil())
 			Expect(files).To(HaveLen(0))
@@ -317,7 +311,7 @@ version: 0.0.2
 
 			err = testChart2.WriteChart(tarDir2)
 			Expect(err).To(BeNil())
-			chart2, err := helm.NewChart(tarDir2, "docker.example.com", true)
+			chart2, err := helm.NewChart(tarDir2, "docker.example.com")
 			Expect(err).To(BeNil())
 
 			tarFile2, err := chartutil.Save(chart2.Chart, tarDir2)
@@ -352,7 +346,7 @@ version: 0.0.2
 			err = testChart.WriteChart(deletePath)
 			Expect(err).To(BeNil())
 			logger = logrus.New()
-			myRepository := repository.NewRepository(chartPath, "", true, logger)
+			myRepository := repository.NewRepository(chartPath, "", logger)
 
 			err = myRepository.DeleteChart("spacebears")
 			Expect(err).To(BeNil())
@@ -378,7 +372,7 @@ version: 0.0.2
 			Expect(err).To(BeNil())
 
 			logger = logrus.New()
-			myRepository := repository.NewRepository(chartPath, "", true, logger)
+			myRepository := repository.NewRepository(chartPath, "", logger)
 
 			err = myRepository.DeleteChart("spacebears")
 			Expect(err).To(BeNil())
@@ -396,7 +390,7 @@ version: 0.0.2
 			Expect(err).To(BeNil())
 
 			logger = logrus.New()
-			myRepository := repository.NewRepository(chartPath, "", true, logger)
+			myRepository := repository.NewRepository(chartPath, "", logger)
 
 			err = myRepository.DeleteChart("spacebears")
 			Expect(err).To(BeNil())
