@@ -159,6 +159,14 @@ resources:
     uri: git@github.com:cf-platform-eng/kibosh-ci-state
     private_key: {{github_state_repo_deploy_key}}
 
+- name: kibosh-bbl-pool
+  type: pool
+  source:
+    branch: master
+    uri: git@github.com:cf-platform-eng/kibosh-ci-state
+    pool: bbl
+    private_key: {{github_state_repo_deploy_key}}
+
 - name: spacebears-image
   type: docker-image
   source:
@@ -189,7 +197,7 @@ slack_on_failure: &slack_on_failure
   params:
     icon_emoji: ":concourse-failed:"
     username: Concourse CI
-    channel: "#pe-kubism"
+    channel: "@jkjell"
     text: "Kibosh has a CI failure, see https://concourse.cfplatformeng.com/teams/main/pipelines/kibosh"
 
 jobs:
@@ -489,8 +497,8 @@ jobs:
 - name: upload-stemcell-and-release
   plan:
   - aggregate:
-    - get: kibosh-ci-state
-      #passed: [setup-infrastructure-lite]
+    - put: kibosh-bbl-pool
+      params: {acquire: true}
     - get: lite-stemcell-fixed
     - get: cf-deployment-concourse-tasks-docker
     - get: docker-bosh-release
@@ -508,7 +516,7 @@ jobs:
     config:
       platform: linux
       inputs:
-      - name: kibosh-ci-state
+      - name: kibosh-bbl-pool
       - name: lite-stemcell-fixed
       - name: docker-bosh-release
       - name: cf-cli
@@ -520,7 +528,7 @@ jobs:
         args:
         - -exc
         - |
-          pushd kibosh-ci-state/bbl-state
+          pushd kibosh-bbl-pool/bbl-state
           set +x
           bbl print-env > /tmp/env.sh
           source /tmp/env.sh
@@ -543,7 +551,7 @@ jobs:
 - name: deploy
   plan:
   - aggregate:
-    - get: kibosh-ci-state
+    - get: kibosh-bbl-pool
     - get: cf-deployment-concourse-tasks-docker
     - get: source-repo
       passed: [upload-stemcell-and-release]
@@ -555,14 +563,14 @@ jobs:
     config:
       platform: linux
       inputs:
-      - name: kibosh-ci-state
+      - name: kibosh-bbl-pool
       - name: source-repo
       run:
         path: bash
         args:
         - -exc
         - |
-          pushd kibosh-ci-state/bbl-state
+          pushd kibosh-bbl-pool/bbl-state
           set +x
           bbl print-env > /tmp/env.sh
           source /tmp/env.sh
@@ -589,7 +597,7 @@ jobs:
 - name: push-image-errand
   plan:
   - aggregate:
-    - get: kibosh-ci-state
+    - get: kibosh-bbl-pool
     - get: cf-deployment-concourse-tasks-docker
     - get: source-repo
       passed: [deploy]
@@ -601,14 +609,14 @@ jobs:
     config:
       platform: linux
       inputs:
-      - name: kibosh-ci-state
+      - name: kibosh-bbl-pool
       - name: source-repo
       run:
         path: bash
         args:
         - -exc
         - |
-          pushd kibosh-ci-state/bbl-state
+          pushd kibosh-bbl-pool/bbl-state
           set +x
           bbl print-env > /tmp/env.sh
           source /tmp/env.sh
@@ -760,7 +768,7 @@ jobs:
 - name: delete-deployment
   plan:
   - aggregate:
-    - get: kibosh-ci-state
+    - get: kibosh-bbl-pool
     - get: cf-deployment-concourse-tasks
     - get: kibosh-release
       passed: [push-image-errand]
@@ -773,12 +781,12 @@ jobs:
     params:
       DEPLOYMENT_NAME: kibosh
     input_mapping:
-      bbl-state: kibosh-ci-state
+      bbl-state: kibosh-bbl-pool
 
 - name: clean-up
   plan:
   - aggregate:
-    - get: kibosh-ci-state
+    - get: kibosh-bbl-pool
     - get: cf-deployment-concourse-tasks
     - get: kibosh-release
       passed: [delete-deployment]
@@ -791,7 +799,9 @@ jobs:
     params:
       CLEAN_ALL: true
     input_mapping:
-      bbl-state: kibosh-ci-state
+      bbl-state: kibosh-bbl-pool
+  - put: kibosh-bbl-pool
+    params: {release: kibosh-bbl-pool}
 
 - name: bump-minor
   plan:
