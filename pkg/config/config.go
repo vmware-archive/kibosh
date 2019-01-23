@@ -61,9 +61,10 @@ type Config struct {
 	AdminUsername string `envconfig:"SECURITY_USER_NAME" required:"true"`
 	AdminPassword string `envconfig:"SECURITY_USER_PASSWORD" required:"true"`
 
-	Port         int    `envconfig:"PORT" default:"8080"`
-	HelmChartDir string `envconfig:"HELM_CHART_DIR" default:"charts"`
-	OperatorDir  string `envconfig:"OPERATOR_DIR" default:"operators"`
+	Port            int    `envconfig:"PORT" default:"8080"`
+	HelmChartDir    string `envconfig:"HELM_CHART_DIR" default:"charts"`
+	OperatorDir     string `envconfig:"OPERATOR_DIR" default:"operators"`
+	TillerNamespace string `envconfig:"TILLER_NAMESPACE" default:"kube-system"`
 
 	ClusterCredentials *ClusterCredentials
 	RegistryConfig     *RegistryConfig

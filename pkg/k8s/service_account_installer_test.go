@@ -39,7 +39,7 @@ var _ = Describe("Service Account Installer", func() {
 		cluster = k8sfakes.FakeCluster{}
 		cluster.GetClientReturns(&k8sClient)
 
-		installer = k8s.NewServiceAccountInstaller(&cluster, logger)
+		installer = k8s.NewServiceAccountInstaller(&cluster, "my-kibosh-namespace", logger)
 	})
 
 	Context("ensure account", func() {
@@ -62,14 +62,13 @@ var _ = Describe("Service Account Installer", func() {
 
 			Expect(cluster.CreateServiceAccountCallCount()).To(Equal(1))
 			nameSpace, listOptions := cluster.ListServiceAccountsArgsForCall(0)
-			Expect(listOptions.FieldSelector).To(Equal("metadata.name=tiller"))
-			Expect(nameSpace).To(Equal("kube-system"))
+			Expect(listOptions.FieldSelector).To(Equal("metadata.name=kibosh-tiller"))
+			Expect(nameSpace).To(Equal("my-kibosh-namespace"))
 
 			nameSpace, serviceAccount := cluster.CreateServiceAccountArgsForCall(0)
-			Expect(nameSpace).To(Equal("kube-system"))
+			Expect(nameSpace).To(Equal("my-kibosh-namespace"))
 			Expect(serviceAccount.Labels["kibosh"]).To(Equal("tiller-service-account"))
-			Expect(serviceAccount.Name).To(Equal("tiller"))
-
+			Expect(serviceAccount.Name).To(Equal("kibosh-tiller"))
 		})
 
 		It("Skips creation if the service account exists", func() {
@@ -104,18 +103,18 @@ var _ = Describe("Service Account Installer", func() {
 			Expect(err).To(BeNil())
 
 			listOptions := cluster.ListClusterRoleBindingsArgsForCall(0)
-			Expect(listOptions.FieldSelector).To(Equal("metadata.name=tiller-cluster-admin"))
+			Expect(listOptions.FieldSelector).To(Equal("metadata.name=kibosh:my-kibosh-namespace:kibosh-tiller-cluster-admin"))
 
 			Expect(cluster.CreateClusterRoleBindingCallCount()).To(Equal(1))
 			clusterRoleBinding := cluster.CreateClusterRoleBindingArgsForCall(0)
-			Expect(clusterRoleBinding.Name).To(Equal("tiller-cluster-admin"))
+			Expect(clusterRoleBinding.Name).To(Equal("kibosh:my-kibosh-namespace:kibosh-tiller-cluster-admin"))
 			Expect(clusterRoleBinding.Labels["kibosh"]).To(Equal("tiller-service-admin-binding"))
 			Expect(clusterRoleBinding.RoleRef.Name).To(Equal("cluster-admin"))
 			Expect(clusterRoleBinding.RoleRef.Kind).To(Equal("ClusterRole"))
 			Expect(clusterRoleBinding.RoleRef.APIGroup).To(Equal("rbac.authorization.k8s.io"))
 			Expect(clusterRoleBinding.Subjects[0].Kind).To(Equal("ServiceAccount"))
-			Expect(clusterRoleBinding.Subjects[0].Name).To(Equal("tiller"))
-			Expect(clusterRoleBinding.Subjects[0].Namespace).To(Equal("kube-system"))
+			Expect(clusterRoleBinding.Subjects[0].Name).To(Equal("kibosh-tiller"))
+			Expect(clusterRoleBinding.Subjects[0].Namespace).To(Equal("my-kibosh-namespace"))
 		})
 
 		It("Skips creation if the role exists", func() {

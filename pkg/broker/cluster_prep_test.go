@@ -64,7 +64,8 @@ var _ = Describe("cluster preparation", func() {
 				User:   "k8s",
 				Pass:   "monkey123",
 				Email:  "k8s@example.com"},
-			HelmTLSConfig: &my_config.HelmTLSConfig{},
+			TillerNamespace: "my-kibosh-namespace",
+			HelmTLSConfig:   &my_config.HelmTLSConfig{},
 		}
 		operators = []*my_helm.MyChart{
 			{
@@ -87,6 +88,16 @@ var _ = Describe("cluster preparation", func() {
 	})
 
 	Context("basic functionality", func() {
+		It("creates namespace", func() {
+			err := broker.PrepareCluster(config, &fakeCluster, &fakeHelmClient, &fakeServiceAccountInstaller, fakeInstallerFactory, operators, logger)
+
+			Expect(err).To(BeNil())
+
+			Expect(fakeCluster.CreateNamespaceIfNotExistsCallCount()).To(Equal(1))
+			createdNamespace := fakeCluster.CreateNamespaceIfNotExistsArgsForCall(0)
+			Expect(createdNamespace.Name).To(Equal("my-kibosh-namespace"))
+		})
+
 		It("prepare cluster works", func() {
 			err := broker.PrepareCluster(config, &fakeCluster, &fakeHelmClient, &fakeServiceAccountInstaller, fakeInstallerFactory, operators, logger)
 

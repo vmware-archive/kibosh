@@ -18,6 +18,7 @@ export CA_DATA=$(echo $CA_DATA_RAW | base64 -D)
 
 export SECURITY_USER_NAME=admin
 export SECURITY_USER_PASSWORD=pass
+export TILLER_NAMESPACE=kibosh
 
 LDFLAGS="-X github.com/cf-platform-eng/kibosh/pkg/helm.tillerTag=$(cat tiller-version)"
 

@@ -41,7 +41,7 @@ func main() {
 		kiboshLogger.Fatal("Loading config file", err)
 	}
 
-	repo := repository.NewRepository(conf.HelmChartDir, conf.RegistryConfig.Server, true, kiboshLogger)
+	repo := repository.NewRepository(conf.HelmChartDir, conf.RegistryConfig.Server, kiboshLogger)
 	charts, err := repo.LoadCharts()
 	if err != nil {
 		kiboshLogger.Fatal("Unable to load charts", err)
@@ -61,7 +61,7 @@ func main() {
 		}
 	}
 
-	operatorRepo := repository.NewRepository(conf.OperatorDir, conf.RegistryConfig.Server, false, kiboshLogger)
+	operatorRepo := repository.NewRepository(conf.OperatorDir, conf.RegistryConfig.Server, kiboshLogger)
 	operatorCharts, err := operatorRepo.LoadCharts()
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -71,8 +71,8 @@ func main() {
 	kiboshLogger.Info(fmt.Sprintf("Loaded operator charts: %s", operatorCharts))
 
 	clusterFactory := k8s.NewClusterFactory(*conf.ClusterCredentials)
-	helmClientFactory := helm.NewHelmClientFactory(conf.HelmTLSConfig, kiboshLogger)
-	serviceAccountInstallerFactory := k8s.NewServiceAccountInstallerFactory(kiboshLogger)
+	helmClientFactory := helm.NewHelmClientFactory(conf.HelmTLSConfig, conf.TillerNamespace, kiboshLogger)
+	serviceAccountInstallerFactory := k8s.NewServiceAccountInstallerFactory(conf.TillerNamespace, kiboshLogger)
 
 	err = broker.PrepareDefaultCluster(conf, clusterFactory, helmClientFactory, serviceAccountInstallerFactory, helm.InstallerFactoryDefault, kiboshLogger, operatorCharts)
 

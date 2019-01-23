@@ -36,22 +36,6 @@ resources:
 
 `cf update-service mysql-kibosh-service  -c '{"resources": {"requests": {"memory": "256Mi"}}}'`
 
-### Cluster Targeting
-It is possible to target service creation to a specific cluster. Values are pulled straght from ~/.kube/config file for desired cluster.
-
-json format
-```
-{
-  "clusterConfig" : {
-    "server":"<~/.kube/config Server value>",
-    "token":"<~/.kube/config Token value>",
-    "certificateAuthorityData":"<~/.kube/config CertificatAuthorityData value>"
-  }
-}
-```
-
-`cf create-service mysql medium mysql-kibosh-service -c '{"clusterConfig":{"server":"...","token":"...","certificateAuthorityData":"..."}}`
-
 For some in depth discussion, see this blog post:
 [Use Kubernetes Helm Packages to Build Pivotal Cloud Foundry tiles](https://content.pivotal.io/blog/use-kubernetes-helm-packages-to-build-pivotal-cloud-foundry-tiles-kibosh-a-new-service-broker-makes-it-simple)
 

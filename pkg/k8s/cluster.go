@@ -21,14 +21,14 @@ import (
 	api_v1 "k8s.io/api/core/v1"
 	v1_beta1 "k8s.io/api/extensions/v1beta1"
 	rbacv1beta1 "k8s.io/api/rbac/v1beta1"
+	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	k8sAPI "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 //go:generate counterfeiter ./ Cluster
@@ -38,6 +38,7 @@ type Cluster interface {
 	GetClientConfig() *rest.Config
 
 	CreateNamespace(*api_v1.Namespace) (*api_v1.Namespace, error)
+	CreateNamespaceIfNotExists(*api_v1.Namespace) (*api_v1.Namespace, error)
 	DeleteNamespace(name string, options *meta_v1.DeleteOptions) error
 	GetNamespace(name string, options *meta_v1.GetOptions) (*api_v1.Namespace, error)
 	ListPods(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.PodList, error)
@@ -146,6 +147,24 @@ func (cluster *cluster) GetInternalClient() internalclientset.Interface {
 
 func (cluster *cluster) CreateNamespace(namespace *api_v1.Namespace) (*api_v1.Namespace, error) {
 	return cluster.GetClient().CoreV1().Namespaces().Create(namespace)
+}
+
+func (cluster *cluster) CreateNamespaceIfNotExists(namespace *api_v1.Namespace) (*api_v1.Namespace, error) {
+	_, err := cluster.GetNamespace(namespace.Name, &meta_v1.GetOptions{})
+	if err != nil {
+		statusError, ok := err.(*k8s_errors.StatusError)
+		if ok {
+			if statusError.ErrStatus.Reason == meta_v1.StatusReasonNotFound {
+				return cluster.CreateNamespace(namespace)
+			} else {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
+	} else {
+		return namespace, nil
+	}
 }
 
 func (cluster *cluster) DeleteNamespace(name string, options *meta_v1.DeleteOptions) error {

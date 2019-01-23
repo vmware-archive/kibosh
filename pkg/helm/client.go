@@ -45,9 +45,10 @@ import (
 )
 
 type myHelmClient struct {
-	cluster k8s.Cluster
-	tlsConf *config.HelmTLSConfig
-	logger  *logrus.Logger
+	cluster   k8s.Cluster
+	tlsConf   *config.HelmTLSConfig
+	namespace string
+	logger    *logrus.Logger
 }
 
 //- go:generate counterfeiter ./ MyHelmClient
@@ -65,17 +66,18 @@ type MyHelmClient interface {
 	PrintStatus(out io.Writer, deploymentName string) error
 }
 
-func NewMyHelmClient(cluster k8s.Cluster, tlsConf *config.HelmTLSConfig, logger *logrus.Logger) MyHelmClient {
+func NewMyHelmClient(cluster k8s.Cluster, tlsConf *config.HelmTLSConfig, namespace string, logger *logrus.Logger) MyHelmClient {
 	return &myHelmClient{
-		cluster: cluster,
-		tlsConf: tlsConf,
-		logger:  logger,
+		cluster:   cluster,
+		tlsConf:   tlsConf,
+		namespace: namespace,
+		logger:    logger,
 	}
 }
 
 func (c myHelmClient) open() (*kube.Tunnel, helm.Interface, error) {
 	conf, client := c.cluster.GetClientConfig(), c.cluster.GetClient()
-	tunnel, err := portforwarder.New(nameSpace, client, conf)
+	tunnel, err := portforwarder.New(c.namespace, client, conf)
 	if err != nil {
 		return nil, nil, err
 	}

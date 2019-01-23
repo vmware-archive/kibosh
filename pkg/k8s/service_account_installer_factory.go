@@ -25,13 +25,17 @@ type ServiceAccountInstallerFactory interface {
 }
 
 type serviceAccountInstallerFactory struct {
-	logger *logrus.Logger
+	namespace string
+	logger    *logrus.Logger
 }
 
 func (saif serviceAccountInstallerFactory) ServiceAccountInstaller(cluster Cluster) ServiceAccountInstaller {
-	return NewServiceAccountInstaller(cluster, saif.logger)
+	return NewServiceAccountInstaller(cluster, saif.namespace, saif.logger)
 }
 
-func NewServiceAccountInstallerFactory(logger *logrus.Logger) ServiceAccountInstallerFactory {
-	return &serviceAccountInstallerFactory{logger}
+func NewServiceAccountInstallerFactory(namespace string, logger *logrus.Logger) ServiceAccountInstallerFactory {
+	return &serviceAccountInstallerFactory{
+		namespace: namespace,
+		logger:    logger,
+	}
 }

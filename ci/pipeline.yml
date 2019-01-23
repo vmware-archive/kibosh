@@ -1,4 +1,7 @@
 ---
+vars:
+- &odb_version "v0.20.0"
+
 resource_types:
 - name: gcs-resource
   type: docker-image
@@ -46,7 +49,7 @@ resources:
 - name: on-demand-service-broker
   type: git
   source:
-    branch: v0.20.0
+    branch: *odb_version
     uri: https://github.com/pivotal-cf/on-demand-service-broker
     username: cf-pe-bot
     password: {{github_token}}
@@ -108,7 +111,7 @@ resources:
   source:
     bucket: kibosh-public
     json_key: {{gcp_service_account_key}}
-    regexp: delete_all_and_deregister.linux
+    regexp: delete_all_and_deregister-(?P<version>.*).linux
 
 - name: bazaarcli-linux
   type: gcs-resource
@@ -294,13 +297,14 @@ jobs:
         source:
           repository: golang
           tag: "1.9"
+      params:
+        ODB_VERSION: *odb_version
       run:
         path: bash
         args:
         - -exc
         - |
           set -ex
-
           export SRC=/go/src/github.com/pivotal-cf/on-demand-service-broker
           mkdir -p $SRC
           cp -r on-demand-service-broker/* $SRC
@@ -311,11 +315,11 @@ jobs:
               cmd/delete-all-service-instances-and-deregister-broker/delete_all_service_instances_and_deregister_broker.go
           popd
 
-          cp $SRC/delete_all_and_deregister.linux output/delete_all_and_deregister.linux
+          cp $SRC/delete_all_and_deregister.linux output/delete_all_and_deregister-${ODB_VERSION}.linux
     on_failure: *slack_on_failure
   - put: delete-all-and-deregister
     params:
-      file: output/delete_all_and_deregister.linux
+      file: output/delete_all_and_deregister-*.linux
       predefined_acl: publicRead
 
 
@@ -480,7 +484,7 @@ jobs:
           bosh add-blob ../../../loader-linux/loader-*.linux loader.linux
           bosh add-blob ../../../bazaar-linux/bazaar-*.linux bazaar.linux
           bosh add-blob ../../../bazaarcli-linux/bazaarcli-*.linux bazaarcli.linux
-          bosh add-blob ../../../delete-all-and-deregister/delete_all_and_deregister.linux delete_all_and_deregister.linux
+          bosh add-blob ../../../delete-all-and-deregister/delete_all_and_deregister-*.linux delete_all_and_deregister.linux
           bosh add-blob ../../../cf-cli-binary/cf-cli.tgz cf-cli.tgz
 
 
@@ -624,17 +628,6 @@ jobs:
           popd
 
           pushd source-repo
-
-          echo '
-          stemcell: bosh-google-kvm-ubuntu-trusty-go_agent
-          kibosh-password: {{deployment_broker_password}}
-          k8s-cluster-ca-cert: {{deployment_cluster_ca_cert}}
-          k8s-cluster-server: {{deployment_k8s_cluster_server}}
-          k8s-cluster-token: {{deployment_cluster_token}}
-          registry-server: {{deployment_registry_server}}
-          registry-user: {{deployment_registry_user}}
-          registry-pass: {{deployment_registry_pass}}
-          ' > values.yml
 
           yes | bosh -d kibosh run-errand loader
           popd

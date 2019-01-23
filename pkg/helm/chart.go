@@ -45,6 +45,16 @@ type MyChart struct {
 	Plans                 map[string]Plan
 }
 
+func NewChartValidationError(err error) *ChartValidationError {
+	return &ChartValidationError{
+		error: err,
+	}
+}
+
+type ChartValidationError struct {
+	error
+}
+
 type Plan struct {
 	Name            string   `yaml:"name"`
 	Description     string   `yaml:"description"`
@@ -74,7 +84,7 @@ func LoadFromDir(dir string, log *logrus.Logger, requirePlans bool) ([]*MyChart,
 	charts := []*MyChart{}
 	for _, source := range sources {
 		chartPath := path.Join(dir, source.Name())
-		c, err := NewChart(chartPath, "", requirePlans)
+		c, err := NewChart(chartPath, "")
 		if err != nil {
 			log.Debug(fmt.Sprintf("The file [%s] not failed to load as a chart", chartPath), err)
 		} else {
@@ -85,7 +95,7 @@ func LoadFromDir(dir string, log *logrus.Logger, requirePlans bool) ([]*MyChart,
 	return charts, nil
 }
 
-func NewChart(chartPath string, privateRegistryServer string, requirePlans bool) (*MyChart, error) {
+func NewChart(chartPath string, privateRegistryServer string) (*MyChart, error) {
 	myChart := &MyChart{
 		Chartpath:             chartPath,
 		privateRegistryServer: privateRegistryServer,
@@ -93,7 +103,7 @@ func NewChart(chartPath string, privateRegistryServer string, requirePlans bool)
 
 	chartPathStat, err := os.Stat(chartPath)
 	if err != nil {
-		return nil, err
+		return nil, NewChartValidationError(err)
 	}
 
 	if chartPathStat.IsDir() {
@@ -105,23 +115,32 @@ func NewChart(chartPath string, privateRegistryServer string, requirePlans bool)
 
 	loadedChart, err := chartutil.Load(chartPath)
 	if err != nil {
-		return nil, err
+		return nil, NewChartValidationError(err)
 	}
 	myChart.Chart = loadedChart
 
 	err = myChart.LoadChartValues()
 	if err != nil {
-		return nil, err
+		return nil, NewChartValidationError(err)
 	}
 
-	if requirePlans {
-		if chartPathStat.IsDir() {
-			err = myChart.loadPlansFromDirectory()
-		} else {
-			err = myChart.loadPlansFromArchive()
+	if chartPathStat.IsDir() {
+		err = myChart.loadPlansFromDirectory()
+	} else {
+		err = myChart.loadPlansFromArchive()
+	}
+
+	if err != nil {
+		return nil, NewChartValidationError(err)
+	}
+	if len(myChart.Plans) < 1 {
+		defaultPlan := Plan{
+			Name:        "default",
+			Description: "Plan with default values",
 		}
-		if err != nil {
-			return nil, err
+		myChart.SetPlanDefaultValues(&defaultPlan)
+		myChart.Plans = map[string]Plan{
+			"default": defaultPlan,
 		}
 	}
 
@@ -262,6 +281,17 @@ func (c *MyChart) loadPlansFromArchive() error {
 
 func (c *MyChart) loadPlansFromDirectory() error {
 	plansPath := path.Join(c.Chartpath, "plans.yaml")
+	_, err := os.Stat(plansPath)
+	if err != nil {
+		_, ok := err.(*os.PathError)
+		if ok {
+			c.Plans = map[string]Plan{}
+			return nil
+		} else {
+			return err
+		}
+	}
+
 	plansBytes, err := ioutil.ReadFile(plansPath)
 	if err != nil {
 		return err
@@ -286,14 +316,7 @@ func (c *MyChart) loadPlans(plansPath string, plans []Plan) error {
 		}
 		p.Values = planValues
 
-		if p.Free == nil {
-			t := true
-			p.Free = &t
-		}
-		if p.Bindable == nil {
-			t := true
-			p.Bindable = &t
-		}
+		c.SetPlanDefaultValues(&p)
 		match, err := regexp.MatchString(`^[0-9a-z.\-]+$`, p.Name)
 		if err != nil {
 			return err
@@ -318,6 +341,17 @@ func (c *MyChart) loadPlans(plansPath string, plans []Plan) error {
 	}
 
 	return nil
+}
+
+func (c *MyChart) SetPlanDefaultValues(plan *Plan) {
+	if plan.Free == nil {
+		t := true
+		plan.Free = &t
+	}
+	if plan.Bindable == nil {
+		t := true
+		plan.Bindable = &t
+	}
 }
 
 func (c *MyChart) EnsureIgnore() error {

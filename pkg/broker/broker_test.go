@@ -18,14 +18,12 @@ package broker_test
 import (
 	"encoding/json"
 	"errors"
-	"github.com/cf-platform-eng/kibosh/pkg/k8s"
-	"strings"
-
 	"github.com/Sirupsen/logrus"
 	. "github.com/cf-platform-eng/kibosh/pkg/broker"
 	my_config "github.com/cf-platform-eng/kibosh/pkg/config"
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/helm/helmfakes"
+	"github.com/cf-platform-eng/kibosh/pkg/k8s"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s/k8sfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -36,6 +34,7 @@ import (
 	hapi_chart "k8s.io/helm/pkg/proto/hapi/chart"
 	hapi_release "k8s.io/helm/pkg/proto/hapi/release"
 	hapi_services "k8s.io/helm/pkg/proto/hapi/services"
+	"strings"
 )
 
 var _ = Describe("Broker", func() {
@@ -129,6 +128,7 @@ var _ = Describe("Broker", func() {
 		fakeCluster = k8sfakes.FakeCluster{}
 		fakeClusterFactory.DefaultClusterReturns(&fakeCluster, nil)
 		fakeClusterFactory.GetClusterReturns(&fakeCluster, nil)
+		fakeClusterFactory.GetClusterFromK8sConfigReturns(&fakeCluster, nil)
 		fakeServiceAccountInstaller = k8sfakes.FakeServiceAccountInstaller{}
 		fakeServiceAccountInstallerFactory = k8sfakes.FakeServiceAccountInstallerFactory{}
 		fakeServiceAccountInstallerFactory.ServiceAccountInstallerReturns(&fakeServiceAccountInstaller)
@@ -1002,52 +1002,39 @@ var _ = Describe("Broker", func() {
 			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, charts, nil, logger)
 		})
 
-		It("bubbles up delete chart errors", func() {
-			fakeHelmClient.DeleteReleaseReturns(nil, errors.New("Failed"))
-
-			details := brokerapi.DeprovisionDetails{
-				PlanID:    "my-plan-id",
-				ServiceID: "my-service-id",
-			}
-			_, err := broker.Deprovision(nil, "my-instance-guid", details, true)
-
-			Expect(err).NotTo(BeNil())
-			Expect(fakeHelmClient.DeleteReleaseCallCount()).To(Equal(1))
-
-		})
-
-		It("bubbles up delete namespace errors", func() {
-			fakeCluster.DeleteNamespaceReturns(errors.New("nope"))
-
-			details := brokerapi.DeprovisionDetails{
-				PlanID:    "my-plan-id",
-				ServiceID: "my-service-id",
-			}
-			_, err := broker.Deprovision(nil, "my-instance-guid", details, true)
-
-			Expect(err).NotTo(BeNil())
-			Expect(fakeCluster.DeleteNamespaceCallCount()).To(Equal(1))
-
-		})
-
 		It("correctly calls deletion", func() {
 			details := brokerapi.DeprovisionDetails{
 				PlanID:    "my-plan-id",
 				ServiceID: "my-service-id",
 			}
 			response, err := broker.Deprovision(nil, "my-instance-guid", details, true)
-
-			namespace, _ := fakeCluster.DeleteNamespaceArgsForCall(0)
-			Expect(namespace).To(Equal("kibosh-my-instance-guid"))
-
-			releaseName, _ := fakeHelmClient.DeleteReleaseArgsForCall(0)
-			Expect(releaseName).To(Equal("kibosh-my-instance-guid"))
-
 			Expect(err).To(BeNil())
 			Expect(response.IsAsync).To(BeTrue())
 			Expect(response.OperationData).To(Equal("deprovision"))
-			Expect(fakeClusterFactory.DefaultClusterCallCount()).ShouldNot(Equal(0))
-			Expect(fakeClusterFactory.GetClusterCallCount()).To(Equal(0))
+
+			Eventually(func() int {
+				return fakeCluster.DeleteNamespaceCallCount()
+			}).Should(Equal(1))
+			Eventually(func() string {
+				namespace, _ := fakeCluster.DeleteNamespaceArgsForCall(0)
+				return namespace
+			}).Should(Equal("kibosh-my-instance-guid"))
+
+			Eventually(func() int {
+				return fakeHelmClient.DeleteReleaseCallCount()
+			}).Should(Equal(1))
+			Eventually(func() string {
+				releaseName, _ := fakeHelmClient.DeleteReleaseArgsForCall(0)
+				return releaseName
+			}).Should(Equal("kibosh-my-instance-guid"))
+
+			Consistently(func() int {
+				return fakeClusterFactory.GetClusterCallCount()
+			}).Should(Equal(0))
+
+			Eventually(func() int {
+				return fakeClusterFactory.DefaultClusterCallCount()
+			}).Should(Equal(1))
 		})
 
 		It("targets the plan specific cluster", func() {
