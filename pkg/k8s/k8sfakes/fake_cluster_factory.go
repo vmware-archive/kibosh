@@ -2,18 +2,19 @@
 package k8sfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/cf-platform-eng/kibosh/pkg/config"
-	"github.com/cf-platform-eng/kibosh/pkg/k8s"
-	k8sAPI "k8s.io/client-go/tools/clientcmd/api"
+	config "github.com/cf-platform-eng/kibosh/pkg/config"
+	k8s "github.com/cf-platform-eng/kibosh/pkg/k8s"
+	api "k8s.io/client-go/tools/clientcmd/api"
 )
 
 type FakeClusterFactory struct {
 	DefaultClusterStub        func() (k8s.Cluster, error)
 	defaultClusterMutex       sync.RWMutex
-	defaultClusterArgsForCall []struct{}
-	defaultClusterReturns     struct {
+	defaultClusterArgsForCall []struct {
+	}
+	defaultClusterReturns struct {
 		result1 k8s.Cluster
 		result2 error
 	}
@@ -21,10 +22,10 @@ type FakeClusterFactory struct {
 		result1 k8s.Cluster
 		result2 error
 	}
-	GetClusterStub        func(creds *config.ClusterCredentials) (k8s.Cluster, error)
+	GetClusterStub        func(*config.ClusterCredentials) (k8s.Cluster, error)
 	getClusterMutex       sync.RWMutex
 	getClusterArgsForCall []struct {
-		creds *config.ClusterCredentials
+		arg1 *config.ClusterCredentials
 	}
 	getClusterReturns struct {
 		result1 k8s.Cluster
@@ -34,10 +35,10 @@ type FakeClusterFactory struct {
 		result1 k8s.Cluster
 		result2 error
 	}
-	GetClusterFromK8sConfigStub        func(k8sConfig *k8sAPI.Config) (k8s.Cluster, error)
+	GetClusterFromK8sConfigStub        func(*api.Config) (k8s.Cluster, error)
 	getClusterFromK8sConfigMutex       sync.RWMutex
 	getClusterFromK8sConfigArgsForCall []struct {
-		k8sConfig *k8sAPI.Config
+		arg1 *api.Config
 	}
 	getClusterFromK8sConfigReturns struct {
 		result1 k8s.Cluster
@@ -54,7 +55,8 @@ type FakeClusterFactory struct {
 func (fake *FakeClusterFactory) DefaultCluster() (k8s.Cluster, error) {
 	fake.defaultClusterMutex.Lock()
 	ret, specificReturn := fake.defaultClusterReturnsOnCall[len(fake.defaultClusterArgsForCall)]
-	fake.defaultClusterArgsForCall = append(fake.defaultClusterArgsForCall, struct{}{})
+	fake.defaultClusterArgsForCall = append(fake.defaultClusterArgsForCall, struct {
+	}{})
 	fake.recordInvocation("DefaultCluster", []interface{}{})
 	fake.defaultClusterMutex.Unlock()
 	if fake.DefaultClusterStub != nil {
@@ -63,7 +65,8 @@ func (fake *FakeClusterFactory) DefaultCluster() (k8s.Cluster, error) {
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.defaultClusterReturns.result1, fake.defaultClusterReturns.result2
+	fakeReturns := fake.defaultClusterReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeClusterFactory) DefaultClusterCallCount() int {
@@ -72,7 +75,15 @@ func (fake *FakeClusterFactory) DefaultClusterCallCount() int {
 	return len(fake.defaultClusterArgsForCall)
 }
 
+func (fake *FakeClusterFactory) DefaultClusterCalls(stub func() (k8s.Cluster, error)) {
+	fake.defaultClusterMutex.Lock()
+	defer fake.defaultClusterMutex.Unlock()
+	fake.DefaultClusterStub = stub
+}
+
 func (fake *FakeClusterFactory) DefaultClusterReturns(result1 k8s.Cluster, result2 error) {
+	fake.defaultClusterMutex.Lock()
+	defer fake.defaultClusterMutex.Unlock()
 	fake.DefaultClusterStub = nil
 	fake.defaultClusterReturns = struct {
 		result1 k8s.Cluster
@@ -81,6 +92,8 @@ func (fake *FakeClusterFactory) DefaultClusterReturns(result1 k8s.Cluster, resul
 }
 
 func (fake *FakeClusterFactory) DefaultClusterReturnsOnCall(i int, result1 k8s.Cluster, result2 error) {
+	fake.defaultClusterMutex.Lock()
+	defer fake.defaultClusterMutex.Unlock()
 	fake.DefaultClusterStub = nil
 	if fake.defaultClusterReturnsOnCall == nil {
 		fake.defaultClusterReturnsOnCall = make(map[int]struct {
@@ -94,21 +107,22 @@ func (fake *FakeClusterFactory) DefaultClusterReturnsOnCall(i int, result1 k8s.C
 	}{result1, result2}
 }
 
-func (fake *FakeClusterFactory) GetCluster(creds *config.ClusterCredentials) (k8s.Cluster, error) {
+func (fake *FakeClusterFactory) GetCluster(arg1 *config.ClusterCredentials) (k8s.Cluster, error) {
 	fake.getClusterMutex.Lock()
 	ret, specificReturn := fake.getClusterReturnsOnCall[len(fake.getClusterArgsForCall)]
 	fake.getClusterArgsForCall = append(fake.getClusterArgsForCall, struct {
-		creds *config.ClusterCredentials
-	}{creds})
-	fake.recordInvocation("GetCluster", []interface{}{creds})
+		arg1 *config.ClusterCredentials
+	}{arg1})
+	fake.recordInvocation("GetCluster", []interface{}{arg1})
 	fake.getClusterMutex.Unlock()
 	if fake.GetClusterStub != nil {
-		return fake.GetClusterStub(creds)
+		return fake.GetClusterStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.getClusterReturns.result1, fake.getClusterReturns.result2
+	fakeReturns := fake.getClusterReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeClusterFactory) GetClusterCallCount() int {
@@ -117,13 +131,22 @@ func (fake *FakeClusterFactory) GetClusterCallCount() int {
 	return len(fake.getClusterArgsForCall)
 }
 
+func (fake *FakeClusterFactory) GetClusterCalls(stub func(*config.ClusterCredentials) (k8s.Cluster, error)) {
+	fake.getClusterMutex.Lock()
+	defer fake.getClusterMutex.Unlock()
+	fake.GetClusterStub = stub
+}
+
 func (fake *FakeClusterFactory) GetClusterArgsForCall(i int) *config.ClusterCredentials {
 	fake.getClusterMutex.RLock()
 	defer fake.getClusterMutex.RUnlock()
-	return fake.getClusterArgsForCall[i].creds
+	argsForCall := fake.getClusterArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeClusterFactory) GetClusterReturns(result1 k8s.Cluster, result2 error) {
+	fake.getClusterMutex.Lock()
+	defer fake.getClusterMutex.Unlock()
 	fake.GetClusterStub = nil
 	fake.getClusterReturns = struct {
 		result1 k8s.Cluster
@@ -132,6 +155,8 @@ func (fake *FakeClusterFactory) GetClusterReturns(result1 k8s.Cluster, result2 e
 }
 
 func (fake *FakeClusterFactory) GetClusterReturnsOnCall(i int, result1 k8s.Cluster, result2 error) {
+	fake.getClusterMutex.Lock()
+	defer fake.getClusterMutex.Unlock()
 	fake.GetClusterStub = nil
 	if fake.getClusterReturnsOnCall == nil {
 		fake.getClusterReturnsOnCall = make(map[int]struct {
@@ -145,21 +170,22 @@ func (fake *FakeClusterFactory) GetClusterReturnsOnCall(i int, result1 k8s.Clust
 	}{result1, result2}
 }
 
-func (fake *FakeClusterFactory) GetClusterFromK8sConfig(k8sConfig *k8sAPI.Config) (k8s.Cluster, error) {
+func (fake *FakeClusterFactory) GetClusterFromK8sConfig(arg1 *api.Config) (k8s.Cluster, error) {
 	fake.getClusterFromK8sConfigMutex.Lock()
 	ret, specificReturn := fake.getClusterFromK8sConfigReturnsOnCall[len(fake.getClusterFromK8sConfigArgsForCall)]
 	fake.getClusterFromK8sConfigArgsForCall = append(fake.getClusterFromK8sConfigArgsForCall, struct {
-		k8sConfig *k8sAPI.Config
-	}{k8sConfig})
-	fake.recordInvocation("GetClusterFromK8sConfig", []interface{}{k8sConfig})
+		arg1 *api.Config
+	}{arg1})
+	fake.recordInvocation("GetClusterFromK8sConfig", []interface{}{arg1})
 	fake.getClusterFromK8sConfigMutex.Unlock()
 	if fake.GetClusterFromK8sConfigStub != nil {
-		return fake.GetClusterFromK8sConfigStub(k8sConfig)
+		return fake.GetClusterFromK8sConfigStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.getClusterFromK8sConfigReturns.result1, fake.getClusterFromK8sConfigReturns.result2
+	fakeReturns := fake.getClusterFromK8sConfigReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeClusterFactory) GetClusterFromK8sConfigCallCount() int {
@@ -168,13 +194,22 @@ func (fake *FakeClusterFactory) GetClusterFromK8sConfigCallCount() int {
 	return len(fake.getClusterFromK8sConfigArgsForCall)
 }
 
-func (fake *FakeClusterFactory) GetClusterFromK8sConfigArgsForCall(i int) *k8sAPI.Config {
+func (fake *FakeClusterFactory) GetClusterFromK8sConfigCalls(stub func(*api.Config) (k8s.Cluster, error)) {
+	fake.getClusterFromK8sConfigMutex.Lock()
+	defer fake.getClusterFromK8sConfigMutex.Unlock()
+	fake.GetClusterFromK8sConfigStub = stub
+}
+
+func (fake *FakeClusterFactory) GetClusterFromK8sConfigArgsForCall(i int) *api.Config {
 	fake.getClusterFromK8sConfigMutex.RLock()
 	defer fake.getClusterFromK8sConfigMutex.RUnlock()
-	return fake.getClusterFromK8sConfigArgsForCall[i].k8sConfig
+	argsForCall := fake.getClusterFromK8sConfigArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeClusterFactory) GetClusterFromK8sConfigReturns(result1 k8s.Cluster, result2 error) {
+	fake.getClusterFromK8sConfigMutex.Lock()
+	defer fake.getClusterFromK8sConfigMutex.Unlock()
 	fake.GetClusterFromK8sConfigStub = nil
 	fake.getClusterFromK8sConfigReturns = struct {
 		result1 k8s.Cluster
@@ -183,6 +218,8 @@ func (fake *FakeClusterFactory) GetClusterFromK8sConfigReturns(result1 k8s.Clust
 }
 
 func (fake *FakeClusterFactory) GetClusterFromK8sConfigReturnsOnCall(i int, result1 k8s.Cluster, result2 error) {
+	fake.getClusterFromK8sConfigMutex.Lock()
+	defer fake.getClusterFromK8sConfigMutex.Unlock()
 	fake.GetClusterFromK8sConfigStub = nil
 	if fake.getClusterFromK8sConfigReturnsOnCall == nil {
 		fake.getClusterFromK8sConfigReturnsOnCall = make(map[int]struct {

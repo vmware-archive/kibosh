@@ -2,17 +2,17 @@
 package helmfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/cf-platform-eng/kibosh/pkg/helm"
-	"github.com/cf-platform-eng/kibosh/pkg/k8s"
+	helm "github.com/cf-platform-eng/kibosh/pkg/helm"
+	k8s "github.com/cf-platform-eng/kibosh/pkg/k8s"
 )
 
 type FakeHelmClientFactory struct {
-	HelmClientStub        func(cluster k8s.Cluster) helm.MyHelmClient
+	HelmClientStub        func(k8s.Cluster) helm.MyHelmClient
 	helmClientMutex       sync.RWMutex
 	helmClientArgsForCall []struct {
-		cluster k8s.Cluster
+		arg1 k8s.Cluster
 	}
 	helmClientReturns struct {
 		result1 helm.MyHelmClient
@@ -24,21 +24,22 @@ type FakeHelmClientFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeHelmClientFactory) HelmClient(cluster k8s.Cluster) helm.MyHelmClient {
+func (fake *FakeHelmClientFactory) HelmClient(arg1 k8s.Cluster) helm.MyHelmClient {
 	fake.helmClientMutex.Lock()
 	ret, specificReturn := fake.helmClientReturnsOnCall[len(fake.helmClientArgsForCall)]
 	fake.helmClientArgsForCall = append(fake.helmClientArgsForCall, struct {
-		cluster k8s.Cluster
-	}{cluster})
-	fake.recordInvocation("HelmClient", []interface{}{cluster})
+		arg1 k8s.Cluster
+	}{arg1})
+	fake.recordInvocation("HelmClient", []interface{}{arg1})
 	fake.helmClientMutex.Unlock()
 	if fake.HelmClientStub != nil {
-		return fake.HelmClientStub(cluster)
+		return fake.HelmClientStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.helmClientReturns.result1
+	fakeReturns := fake.helmClientReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeHelmClientFactory) HelmClientCallCount() int {
@@ -47,13 +48,22 @@ func (fake *FakeHelmClientFactory) HelmClientCallCount() int {
 	return len(fake.helmClientArgsForCall)
 }
 
+func (fake *FakeHelmClientFactory) HelmClientCalls(stub func(k8s.Cluster) helm.MyHelmClient) {
+	fake.helmClientMutex.Lock()
+	defer fake.helmClientMutex.Unlock()
+	fake.HelmClientStub = stub
+}
+
 func (fake *FakeHelmClientFactory) HelmClientArgsForCall(i int) k8s.Cluster {
 	fake.helmClientMutex.RLock()
 	defer fake.helmClientMutex.RUnlock()
-	return fake.helmClientArgsForCall[i].cluster
+	argsForCall := fake.helmClientArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeHelmClientFactory) HelmClientReturns(result1 helm.MyHelmClient) {
+	fake.helmClientMutex.Lock()
+	defer fake.helmClientMutex.Unlock()
 	fake.HelmClientStub = nil
 	fake.helmClientReturns = struct {
 		result1 helm.MyHelmClient
@@ -61,6 +71,8 @@ func (fake *FakeHelmClientFactory) HelmClientReturns(result1 helm.MyHelmClient) 
 }
 
 func (fake *FakeHelmClientFactory) HelmClientReturnsOnCall(i int, result1 helm.MyHelmClient) {
+	fake.helmClientMutex.Lock()
+	defer fake.helmClientMutex.Unlock()
 	fake.HelmClientStub = nil
 	if fake.helmClientReturnsOnCall == nil {
 		fake.helmClientReturnsOnCall = make(map[int]struct {

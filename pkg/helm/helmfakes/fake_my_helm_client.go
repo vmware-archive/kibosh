@@ -2,202 +2,60 @@
 package helmfakes
 
 import (
-	"io"
-	"sync"
+	io "io"
+	sync "sync"
 
-	"github.com/cf-platform-eng/kibosh/pkg/config"
-	"github.com/cf-platform-eng/kibosh/pkg/helm"
-	api_v1 "k8s.io/api/core/v1"
-	helmstaller "k8s.io/helm/cmd/helm/installer"
-	helmpkg "k8s.io/helm/pkg/helm"
-	"k8s.io/helm/pkg/proto/hapi/chart"
-	rls "k8s.io/helm/pkg/proto/hapi/services"
+	config "github.com/cf-platform-eng/kibosh/pkg/config"
+	helm "github.com/cf-platform-eng/kibosh/pkg/helm"
+	v1 "k8s.io/api/core/v1"
+	installer "k8s.io/helm/cmd/helm/installer"
+	helma "k8s.io/helm/pkg/helm"
+	chart "k8s.io/helm/pkg/proto/hapi/chart"
+	services "k8s.io/helm/pkg/proto/hapi/services"
 )
 
 type FakeMyHelmClient struct {
-	ListReleasesStub        func(opts ...helmpkg.ReleaseListOption) (*rls.ListReleasesResponse, error)
-	listReleasesMutex       sync.RWMutex
-	listReleasesArgsForCall []struct {
-		opts []helmpkg.ReleaseListOption
-	}
-	listReleasesReturns struct {
-		result1 *rls.ListReleasesResponse
-		result2 error
-	}
-	listReleasesReturnsOnCall map[int]struct {
-		result1 *rls.ListReleasesResponse
-		result2 error
-	}
-	InstallReleaseStub        func(chStr, namespace string, opts ...helmpkg.InstallOption) (*rls.InstallReleaseResponse, error)
-	installReleaseMutex       sync.RWMutex
-	installReleaseArgsForCall []struct {
-		chStr     string
-		namespace string
-		opts      []helmpkg.InstallOption
-	}
-	installReleaseReturns struct {
-		result1 *rls.InstallReleaseResponse
-		result2 error
-	}
-	installReleaseReturnsOnCall map[int]struct {
-		result1 *rls.InstallReleaseResponse
-		result2 error
-	}
-	InstallReleaseFromChartStub        func(chart *chart.Chart, namespace string, opts ...helmpkg.InstallOption) (*rls.InstallReleaseResponse, error)
-	installReleaseFromChartMutex       sync.RWMutex
-	installReleaseFromChartArgsForCall []struct {
-		chart     *chart.Chart
-		namespace string
-		opts      []helmpkg.InstallOption
-	}
-	installReleaseFromChartReturns struct {
-		result1 *rls.InstallReleaseResponse
-		result2 error
-	}
-	installReleaseFromChartReturnsOnCall map[int]struct {
-		result1 *rls.InstallReleaseResponse
-		result2 error
-	}
-	DeleteReleaseStub        func(rlsName string, opts ...helmpkg.DeleteOption) (*rls.UninstallReleaseResponse, error)
+	DeleteReleaseStub        func(string, ...helma.DeleteOption) (*services.UninstallReleaseResponse, error)
 	deleteReleaseMutex       sync.RWMutex
 	deleteReleaseArgsForCall []struct {
-		rlsName string
-		opts    []helmpkg.DeleteOption
+		arg1 string
+		arg2 []helma.DeleteOption
 	}
 	deleteReleaseReturns struct {
-		result1 *rls.UninstallReleaseResponse
+		result1 *services.UninstallReleaseResponse
 		result2 error
 	}
 	deleteReleaseReturnsOnCall map[int]struct {
-		result1 *rls.UninstallReleaseResponse
+		result1 *services.UninstallReleaseResponse
 		result2 error
 	}
-	ReleaseStatusStub        func(rlsName string, opts ...helmpkg.StatusOption) (*rls.GetReleaseStatusResponse, error)
-	releaseStatusMutex       sync.RWMutex
-	releaseStatusArgsForCall []struct {
-		rlsName string
-		opts    []helmpkg.StatusOption
-	}
-	releaseStatusReturns struct {
-		result1 *rls.GetReleaseStatusResponse
-		result2 error
-	}
-	releaseStatusReturnsOnCall map[int]struct {
-		result1 *rls.GetReleaseStatusResponse
-		result2 error
-	}
-	UpdateReleaseStub        func(rlsName, chStr string, opts ...helmpkg.UpdateOption) (*rls.UpdateReleaseResponse, error)
-	updateReleaseMutex       sync.RWMutex
-	updateReleaseArgsForCall []struct {
-		rlsName string
-		chStr   string
-		opts    []helmpkg.UpdateOption
-	}
-	updateReleaseReturns struct {
-		result1 *rls.UpdateReleaseResponse
-		result2 error
-	}
-	updateReleaseReturnsOnCall map[int]struct {
-		result1 *rls.UpdateReleaseResponse
-		result2 error
-	}
-	UpdateReleaseFromChartStub        func(rlsName string, chart *chart.Chart, opts ...helmpkg.UpdateOption) (*rls.UpdateReleaseResponse, error)
-	updateReleaseFromChartMutex       sync.RWMutex
-	updateReleaseFromChartArgsForCall []struct {
-		rlsName string
-		chart   *chart.Chart
-		opts    []helmpkg.UpdateOption
-	}
-	updateReleaseFromChartReturns struct {
-		result1 *rls.UpdateReleaseResponse
-		result2 error
-	}
-	updateReleaseFromChartReturnsOnCall map[int]struct {
-		result1 *rls.UpdateReleaseResponse
-		result2 error
-	}
-	RollbackReleaseStub        func(rlsName string, opts ...helmpkg.RollbackOption) (*rls.RollbackReleaseResponse, error)
-	rollbackReleaseMutex       sync.RWMutex
-	rollbackReleaseArgsForCall []struct {
-		rlsName string
-		opts    []helmpkg.RollbackOption
-	}
-	rollbackReleaseReturns struct {
-		result1 *rls.RollbackReleaseResponse
-		result2 error
-	}
-	rollbackReleaseReturnsOnCall map[int]struct {
-		result1 *rls.RollbackReleaseResponse
-		result2 error
-	}
-	ReleaseContentStub        func(rlsName string, opts ...helmpkg.ContentOption) (*rls.GetReleaseContentResponse, error)
-	releaseContentMutex       sync.RWMutex
-	releaseContentArgsForCall []struct {
-		rlsName string
-		opts    []helmpkg.ContentOption
-	}
-	releaseContentReturns struct {
-		result1 *rls.GetReleaseContentResponse
-		result2 error
-	}
-	releaseContentReturnsOnCall map[int]struct {
-		result1 *rls.GetReleaseContentResponse
-		result2 error
-	}
-	ReleaseHistoryStub        func(rlsName string, opts ...helmpkg.HistoryOption) (*rls.GetHistoryResponse, error)
-	releaseHistoryMutex       sync.RWMutex
-	releaseHistoryArgsForCall []struct {
-		rlsName string
-		opts    []helmpkg.HistoryOption
-	}
-	releaseHistoryReturns struct {
-		result1 *rls.GetHistoryResponse
-		result2 error
-	}
-	releaseHistoryReturnsOnCall map[int]struct {
-		result1 *rls.GetHistoryResponse
-		result2 error
-	}
-	GetVersionStub        func(opts ...helmpkg.VersionOption) (*rls.GetVersionResponse, error)
+	GetVersionStub        func(...helma.VersionOption) (*services.GetVersionResponse, error)
 	getVersionMutex       sync.RWMutex
 	getVersionArgsForCall []struct {
-		opts []helmpkg.VersionOption
+		arg1 []helma.VersionOption
 	}
 	getVersionReturns struct {
-		result1 *rls.GetVersionResponse
+		result1 *services.GetVersionResponse
 		result2 error
 	}
 	getVersionReturnsOnCall map[int]struct {
-		result1 *rls.GetVersionResponse
+		result1 *services.GetVersionResponse
 		result2 error
 	}
-	RunReleaseTestStub        func(rlsName string, opts ...helmpkg.ReleaseTestOption) (<-chan *rls.TestReleaseResponse, <-chan error)
-	runReleaseTestMutex       sync.RWMutex
-	runReleaseTestArgsForCall []struct {
-		rlsName string
-		opts    []helmpkg.ReleaseTestOption
+	HasDifferentTLSConfigStub        func() bool
+	hasDifferentTLSConfigMutex       sync.RWMutex
+	hasDifferentTLSConfigArgsForCall []struct {
 	}
-	runReleaseTestReturns struct {
-		result1 <-chan *rls.TestReleaseResponse
-		result2 <-chan error
+	hasDifferentTLSConfigReturns struct {
+		result1 bool
 	}
-	runReleaseTestReturnsOnCall map[int]struct {
-		result1 <-chan *rls.TestReleaseResponse
-		result2 <-chan error
+	hasDifferentTLSConfigReturnsOnCall map[int]struct {
+		result1 bool
 	}
-	PingTillerStub        func() error
-	pingTillerMutex       sync.RWMutex
-	pingTillerArgsForCall []struct{}
-	pingTillerReturns     struct {
-		result1 error
-	}
-	pingTillerReturnsOnCall map[int]struct {
-		result1 error
-	}
-	InstallStub        func(*helmstaller.Options) error
+	InstallStub        func(*installer.Options) error
 	installMutex       sync.RWMutex
 	installArgsForCall []struct {
-		arg1 *helmstaller.Options
+		arg1 *installer.Options
 	}
 	installReturns struct {
 		result1 error
@@ -205,80 +63,85 @@ type FakeMyHelmClient struct {
 	installReturnsOnCall map[int]struct {
 		result1 error
 	}
-	UpgradeStub        func(*helmstaller.Options) error
-	upgradeMutex       sync.RWMutex
-	upgradeArgsForCall []struct {
-		arg1 *helmstaller.Options
-	}
-	upgradeReturns struct {
-		result1 error
-	}
-	upgradeReturnsOnCall map[int]struct {
-		result1 error
-	}
-	UninstallStub        func(*helmstaller.Options) error
-	uninstallMutex       sync.RWMutex
-	uninstallArgsForCall []struct {
-		arg1 *helmstaller.Options
-	}
-	uninstallReturns struct {
-		result1 error
-	}
-	uninstallReturnsOnCall map[int]struct {
-		result1 error
-	}
-	InstallChartStub        func(registryConfig *config.RegistryConfig, namespace api_v1.Namespace, chart *helm.MyChart, planName string, installValues []byte) (*rls.InstallReleaseResponse, error)
+	InstallChartStub        func(*config.RegistryConfig, v1.Namespace, *helm.MyChart, string, []byte) (*services.InstallReleaseResponse, error)
 	installChartMutex       sync.RWMutex
 	installChartArgsForCall []struct {
-		registryConfig *config.RegistryConfig
-		namespace      api_v1.Namespace
-		chart          *helm.MyChart
-		planName       string
-		installValues  []byte
+		arg1 *config.RegistryConfig
+		arg2 v1.Namespace
+		arg3 *helm.MyChart
+		arg4 string
+		arg5 []byte
 	}
 	installChartReturns struct {
-		result1 *rls.InstallReleaseResponse
+		result1 *services.InstallReleaseResponse
 		result2 error
 	}
 	installChartReturnsOnCall map[int]struct {
-		result1 *rls.InstallReleaseResponse
+		result1 *services.InstallReleaseResponse
 		result2 error
 	}
-	InstallOperatorStub        func(chart *helm.MyChart, namespace string) (*rls.InstallReleaseResponse, error)
+	InstallOperatorStub        func(*helm.MyChart, string) (*services.InstallReleaseResponse, error)
 	installOperatorMutex       sync.RWMutex
 	installOperatorArgsForCall []struct {
-		chart     *helm.MyChart
-		namespace string
+		arg1 *helm.MyChart
+		arg2 string
 	}
 	installOperatorReturns struct {
-		result1 *rls.InstallReleaseResponse
+		result1 *services.InstallReleaseResponse
 		result2 error
 	}
 	installOperatorReturnsOnCall map[int]struct {
-		result1 *rls.InstallReleaseResponse
+		result1 *services.InstallReleaseResponse
 		result2 error
 	}
-	UpdateChartStub        func(chart *helm.MyChart, rlsName string, planName string, updateValues []byte) (*rls.UpdateReleaseResponse, error)
-	updateChartMutex       sync.RWMutex
-	updateChartArgsForCall []struct {
-		chart        *helm.MyChart
-		rlsName      string
-		planName     string
-		updateValues []byte
+	InstallReleaseStub        func(string, string, ...helma.InstallOption) (*services.InstallReleaseResponse, error)
+	installReleaseMutex       sync.RWMutex
+	installReleaseArgsForCall []struct {
+		arg1 string
+		arg2 string
+		arg3 []helma.InstallOption
 	}
-	updateChartReturns struct {
-		result1 *rls.UpdateReleaseResponse
+	installReleaseReturns struct {
+		result1 *services.InstallReleaseResponse
 		result2 error
 	}
-	updateChartReturnsOnCall map[int]struct {
-		result1 *rls.UpdateReleaseResponse
+	installReleaseReturnsOnCall map[int]struct {
+		result1 *services.InstallReleaseResponse
 		result2 error
 	}
-	MergeValueBytesStub        func(base []byte, override []byte) ([]byte, error)
+	InstallReleaseFromChartStub        func(*chart.Chart, string, ...helma.InstallOption) (*services.InstallReleaseResponse, error)
+	installReleaseFromChartMutex       sync.RWMutex
+	installReleaseFromChartArgsForCall []struct {
+		arg1 *chart.Chart
+		arg2 string
+		arg3 []helma.InstallOption
+	}
+	installReleaseFromChartReturns struct {
+		result1 *services.InstallReleaseResponse
+		result2 error
+	}
+	installReleaseFromChartReturnsOnCall map[int]struct {
+		result1 *services.InstallReleaseResponse
+		result2 error
+	}
+	ListReleasesStub        func(...helma.ReleaseListOption) (*services.ListReleasesResponse, error)
+	listReleasesMutex       sync.RWMutex
+	listReleasesArgsForCall []struct {
+		arg1 []helma.ReleaseListOption
+	}
+	listReleasesReturns struct {
+		result1 *services.ListReleasesResponse
+		result2 error
+	}
+	listReleasesReturnsOnCall map[int]struct {
+		result1 *services.ListReleasesResponse
+		result2 error
+	}
+	MergeValueBytesStub        func([]byte, []byte) ([]byte, error)
 	mergeValueBytesMutex       sync.RWMutex
 	mergeValueBytesArgsForCall []struct {
-		base     []byte
-		override []byte
+		arg1 []byte
+		arg2 []byte
 	}
 	mergeValueBytesReturns struct {
 		result1 []byte
@@ -288,20 +151,21 @@ type FakeMyHelmClient struct {
 		result1 []byte
 		result2 error
 	}
-	HasDifferentTLSConfigStub        func() bool
-	hasDifferentTLSConfigMutex       sync.RWMutex
-	hasDifferentTLSConfigArgsForCall []struct{}
-	hasDifferentTLSConfigReturns     struct {
-		result1 bool
+	PingTillerStub        func() error
+	pingTillerMutex       sync.RWMutex
+	pingTillerArgsForCall []struct {
 	}
-	hasDifferentTLSConfigReturnsOnCall map[int]struct {
-		result1 bool
+	pingTillerReturns struct {
+		result1 error
 	}
-	PrintStatusStub        func(out io.Writer, deploymentName string) error
+	pingTillerReturnsOnCall map[int]struct {
+		result1 error
+	}
+	PrintStatusStub        func(io.Writer, string) error
 	printStatusMutex       sync.RWMutex
 	printStatusArgsForCall []struct {
-		out            io.Writer
-		deploymentName string
+		arg1 io.Writer
+		arg2 string
 	}
 	printStatusReturns struct {
 		result1 error
@@ -309,168 +173,165 @@ type FakeMyHelmClient struct {
 	printStatusReturnsOnCall map[int]struct {
 		result1 error
 	}
+	ReleaseContentStub        func(string, ...helma.ContentOption) (*services.GetReleaseContentResponse, error)
+	releaseContentMutex       sync.RWMutex
+	releaseContentArgsForCall []struct {
+		arg1 string
+		arg2 []helma.ContentOption
+	}
+	releaseContentReturns struct {
+		result1 *services.GetReleaseContentResponse
+		result2 error
+	}
+	releaseContentReturnsOnCall map[int]struct {
+		result1 *services.GetReleaseContentResponse
+		result2 error
+	}
+	ReleaseHistoryStub        func(string, ...helma.HistoryOption) (*services.GetHistoryResponse, error)
+	releaseHistoryMutex       sync.RWMutex
+	releaseHistoryArgsForCall []struct {
+		arg1 string
+		arg2 []helma.HistoryOption
+	}
+	releaseHistoryReturns struct {
+		result1 *services.GetHistoryResponse
+		result2 error
+	}
+	releaseHistoryReturnsOnCall map[int]struct {
+		result1 *services.GetHistoryResponse
+		result2 error
+	}
+	ReleaseStatusStub        func(string, ...helma.StatusOption) (*services.GetReleaseStatusResponse, error)
+	releaseStatusMutex       sync.RWMutex
+	releaseStatusArgsForCall []struct {
+		arg1 string
+		arg2 []helma.StatusOption
+	}
+	releaseStatusReturns struct {
+		result1 *services.GetReleaseStatusResponse
+		result2 error
+	}
+	releaseStatusReturnsOnCall map[int]struct {
+		result1 *services.GetReleaseStatusResponse
+		result2 error
+	}
+	RollbackReleaseStub        func(string, ...helma.RollbackOption) (*services.RollbackReleaseResponse, error)
+	rollbackReleaseMutex       sync.RWMutex
+	rollbackReleaseArgsForCall []struct {
+		arg1 string
+		arg2 []helma.RollbackOption
+	}
+	rollbackReleaseReturns struct {
+		result1 *services.RollbackReleaseResponse
+		result2 error
+	}
+	rollbackReleaseReturnsOnCall map[int]struct {
+		result1 *services.RollbackReleaseResponse
+		result2 error
+	}
+	RunReleaseTestStub        func(string, ...helma.ReleaseTestOption) (<-chan *services.TestReleaseResponse, <-chan error)
+	runReleaseTestMutex       sync.RWMutex
+	runReleaseTestArgsForCall []struct {
+		arg1 string
+		arg2 []helma.ReleaseTestOption
+	}
+	runReleaseTestReturns struct {
+		result1 <-chan *services.TestReleaseResponse
+		result2 <-chan error
+	}
+	runReleaseTestReturnsOnCall map[int]struct {
+		result1 <-chan *services.TestReleaseResponse
+		result2 <-chan error
+	}
+	UninstallStub        func(*installer.Options) error
+	uninstallMutex       sync.RWMutex
+	uninstallArgsForCall []struct {
+		arg1 *installer.Options
+	}
+	uninstallReturns struct {
+		result1 error
+	}
+	uninstallReturnsOnCall map[int]struct {
+		result1 error
+	}
+	UpdateChartStub        func(*helm.MyChart, string, string, []byte) (*services.UpdateReleaseResponse, error)
+	updateChartMutex       sync.RWMutex
+	updateChartArgsForCall []struct {
+		arg1 *helm.MyChart
+		arg2 string
+		arg3 string
+		arg4 []byte
+	}
+	updateChartReturns struct {
+		result1 *services.UpdateReleaseResponse
+		result2 error
+	}
+	updateChartReturnsOnCall map[int]struct {
+		result1 *services.UpdateReleaseResponse
+		result2 error
+	}
+	UpdateReleaseStub        func(string, string, ...helma.UpdateOption) (*services.UpdateReleaseResponse, error)
+	updateReleaseMutex       sync.RWMutex
+	updateReleaseArgsForCall []struct {
+		arg1 string
+		arg2 string
+		arg3 []helma.UpdateOption
+	}
+	updateReleaseReturns struct {
+		result1 *services.UpdateReleaseResponse
+		result2 error
+	}
+	updateReleaseReturnsOnCall map[int]struct {
+		result1 *services.UpdateReleaseResponse
+		result2 error
+	}
+	UpdateReleaseFromChartStub        func(string, *chart.Chart, ...helma.UpdateOption) (*services.UpdateReleaseResponse, error)
+	updateReleaseFromChartMutex       sync.RWMutex
+	updateReleaseFromChartArgsForCall []struct {
+		arg1 string
+		arg2 *chart.Chart
+		arg3 []helma.UpdateOption
+	}
+	updateReleaseFromChartReturns struct {
+		result1 *services.UpdateReleaseResponse
+		result2 error
+	}
+	updateReleaseFromChartReturnsOnCall map[int]struct {
+		result1 *services.UpdateReleaseResponse
+		result2 error
+	}
+	UpgradeStub        func(*installer.Options) error
+	upgradeMutex       sync.RWMutex
+	upgradeArgsForCall []struct {
+		arg1 *installer.Options
+	}
+	upgradeReturns struct {
+		result1 error
+	}
+	upgradeReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeMyHelmClient) ListReleases(opts ...helmpkg.ReleaseListOption) (*rls.ListReleasesResponse, error) {
-	fake.listReleasesMutex.Lock()
-	ret, specificReturn := fake.listReleasesReturnsOnCall[len(fake.listReleasesArgsForCall)]
-	fake.listReleasesArgsForCall = append(fake.listReleasesArgsForCall, struct {
-		opts []helmpkg.ReleaseListOption
-	}{opts})
-	fake.recordInvocation("ListReleases", []interface{}{opts})
-	fake.listReleasesMutex.Unlock()
-	if fake.ListReleasesStub != nil {
-		return fake.ListReleasesStub(opts...)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.listReleasesReturns.result1, fake.listReleasesReturns.result2
-}
-
-func (fake *FakeMyHelmClient) ListReleasesCallCount() int {
-	fake.listReleasesMutex.RLock()
-	defer fake.listReleasesMutex.RUnlock()
-	return len(fake.listReleasesArgsForCall)
-}
-
-func (fake *FakeMyHelmClient) ListReleasesArgsForCall(i int) []helmpkg.ReleaseListOption {
-	fake.listReleasesMutex.RLock()
-	defer fake.listReleasesMutex.RUnlock()
-	return fake.listReleasesArgsForCall[i].opts
-}
-
-func (fake *FakeMyHelmClient) ListReleasesReturns(result1 *rls.ListReleasesResponse, result2 error) {
-	fake.ListReleasesStub = nil
-	fake.listReleasesReturns = struct {
-		result1 *rls.ListReleasesResponse
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeMyHelmClient) ListReleasesReturnsOnCall(i int, result1 *rls.ListReleasesResponse, result2 error) {
-	fake.ListReleasesStub = nil
-	if fake.listReleasesReturnsOnCall == nil {
-		fake.listReleasesReturnsOnCall = make(map[int]struct {
-			result1 *rls.ListReleasesResponse
-			result2 error
-		})
-	}
-	fake.listReleasesReturnsOnCall[i] = struct {
-		result1 *rls.ListReleasesResponse
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeMyHelmClient) InstallRelease(chStr string, namespace string, opts ...helmpkg.InstallOption) (*rls.InstallReleaseResponse, error) {
-	fake.installReleaseMutex.Lock()
-	ret, specificReturn := fake.installReleaseReturnsOnCall[len(fake.installReleaseArgsForCall)]
-	fake.installReleaseArgsForCall = append(fake.installReleaseArgsForCall, struct {
-		chStr     string
-		namespace string
-		opts      []helmpkg.InstallOption
-	}{chStr, namespace, opts})
-	fake.recordInvocation("InstallRelease", []interface{}{chStr, namespace, opts})
-	fake.installReleaseMutex.Unlock()
-	if fake.InstallReleaseStub != nil {
-		return fake.InstallReleaseStub(chStr, namespace, opts...)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.installReleaseReturns.result1, fake.installReleaseReturns.result2
-}
-
-func (fake *FakeMyHelmClient) InstallReleaseCallCount() int {
-	fake.installReleaseMutex.RLock()
-	defer fake.installReleaseMutex.RUnlock()
-	return len(fake.installReleaseArgsForCall)
-}
-
-func (fake *FakeMyHelmClient) InstallReleaseArgsForCall(i int) (string, string, []helmpkg.InstallOption) {
-	fake.installReleaseMutex.RLock()
-	defer fake.installReleaseMutex.RUnlock()
-	return fake.installReleaseArgsForCall[i].chStr, fake.installReleaseArgsForCall[i].namespace, fake.installReleaseArgsForCall[i].opts
-}
-
-func (fake *FakeMyHelmClient) InstallReleaseReturns(result1 *rls.InstallReleaseResponse, result2 error) {
-	fake.InstallReleaseStub = nil
-	fake.installReleaseReturns = struct {
-		result1 *rls.InstallReleaseResponse
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeMyHelmClient) InstallReleaseReturnsOnCall(i int, result1 *rls.InstallReleaseResponse, result2 error) {
-	fake.InstallReleaseStub = nil
-	if fake.installReleaseReturnsOnCall == nil {
-		fake.installReleaseReturnsOnCall = make(map[int]struct {
-			result1 *rls.InstallReleaseResponse
-			result2 error
-		})
-	}
-	fake.installReleaseReturnsOnCall[i] = struct {
-		result1 *rls.InstallReleaseResponse
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeMyHelmClient) InstallReleaseFromChart(chart *chart.Chart, namespace string, opts ...helmpkg.InstallOption) (*rls.InstallReleaseResponse, error) {
-	panic("Bad fake generation")
-}
-
-func (fake *FakeMyHelmClient) InstallReleaseFromChartCallCount() int {
-	fake.installReleaseFromChartMutex.RLock()
-	defer fake.installReleaseFromChartMutex.RUnlock()
-	return len(fake.installReleaseFromChartArgsForCall)
-}
-
-func (fake *FakeMyHelmClient) InstallReleaseFromChartArgsForCall(i int) (*chart.Chart, string, []helmpkg.InstallOption) {
-	fake.installReleaseFromChartMutex.RLock()
-	defer fake.installReleaseFromChartMutex.RUnlock()
-	return fake.installReleaseFromChartArgsForCall[i].chart, fake.installReleaseFromChartArgsForCall[i].namespace, fake.installReleaseFromChartArgsForCall[i].opts
-}
-
-func (fake *FakeMyHelmClient) InstallReleaseFromChartReturns(result1 *rls.InstallReleaseResponse, result2 error) {
-	fake.InstallReleaseFromChartStub = nil
-	fake.installReleaseFromChartReturns = struct {
-		result1 *rls.InstallReleaseResponse
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeMyHelmClient) InstallReleaseFromChartReturnsOnCall(i int, result1 *rls.InstallReleaseResponse, result2 error) {
-	fake.InstallReleaseFromChartStub = nil
-	if fake.installReleaseFromChartReturnsOnCall == nil {
-		fake.installReleaseFromChartReturnsOnCall = make(map[int]struct {
-			result1 *rls.InstallReleaseResponse
-			result2 error
-		})
-	}
-	fake.installReleaseFromChartReturnsOnCall[i] = struct {
-		result1 *rls.InstallReleaseResponse
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeMyHelmClient) DeleteRelease(rlsName string, opts ...helmpkg.DeleteOption) (*rls.UninstallReleaseResponse, error) {
+func (fake *FakeMyHelmClient) DeleteRelease(arg1 string, arg2 ...helma.DeleteOption) (*services.UninstallReleaseResponse, error) {
 	fake.deleteReleaseMutex.Lock()
 	ret, specificReturn := fake.deleteReleaseReturnsOnCall[len(fake.deleteReleaseArgsForCall)]
 	fake.deleteReleaseArgsForCall = append(fake.deleteReleaseArgsForCall, struct {
-		rlsName string
-		opts    []helmpkg.DeleteOption
-	}{rlsName, opts})
-	fake.recordInvocation("DeleteRelease", []interface{}{rlsName, opts})
+		arg1 string
+		arg2 []helma.DeleteOption
+	}{arg1, arg2})
+	fake.recordInvocation("DeleteRelease", []interface{}{arg1, arg2})
 	fake.deleteReleaseMutex.Unlock()
 	if fake.DeleteReleaseStub != nil {
-		return fake.DeleteReleaseStub(rlsName, opts...)
+		return fake.DeleteReleaseStub(arg1, arg2...)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.deleteReleaseReturns.result1, fake.deleteReleaseReturns.result2
+	fakeReturns := fake.deleteReleaseReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeMyHelmClient) DeleteReleaseCallCount() int {
@@ -479,348 +340,61 @@ func (fake *FakeMyHelmClient) DeleteReleaseCallCount() int {
 	return len(fake.deleteReleaseArgsForCall)
 }
 
-func (fake *FakeMyHelmClient) DeleteReleaseArgsForCall(i int) (string, []helmpkg.DeleteOption) {
-	fake.deleteReleaseMutex.RLock()
-	defer fake.deleteReleaseMutex.RUnlock()
-	return fake.deleteReleaseArgsForCall[i].rlsName, fake.deleteReleaseArgsForCall[i].opts
+func (fake *FakeMyHelmClient) DeleteReleaseCalls(stub func(string, ...helma.DeleteOption) (*services.UninstallReleaseResponse, error)) {
+	fake.deleteReleaseMutex.Lock()
+	defer fake.deleteReleaseMutex.Unlock()
+	fake.DeleteReleaseStub = stub
 }
 
-func (fake *FakeMyHelmClient) DeleteReleaseReturns(result1 *rls.UninstallReleaseResponse, result2 error) {
+func (fake *FakeMyHelmClient) DeleteReleaseArgsForCall(i int) (string, []helma.DeleteOption) {
+	fake.deleteReleaseMutex.RLock()
+	defer fake.deleteReleaseMutex.RUnlock()
+	argsForCall := fake.deleteReleaseArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeMyHelmClient) DeleteReleaseReturns(result1 *services.UninstallReleaseResponse, result2 error) {
+	fake.deleteReleaseMutex.Lock()
+	defer fake.deleteReleaseMutex.Unlock()
 	fake.DeleteReleaseStub = nil
 	fake.deleteReleaseReturns = struct {
-		result1 *rls.UninstallReleaseResponse
+		result1 *services.UninstallReleaseResponse
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeMyHelmClient) DeleteReleaseReturnsOnCall(i int, result1 *rls.UninstallReleaseResponse, result2 error) {
+func (fake *FakeMyHelmClient) DeleteReleaseReturnsOnCall(i int, result1 *services.UninstallReleaseResponse, result2 error) {
+	fake.deleteReleaseMutex.Lock()
+	defer fake.deleteReleaseMutex.Unlock()
 	fake.DeleteReleaseStub = nil
 	if fake.deleteReleaseReturnsOnCall == nil {
 		fake.deleteReleaseReturnsOnCall = make(map[int]struct {
-			result1 *rls.UninstallReleaseResponse
+			result1 *services.UninstallReleaseResponse
 			result2 error
 		})
 	}
 	fake.deleteReleaseReturnsOnCall[i] = struct {
-		result1 *rls.UninstallReleaseResponse
+		result1 *services.UninstallReleaseResponse
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeMyHelmClient) ReleaseStatus(rlsName string, opts ...helmpkg.StatusOption) (*rls.GetReleaseStatusResponse, error) {
-	fake.releaseStatusMutex.Lock()
-	ret, specificReturn := fake.releaseStatusReturnsOnCall[len(fake.releaseStatusArgsForCall)]
-	fake.releaseStatusArgsForCall = append(fake.releaseStatusArgsForCall, struct {
-		rlsName string
-		opts    []helmpkg.StatusOption
-	}{rlsName, opts})
-	fake.recordInvocation("ReleaseStatus", []interface{}{rlsName, opts})
-	fake.releaseStatusMutex.Unlock()
-	if fake.ReleaseStatusStub != nil {
-		return fake.ReleaseStatusStub(rlsName, opts...)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.releaseStatusReturns.result1, fake.releaseStatusReturns.result2
-}
-
-func (fake *FakeMyHelmClient) ReleaseStatusCallCount() int {
-	fake.releaseStatusMutex.RLock()
-	defer fake.releaseStatusMutex.RUnlock()
-	return len(fake.releaseStatusArgsForCall)
-}
-
-func (fake *FakeMyHelmClient) ReleaseStatusArgsForCall(i int) (string, []helmpkg.StatusOption) {
-	fake.releaseStatusMutex.RLock()
-	defer fake.releaseStatusMutex.RUnlock()
-	return fake.releaseStatusArgsForCall[i].rlsName, fake.releaseStatusArgsForCall[i].opts
-}
-
-func (fake *FakeMyHelmClient) ReleaseStatusReturns(result1 *rls.GetReleaseStatusResponse, result2 error) {
-	fake.ReleaseStatusStub = nil
-	fake.releaseStatusReturns = struct {
-		result1 *rls.GetReleaseStatusResponse
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeMyHelmClient) ReleaseStatusReturnsOnCall(i int, result1 *rls.GetReleaseStatusResponse, result2 error) {
-	fake.ReleaseStatusStub = nil
-	if fake.releaseStatusReturnsOnCall == nil {
-		fake.releaseStatusReturnsOnCall = make(map[int]struct {
-			result1 *rls.GetReleaseStatusResponse
-			result2 error
-		})
-	}
-	fake.releaseStatusReturnsOnCall[i] = struct {
-		result1 *rls.GetReleaseStatusResponse
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeMyHelmClient) UpdateRelease(rlsName string, chStr string, opts ...helmpkg.UpdateOption) (*rls.UpdateReleaseResponse, error) {
-	fake.updateReleaseMutex.Lock()
-	ret, specificReturn := fake.updateReleaseReturnsOnCall[len(fake.updateReleaseArgsForCall)]
-	fake.updateReleaseArgsForCall = append(fake.updateReleaseArgsForCall, struct {
-		rlsName string
-		chStr   string
-		opts    []helmpkg.UpdateOption
-	}{rlsName, chStr, opts})
-	fake.recordInvocation("UpdateRelease", []interface{}{rlsName, chStr, opts})
-	fake.updateReleaseMutex.Unlock()
-	if fake.UpdateReleaseStub != nil {
-		return fake.UpdateReleaseStub(rlsName, chStr, opts...)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.updateReleaseReturns.result1, fake.updateReleaseReturns.result2
-}
-
-func (fake *FakeMyHelmClient) UpdateReleaseCallCount() int {
-	fake.updateReleaseMutex.RLock()
-	defer fake.updateReleaseMutex.RUnlock()
-	return len(fake.updateReleaseArgsForCall)
-}
-
-func (fake *FakeMyHelmClient) UpdateReleaseArgsForCall(i int) (string, string, []helmpkg.UpdateOption) {
-	fake.updateReleaseMutex.RLock()
-	defer fake.updateReleaseMutex.RUnlock()
-	return fake.updateReleaseArgsForCall[i].rlsName, fake.updateReleaseArgsForCall[i].chStr, fake.updateReleaseArgsForCall[i].opts
-}
-
-func (fake *FakeMyHelmClient) UpdateReleaseReturns(result1 *rls.UpdateReleaseResponse, result2 error) {
-	fake.UpdateReleaseStub = nil
-	fake.updateReleaseReturns = struct {
-		result1 *rls.UpdateReleaseResponse
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeMyHelmClient) UpdateReleaseReturnsOnCall(i int, result1 *rls.UpdateReleaseResponse, result2 error) {
-	fake.UpdateReleaseStub = nil
-	if fake.updateReleaseReturnsOnCall == nil {
-		fake.updateReleaseReturnsOnCall = make(map[int]struct {
-			result1 *rls.UpdateReleaseResponse
-			result2 error
-		})
-	}
-	fake.updateReleaseReturnsOnCall[i] = struct {
-		result1 *rls.UpdateReleaseResponse
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeMyHelmClient) UpdateReleaseFromChart(rlsName string, chart *chart.Chart, opts ...helmpkg.UpdateOption) (*rls.UpdateReleaseResponse, error) {
-	panic("Bad fake generation")
-}
-
-func (fake *FakeMyHelmClient) UpdateReleaseFromChartCallCount() int {
-	fake.updateReleaseFromChartMutex.RLock()
-	defer fake.updateReleaseFromChartMutex.RUnlock()
-	return len(fake.updateReleaseFromChartArgsForCall)
-}
-
-func (fake *FakeMyHelmClient) UpdateReleaseFromChartArgsForCall(i int) (string, *chart.Chart, []helmpkg.UpdateOption) {
-	fake.updateReleaseFromChartMutex.RLock()
-	defer fake.updateReleaseFromChartMutex.RUnlock()
-	return fake.updateReleaseFromChartArgsForCall[i].rlsName, fake.updateReleaseFromChartArgsForCall[i].chart, fake.updateReleaseFromChartArgsForCall[i].opts
-}
-
-func (fake *FakeMyHelmClient) UpdateReleaseFromChartReturns(result1 *rls.UpdateReleaseResponse, result2 error) {
-	fake.UpdateReleaseFromChartStub = nil
-	fake.updateReleaseFromChartReturns = struct {
-		result1 *rls.UpdateReleaseResponse
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeMyHelmClient) UpdateReleaseFromChartReturnsOnCall(i int, result1 *rls.UpdateReleaseResponse, result2 error) {
-	fake.UpdateReleaseFromChartStub = nil
-	if fake.updateReleaseFromChartReturnsOnCall == nil {
-		fake.updateReleaseFromChartReturnsOnCall = make(map[int]struct {
-			result1 *rls.UpdateReleaseResponse
-			result2 error
-		})
-	}
-	fake.updateReleaseFromChartReturnsOnCall[i] = struct {
-		result1 *rls.UpdateReleaseResponse
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeMyHelmClient) RollbackRelease(rlsName string, opts ...helmpkg.RollbackOption) (*rls.RollbackReleaseResponse, error) {
-	fake.rollbackReleaseMutex.Lock()
-	ret, specificReturn := fake.rollbackReleaseReturnsOnCall[len(fake.rollbackReleaseArgsForCall)]
-	fake.rollbackReleaseArgsForCall = append(fake.rollbackReleaseArgsForCall, struct {
-		rlsName string
-		opts    []helmpkg.RollbackOption
-	}{rlsName, opts})
-	fake.recordInvocation("RollbackRelease", []interface{}{rlsName, opts})
-	fake.rollbackReleaseMutex.Unlock()
-	if fake.RollbackReleaseStub != nil {
-		return fake.RollbackReleaseStub(rlsName, opts...)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.rollbackReleaseReturns.result1, fake.rollbackReleaseReturns.result2
-}
-
-func (fake *FakeMyHelmClient) RollbackReleaseCallCount() int {
-	fake.rollbackReleaseMutex.RLock()
-	defer fake.rollbackReleaseMutex.RUnlock()
-	return len(fake.rollbackReleaseArgsForCall)
-}
-
-func (fake *FakeMyHelmClient) RollbackReleaseArgsForCall(i int) (string, []helmpkg.RollbackOption) {
-	fake.rollbackReleaseMutex.RLock()
-	defer fake.rollbackReleaseMutex.RUnlock()
-	return fake.rollbackReleaseArgsForCall[i].rlsName, fake.rollbackReleaseArgsForCall[i].opts
-}
-
-func (fake *FakeMyHelmClient) RollbackReleaseReturns(result1 *rls.RollbackReleaseResponse, result2 error) {
-	fake.RollbackReleaseStub = nil
-	fake.rollbackReleaseReturns = struct {
-		result1 *rls.RollbackReleaseResponse
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeMyHelmClient) RollbackReleaseReturnsOnCall(i int, result1 *rls.RollbackReleaseResponse, result2 error) {
-	fake.RollbackReleaseStub = nil
-	if fake.rollbackReleaseReturnsOnCall == nil {
-		fake.rollbackReleaseReturnsOnCall = make(map[int]struct {
-			result1 *rls.RollbackReleaseResponse
-			result2 error
-		})
-	}
-	fake.rollbackReleaseReturnsOnCall[i] = struct {
-		result1 *rls.RollbackReleaseResponse
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeMyHelmClient) ReleaseContent(rlsName string, opts ...helmpkg.ContentOption) (*rls.GetReleaseContentResponse, error) {
-	fake.releaseContentMutex.Lock()
-	ret, specificReturn := fake.releaseContentReturnsOnCall[len(fake.releaseContentArgsForCall)]
-	fake.releaseContentArgsForCall = append(fake.releaseContentArgsForCall, struct {
-		rlsName string
-		opts    []helmpkg.ContentOption
-	}{rlsName, opts})
-	fake.recordInvocation("ReleaseContent", []interface{}{rlsName, opts})
-	fake.releaseContentMutex.Unlock()
-	if fake.ReleaseContentStub != nil {
-		return fake.ReleaseContentStub(rlsName, opts...)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.releaseContentReturns.result1, fake.releaseContentReturns.result2
-}
-
-func (fake *FakeMyHelmClient) ReleaseContentCallCount() int {
-	fake.releaseContentMutex.RLock()
-	defer fake.releaseContentMutex.RUnlock()
-	return len(fake.releaseContentArgsForCall)
-}
-
-func (fake *FakeMyHelmClient) ReleaseContentArgsForCall(i int) (string, []helmpkg.ContentOption) {
-	fake.releaseContentMutex.RLock()
-	defer fake.releaseContentMutex.RUnlock()
-	return fake.releaseContentArgsForCall[i].rlsName, fake.releaseContentArgsForCall[i].opts
-}
-
-func (fake *FakeMyHelmClient) ReleaseContentReturns(result1 *rls.GetReleaseContentResponse, result2 error) {
-	fake.ReleaseContentStub = nil
-	fake.releaseContentReturns = struct {
-		result1 *rls.GetReleaseContentResponse
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeMyHelmClient) ReleaseContentReturnsOnCall(i int, result1 *rls.GetReleaseContentResponse, result2 error) {
-	fake.ReleaseContentStub = nil
-	if fake.releaseContentReturnsOnCall == nil {
-		fake.releaseContentReturnsOnCall = make(map[int]struct {
-			result1 *rls.GetReleaseContentResponse
-			result2 error
-		})
-	}
-	fake.releaseContentReturnsOnCall[i] = struct {
-		result1 *rls.GetReleaseContentResponse
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeMyHelmClient) ReleaseHistory(rlsName string, opts ...helmpkg.HistoryOption) (*rls.GetHistoryResponse, error) {
-	fake.releaseHistoryMutex.Lock()
-	ret, specificReturn := fake.releaseHistoryReturnsOnCall[len(fake.releaseHistoryArgsForCall)]
-	fake.releaseHistoryArgsForCall = append(fake.releaseHistoryArgsForCall, struct {
-		rlsName string
-		opts    []helmpkg.HistoryOption
-	}{rlsName, opts})
-	fake.recordInvocation("ReleaseHistory", []interface{}{rlsName, opts})
-	fake.releaseHistoryMutex.Unlock()
-	if fake.ReleaseHistoryStub != nil {
-		return fake.ReleaseHistoryStub(rlsName, opts...)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.releaseHistoryReturns.result1, fake.releaseHistoryReturns.result2
-}
-
-func (fake *FakeMyHelmClient) ReleaseHistoryCallCount() int {
-	fake.releaseHistoryMutex.RLock()
-	defer fake.releaseHistoryMutex.RUnlock()
-	return len(fake.releaseHistoryArgsForCall)
-}
-
-func (fake *FakeMyHelmClient) ReleaseHistoryArgsForCall(i int) (string, []helmpkg.HistoryOption) {
-	fake.releaseHistoryMutex.RLock()
-	defer fake.releaseHistoryMutex.RUnlock()
-	return fake.releaseHistoryArgsForCall[i].rlsName, fake.releaseHistoryArgsForCall[i].opts
-}
-
-func (fake *FakeMyHelmClient) ReleaseHistoryReturns(result1 *rls.GetHistoryResponse, result2 error) {
-	fake.ReleaseHistoryStub = nil
-	fake.releaseHistoryReturns = struct {
-		result1 *rls.GetHistoryResponse
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeMyHelmClient) ReleaseHistoryReturnsOnCall(i int, result1 *rls.GetHistoryResponse, result2 error) {
-	fake.ReleaseHistoryStub = nil
-	if fake.releaseHistoryReturnsOnCall == nil {
-		fake.releaseHistoryReturnsOnCall = make(map[int]struct {
-			result1 *rls.GetHistoryResponse
-			result2 error
-		})
-	}
-	fake.releaseHistoryReturnsOnCall[i] = struct {
-		result1 *rls.GetHistoryResponse
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeMyHelmClient) GetVersion(opts ...helmpkg.VersionOption) (*rls.GetVersionResponse, error) {
+func (fake *FakeMyHelmClient) GetVersion(arg1 ...helma.VersionOption) (*services.GetVersionResponse, error) {
 	fake.getVersionMutex.Lock()
 	ret, specificReturn := fake.getVersionReturnsOnCall[len(fake.getVersionArgsForCall)]
 	fake.getVersionArgsForCall = append(fake.getVersionArgsForCall, struct {
-		opts []helmpkg.VersionOption
-	}{opts})
-	fake.recordInvocation("GetVersion", []interface{}{opts})
+		arg1 []helma.VersionOption
+	}{arg1})
+	fake.recordInvocation("GetVersion", []interface{}{arg1})
 	fake.getVersionMutex.Unlock()
 	if fake.GetVersionStub != nil {
-		return fake.GetVersionStub(opts...)
+		return fake.GetVersionStub(arg1...)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.getVersionReturns.result1, fake.getVersionReturns.result2
+	fakeReturns := fake.getVersionReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeMyHelmClient) GetVersionCallCount() int {
@@ -829,131 +403,102 @@ func (fake *FakeMyHelmClient) GetVersionCallCount() int {
 	return len(fake.getVersionArgsForCall)
 }
 
-func (fake *FakeMyHelmClient) GetVersionArgsForCall(i int) []helmpkg.VersionOption {
-	fake.getVersionMutex.RLock()
-	defer fake.getVersionMutex.RUnlock()
-	return fake.getVersionArgsForCall[i].opts
+func (fake *FakeMyHelmClient) GetVersionCalls(stub func(...helma.VersionOption) (*services.GetVersionResponse, error)) {
+	fake.getVersionMutex.Lock()
+	defer fake.getVersionMutex.Unlock()
+	fake.GetVersionStub = stub
 }
 
-func (fake *FakeMyHelmClient) GetVersionReturns(result1 *rls.GetVersionResponse, result2 error) {
+func (fake *FakeMyHelmClient) GetVersionArgsForCall(i int) []helma.VersionOption {
+	fake.getVersionMutex.RLock()
+	defer fake.getVersionMutex.RUnlock()
+	argsForCall := fake.getVersionArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeMyHelmClient) GetVersionReturns(result1 *services.GetVersionResponse, result2 error) {
+	fake.getVersionMutex.Lock()
+	defer fake.getVersionMutex.Unlock()
 	fake.GetVersionStub = nil
 	fake.getVersionReturns = struct {
-		result1 *rls.GetVersionResponse
+		result1 *services.GetVersionResponse
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeMyHelmClient) GetVersionReturnsOnCall(i int, result1 *rls.GetVersionResponse, result2 error) {
+func (fake *FakeMyHelmClient) GetVersionReturnsOnCall(i int, result1 *services.GetVersionResponse, result2 error) {
+	fake.getVersionMutex.Lock()
+	defer fake.getVersionMutex.Unlock()
 	fake.GetVersionStub = nil
 	if fake.getVersionReturnsOnCall == nil {
 		fake.getVersionReturnsOnCall = make(map[int]struct {
-			result1 *rls.GetVersionResponse
+			result1 *services.GetVersionResponse
 			result2 error
 		})
 	}
 	fake.getVersionReturnsOnCall[i] = struct {
-		result1 *rls.GetVersionResponse
+		result1 *services.GetVersionResponse
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeMyHelmClient) RunReleaseTest(rlsName string, opts ...helmpkg.ReleaseTestOption) (<-chan *rls.TestReleaseResponse, <-chan error) {
-	fake.runReleaseTestMutex.Lock()
-	ret, specificReturn := fake.runReleaseTestReturnsOnCall[len(fake.runReleaseTestArgsForCall)]
-	fake.runReleaseTestArgsForCall = append(fake.runReleaseTestArgsForCall, struct {
-		rlsName string
-		opts    []helmpkg.ReleaseTestOption
-	}{rlsName, opts})
-	fake.recordInvocation("RunReleaseTest", []interface{}{rlsName, opts})
-	fake.runReleaseTestMutex.Unlock()
-	if fake.RunReleaseTestStub != nil {
-		return fake.RunReleaseTestStub(rlsName, opts...)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.runReleaseTestReturns.result1, fake.runReleaseTestReturns.result2
-}
-
-func (fake *FakeMyHelmClient) RunReleaseTestCallCount() int {
-	fake.runReleaseTestMutex.RLock()
-	defer fake.runReleaseTestMutex.RUnlock()
-	return len(fake.runReleaseTestArgsForCall)
-}
-
-func (fake *FakeMyHelmClient) RunReleaseTestArgsForCall(i int) (string, []helmpkg.ReleaseTestOption) {
-	fake.runReleaseTestMutex.RLock()
-	defer fake.runReleaseTestMutex.RUnlock()
-	return fake.runReleaseTestArgsForCall[i].rlsName, fake.runReleaseTestArgsForCall[i].opts
-}
-
-func (fake *FakeMyHelmClient) RunReleaseTestReturns(result1 <-chan *rls.TestReleaseResponse, result2 <-chan error) {
-	fake.RunReleaseTestStub = nil
-	fake.runReleaseTestReturns = struct {
-		result1 <-chan *rls.TestReleaseResponse
-		result2 <-chan error
-	}{result1, result2}
-}
-
-func (fake *FakeMyHelmClient) RunReleaseTestReturnsOnCall(i int, result1 <-chan *rls.TestReleaseResponse, result2 <-chan error) {
-	fake.RunReleaseTestStub = nil
-	if fake.runReleaseTestReturnsOnCall == nil {
-		fake.runReleaseTestReturnsOnCall = make(map[int]struct {
-			result1 <-chan *rls.TestReleaseResponse
-			result2 <-chan error
-		})
-	}
-	fake.runReleaseTestReturnsOnCall[i] = struct {
-		result1 <-chan *rls.TestReleaseResponse
-		result2 <-chan error
-	}{result1, result2}
-}
-
-func (fake *FakeMyHelmClient) PingTiller() error {
-	fake.pingTillerMutex.Lock()
-	ret, specificReturn := fake.pingTillerReturnsOnCall[len(fake.pingTillerArgsForCall)]
-	fake.pingTillerArgsForCall = append(fake.pingTillerArgsForCall, struct{}{})
-	fake.recordInvocation("PingTiller", []interface{}{})
-	fake.pingTillerMutex.Unlock()
-	if fake.PingTillerStub != nil {
-		return fake.PingTillerStub()
+func (fake *FakeMyHelmClient) HasDifferentTLSConfig() bool {
+	fake.hasDifferentTLSConfigMutex.Lock()
+	ret, specificReturn := fake.hasDifferentTLSConfigReturnsOnCall[len(fake.hasDifferentTLSConfigArgsForCall)]
+	fake.hasDifferentTLSConfigArgsForCall = append(fake.hasDifferentTLSConfigArgsForCall, struct {
+	}{})
+	fake.recordInvocation("HasDifferentTLSConfig", []interface{}{})
+	fake.hasDifferentTLSConfigMutex.Unlock()
+	if fake.HasDifferentTLSConfigStub != nil {
+		return fake.HasDifferentTLSConfigStub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.pingTillerReturns.result1
+	fakeReturns := fake.hasDifferentTLSConfigReturns
+	return fakeReturns.result1
 }
 
-func (fake *FakeMyHelmClient) PingTillerCallCount() int {
-	fake.pingTillerMutex.RLock()
-	defer fake.pingTillerMutex.RUnlock()
-	return len(fake.pingTillerArgsForCall)
+func (fake *FakeMyHelmClient) HasDifferentTLSConfigCallCount() int {
+	fake.hasDifferentTLSConfigMutex.RLock()
+	defer fake.hasDifferentTLSConfigMutex.RUnlock()
+	return len(fake.hasDifferentTLSConfigArgsForCall)
 }
 
-func (fake *FakeMyHelmClient) PingTillerReturns(result1 error) {
-	fake.PingTillerStub = nil
-	fake.pingTillerReturns = struct {
-		result1 error
+func (fake *FakeMyHelmClient) HasDifferentTLSConfigCalls(stub func() bool) {
+	fake.hasDifferentTLSConfigMutex.Lock()
+	defer fake.hasDifferentTLSConfigMutex.Unlock()
+	fake.HasDifferentTLSConfigStub = stub
+}
+
+func (fake *FakeMyHelmClient) HasDifferentTLSConfigReturns(result1 bool) {
+	fake.hasDifferentTLSConfigMutex.Lock()
+	defer fake.hasDifferentTLSConfigMutex.Unlock()
+	fake.HasDifferentTLSConfigStub = nil
+	fake.hasDifferentTLSConfigReturns = struct {
+		result1 bool
 	}{result1}
 }
 
-func (fake *FakeMyHelmClient) PingTillerReturnsOnCall(i int, result1 error) {
-	fake.PingTillerStub = nil
-	if fake.pingTillerReturnsOnCall == nil {
-		fake.pingTillerReturnsOnCall = make(map[int]struct {
-			result1 error
+func (fake *FakeMyHelmClient) HasDifferentTLSConfigReturnsOnCall(i int, result1 bool) {
+	fake.hasDifferentTLSConfigMutex.Lock()
+	defer fake.hasDifferentTLSConfigMutex.Unlock()
+	fake.HasDifferentTLSConfigStub = nil
+	if fake.hasDifferentTLSConfigReturnsOnCall == nil {
+		fake.hasDifferentTLSConfigReturnsOnCall = make(map[int]struct {
+			result1 bool
 		})
 	}
-	fake.pingTillerReturnsOnCall[i] = struct {
-		result1 error
+	fake.hasDifferentTLSConfigReturnsOnCall[i] = struct {
+		result1 bool
 	}{result1}
 }
 
-func (fake *FakeMyHelmClient) Install(arg1 *helmstaller.Options) error {
+func (fake *FakeMyHelmClient) Install(arg1 *installer.Options) error {
 	fake.installMutex.Lock()
 	ret, specificReturn := fake.installReturnsOnCall[len(fake.installArgsForCall)]
 	fake.installArgsForCall = append(fake.installArgsForCall, struct {
-		arg1 *helmstaller.Options
+		arg1 *installer.Options
 	}{arg1})
 	fake.recordInvocation("Install", []interface{}{arg1})
 	fake.installMutex.Unlock()
@@ -963,7 +508,8 @@ func (fake *FakeMyHelmClient) Install(arg1 *helmstaller.Options) error {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.installReturns.result1
+	fakeReturns := fake.installReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeMyHelmClient) InstallCallCount() int {
@@ -972,13 +518,22 @@ func (fake *FakeMyHelmClient) InstallCallCount() int {
 	return len(fake.installArgsForCall)
 }
 
-func (fake *FakeMyHelmClient) InstallArgsForCall(i int) *helmstaller.Options {
+func (fake *FakeMyHelmClient) InstallCalls(stub func(*installer.Options) error) {
+	fake.installMutex.Lock()
+	defer fake.installMutex.Unlock()
+	fake.InstallStub = stub
+}
+
+func (fake *FakeMyHelmClient) InstallArgsForCall(i int) *installer.Options {
 	fake.installMutex.RLock()
 	defer fake.installMutex.RUnlock()
-	return fake.installArgsForCall[i].arg1
+	argsForCall := fake.installArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeMyHelmClient) InstallReturns(result1 error) {
+	fake.installMutex.Lock()
+	defer fake.installMutex.Unlock()
 	fake.InstallStub = nil
 	fake.installReturns = struct {
 		result1 error
@@ -986,6 +541,8 @@ func (fake *FakeMyHelmClient) InstallReturns(result1 error) {
 }
 
 func (fake *FakeMyHelmClient) InstallReturnsOnCall(i int, result1 error) {
+	fake.installMutex.Lock()
+	defer fake.installMutex.Unlock()
 	fake.InstallStub = nil
 	if fake.installReturnsOnCall == nil {
 		fake.installReturnsOnCall = make(map[int]struct {
@@ -997,126 +554,31 @@ func (fake *FakeMyHelmClient) InstallReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeMyHelmClient) Upgrade(arg1 *helmstaller.Options) error {
-	fake.upgradeMutex.Lock()
-	ret, specificReturn := fake.upgradeReturnsOnCall[len(fake.upgradeArgsForCall)]
-	fake.upgradeArgsForCall = append(fake.upgradeArgsForCall, struct {
-		arg1 *helmstaller.Options
-	}{arg1})
-	fake.recordInvocation("Upgrade", []interface{}{arg1})
-	fake.upgradeMutex.Unlock()
-	if fake.UpgradeStub != nil {
-		return fake.UpgradeStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.upgradeReturns.result1
-}
-
-func (fake *FakeMyHelmClient) UpgradeCallCount() int {
-	fake.upgradeMutex.RLock()
-	defer fake.upgradeMutex.RUnlock()
-	return len(fake.upgradeArgsForCall)
-}
-
-func (fake *FakeMyHelmClient) UpgradeArgsForCall(i int) *helmstaller.Options {
-	fake.upgradeMutex.RLock()
-	defer fake.upgradeMutex.RUnlock()
-	return fake.upgradeArgsForCall[i].arg1
-}
-
-func (fake *FakeMyHelmClient) UpgradeReturns(result1 error) {
-	fake.UpgradeStub = nil
-	fake.upgradeReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeMyHelmClient) UpgradeReturnsOnCall(i int, result1 error) {
-	fake.UpgradeStub = nil
-	if fake.upgradeReturnsOnCall == nil {
-		fake.upgradeReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.upgradeReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeMyHelmClient) Uninstall(arg1 *helmstaller.Options) error {
-	fake.uninstallMutex.Lock()
-	ret, specificReturn := fake.uninstallReturnsOnCall[len(fake.uninstallArgsForCall)]
-	fake.uninstallArgsForCall = append(fake.uninstallArgsForCall, struct {
-		arg1 *helmstaller.Options
-	}{arg1})
-	fake.recordInvocation("Uninstall", []interface{}{arg1})
-	fake.uninstallMutex.Unlock()
-	if fake.UninstallStub != nil {
-		return fake.UninstallStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.uninstallReturns.result1
-}
-
-func (fake *FakeMyHelmClient) UninstallCallCount() int {
-	fake.uninstallMutex.RLock()
-	defer fake.uninstallMutex.RUnlock()
-	return len(fake.uninstallArgsForCall)
-}
-
-func (fake *FakeMyHelmClient) UninstallArgsForCall(i int) *helmstaller.Options {
-	fake.uninstallMutex.RLock()
-	defer fake.uninstallMutex.RUnlock()
-	return fake.uninstallArgsForCall[i].arg1
-}
-
-func (fake *FakeMyHelmClient) UninstallReturns(result1 error) {
-	fake.UninstallStub = nil
-	fake.uninstallReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeMyHelmClient) UninstallReturnsOnCall(i int, result1 error) {
-	fake.UninstallStub = nil
-	if fake.uninstallReturnsOnCall == nil {
-		fake.uninstallReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.uninstallReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeMyHelmClient) InstallChart(registryConfig *config.RegistryConfig, namespace api_v1.Namespace, chart *helm.MyChart, planName string, installValues []byte) (*rls.InstallReleaseResponse, error) {
-	var installValuesCopy []byte
-	if installValues != nil {
-		installValuesCopy = make([]byte, len(installValues))
-		copy(installValuesCopy, installValues)
+func (fake *FakeMyHelmClient) InstallChart(arg1 *config.RegistryConfig, arg2 v1.Namespace, arg3 *helm.MyChart, arg4 string, arg5 []byte) (*services.InstallReleaseResponse, error) {
+	var arg5Copy []byte
+	if arg5 != nil {
+		arg5Copy = make([]byte, len(arg5))
+		copy(arg5Copy, arg5)
 	}
 	fake.installChartMutex.Lock()
 	ret, specificReturn := fake.installChartReturnsOnCall[len(fake.installChartArgsForCall)]
 	fake.installChartArgsForCall = append(fake.installChartArgsForCall, struct {
-		registryConfig *config.RegistryConfig
-		namespace      api_v1.Namespace
-		chart          *helm.MyChart
-		planName       string
-		installValues  []byte
-	}{registryConfig, namespace, chart, planName, installValuesCopy})
-	fake.recordInvocation("InstallChart", []interface{}{registryConfig, namespace, chart, planName, installValuesCopy})
+		arg1 *config.RegistryConfig
+		arg2 v1.Namespace
+		arg3 *helm.MyChart
+		arg4 string
+		arg5 []byte
+	}{arg1, arg2, arg3, arg4, arg5Copy})
+	fake.recordInvocation("InstallChart", []interface{}{arg1, arg2, arg3, arg4, arg5Copy})
 	fake.installChartMutex.Unlock()
 	if fake.InstallChartStub != nil {
-		return fake.InstallChartStub(registryConfig, namespace, chart, planName, installValues)
+		return fake.InstallChartStub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.installChartReturns.result1, fake.installChartReturns.result2
+	fakeReturns := fake.installChartReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeMyHelmClient) InstallChartCallCount() int {
@@ -1125,50 +587,62 @@ func (fake *FakeMyHelmClient) InstallChartCallCount() int {
 	return len(fake.installChartArgsForCall)
 }
 
-func (fake *FakeMyHelmClient) InstallChartArgsForCall(i int) (*config.RegistryConfig, api_v1.Namespace, *helm.MyChart, string, []byte) {
-	fake.installChartMutex.RLock()
-	defer fake.installChartMutex.RUnlock()
-	return fake.installChartArgsForCall[i].registryConfig, fake.installChartArgsForCall[i].namespace, fake.installChartArgsForCall[i].chart, fake.installChartArgsForCall[i].planName, fake.installChartArgsForCall[i].installValues
+func (fake *FakeMyHelmClient) InstallChartCalls(stub func(*config.RegistryConfig, v1.Namespace, *helm.MyChart, string, []byte) (*services.InstallReleaseResponse, error)) {
+	fake.installChartMutex.Lock()
+	defer fake.installChartMutex.Unlock()
+	fake.InstallChartStub = stub
 }
 
-func (fake *FakeMyHelmClient) InstallChartReturns(result1 *rls.InstallReleaseResponse, result2 error) {
+func (fake *FakeMyHelmClient) InstallChartArgsForCall(i int) (*config.RegistryConfig, v1.Namespace, *helm.MyChart, string, []byte) {
+	fake.installChartMutex.RLock()
+	defer fake.installChartMutex.RUnlock()
+	argsForCall := fake.installChartArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
+}
+
+func (fake *FakeMyHelmClient) InstallChartReturns(result1 *services.InstallReleaseResponse, result2 error) {
+	fake.installChartMutex.Lock()
+	defer fake.installChartMutex.Unlock()
 	fake.InstallChartStub = nil
 	fake.installChartReturns = struct {
-		result1 *rls.InstallReleaseResponse
+		result1 *services.InstallReleaseResponse
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeMyHelmClient) InstallChartReturnsOnCall(i int, result1 *rls.InstallReleaseResponse, result2 error) {
+func (fake *FakeMyHelmClient) InstallChartReturnsOnCall(i int, result1 *services.InstallReleaseResponse, result2 error) {
+	fake.installChartMutex.Lock()
+	defer fake.installChartMutex.Unlock()
 	fake.InstallChartStub = nil
 	if fake.installChartReturnsOnCall == nil {
 		fake.installChartReturnsOnCall = make(map[int]struct {
-			result1 *rls.InstallReleaseResponse
+			result1 *services.InstallReleaseResponse
 			result2 error
 		})
 	}
 	fake.installChartReturnsOnCall[i] = struct {
-		result1 *rls.InstallReleaseResponse
+		result1 *services.InstallReleaseResponse
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeMyHelmClient) InstallOperator(chart *helm.MyChart, namespace string) (*rls.InstallReleaseResponse, error) {
+func (fake *FakeMyHelmClient) InstallOperator(arg1 *helm.MyChart, arg2 string) (*services.InstallReleaseResponse, error) {
 	fake.installOperatorMutex.Lock()
 	ret, specificReturn := fake.installOperatorReturnsOnCall[len(fake.installOperatorArgsForCall)]
 	fake.installOperatorArgsForCall = append(fake.installOperatorArgsForCall, struct {
-		chart     *helm.MyChart
-		namespace string
-	}{chart, namespace})
-	fake.recordInvocation("InstallOperator", []interface{}{chart, namespace})
+		arg1 *helm.MyChart
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("InstallOperator", []interface{}{arg1, arg2})
 	fake.installOperatorMutex.Unlock()
 	if fake.InstallOperatorStub != nil {
-		return fake.InstallOperatorStub(chart, namespace)
+		return fake.InstallOperatorStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.installOperatorReturns.result1, fake.installOperatorReturns.result2
+	fakeReturns := fake.installOperatorReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeMyHelmClient) InstallOperatorCallCount() int {
@@ -1177,119 +651,265 @@ func (fake *FakeMyHelmClient) InstallOperatorCallCount() int {
 	return len(fake.installOperatorArgsForCall)
 }
 
+func (fake *FakeMyHelmClient) InstallOperatorCalls(stub func(*helm.MyChart, string) (*services.InstallReleaseResponse, error)) {
+	fake.installOperatorMutex.Lock()
+	defer fake.installOperatorMutex.Unlock()
+	fake.InstallOperatorStub = stub
+}
+
 func (fake *FakeMyHelmClient) InstallOperatorArgsForCall(i int) (*helm.MyChart, string) {
 	fake.installOperatorMutex.RLock()
 	defer fake.installOperatorMutex.RUnlock()
-	return fake.installOperatorArgsForCall[i].chart, fake.installOperatorArgsForCall[i].namespace
+	argsForCall := fake.installOperatorArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeMyHelmClient) InstallOperatorReturns(result1 *rls.InstallReleaseResponse, result2 error) {
+func (fake *FakeMyHelmClient) InstallOperatorReturns(result1 *services.InstallReleaseResponse, result2 error) {
+	fake.installOperatorMutex.Lock()
+	defer fake.installOperatorMutex.Unlock()
 	fake.InstallOperatorStub = nil
 	fake.installOperatorReturns = struct {
-		result1 *rls.InstallReleaseResponse
+		result1 *services.InstallReleaseResponse
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeMyHelmClient) InstallOperatorReturnsOnCall(i int, result1 *rls.InstallReleaseResponse, result2 error) {
+func (fake *FakeMyHelmClient) InstallOperatorReturnsOnCall(i int, result1 *services.InstallReleaseResponse, result2 error) {
+	fake.installOperatorMutex.Lock()
+	defer fake.installOperatorMutex.Unlock()
 	fake.InstallOperatorStub = nil
 	if fake.installOperatorReturnsOnCall == nil {
 		fake.installOperatorReturnsOnCall = make(map[int]struct {
-			result1 *rls.InstallReleaseResponse
+			result1 *services.InstallReleaseResponse
 			result2 error
 		})
 	}
 	fake.installOperatorReturnsOnCall[i] = struct {
-		result1 *rls.InstallReleaseResponse
+		result1 *services.InstallReleaseResponse
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeMyHelmClient) UpdateChart(chart *helm.MyChart, rlsName string, planName string, updateValues []byte) (*rls.UpdateReleaseResponse, error) {
-	var updateValuesCopy []byte
-	if updateValues != nil {
-		updateValuesCopy = make([]byte, len(updateValues))
-		copy(updateValuesCopy, updateValues)
-	}
-	fake.updateChartMutex.Lock()
-	ret, specificReturn := fake.updateChartReturnsOnCall[len(fake.updateChartArgsForCall)]
-	fake.updateChartArgsForCall = append(fake.updateChartArgsForCall, struct {
-		chart        *helm.MyChart
-		rlsName      string
-		planName     string
-		updateValues []byte
-	}{chart, rlsName, planName, updateValuesCopy})
-	fake.recordInvocation("UpdateChart", []interface{}{chart, rlsName, planName, updateValuesCopy})
-	fake.updateChartMutex.Unlock()
-	if fake.UpdateChartStub != nil {
-		return fake.UpdateChartStub(chart, rlsName, planName, updateValues)
+func (fake *FakeMyHelmClient) InstallRelease(arg1 string, arg2 string, arg3 ...helma.InstallOption) (*services.InstallReleaseResponse, error) {
+	fake.installReleaseMutex.Lock()
+	ret, specificReturn := fake.installReleaseReturnsOnCall[len(fake.installReleaseArgsForCall)]
+	fake.installReleaseArgsForCall = append(fake.installReleaseArgsForCall, struct {
+		arg1 string
+		arg2 string
+		arg3 []helma.InstallOption
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("InstallRelease", []interface{}{arg1, arg2, arg3})
+	fake.installReleaseMutex.Unlock()
+	if fake.InstallReleaseStub != nil {
+		return fake.InstallReleaseStub(arg1, arg2, arg3...)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.updateChartReturns.result1, fake.updateChartReturns.result2
+	fakeReturns := fake.installReleaseReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *FakeMyHelmClient) UpdateChartCallCount() int {
-	fake.updateChartMutex.RLock()
-	defer fake.updateChartMutex.RUnlock()
-	return len(fake.updateChartArgsForCall)
+func (fake *FakeMyHelmClient) InstallReleaseCallCount() int {
+	fake.installReleaseMutex.RLock()
+	defer fake.installReleaseMutex.RUnlock()
+	return len(fake.installReleaseArgsForCall)
 }
 
-func (fake *FakeMyHelmClient) UpdateChartArgsForCall(i int) (*helm.MyChart, string, string, []byte) {
-	fake.updateChartMutex.RLock()
-	defer fake.updateChartMutex.RUnlock()
-	return fake.updateChartArgsForCall[i].chart, fake.updateChartArgsForCall[i].rlsName, fake.updateChartArgsForCall[i].planName, fake.updateChartArgsForCall[i].updateValues
+func (fake *FakeMyHelmClient) InstallReleaseCalls(stub func(string, string, ...helma.InstallOption) (*services.InstallReleaseResponse, error)) {
+	fake.installReleaseMutex.Lock()
+	defer fake.installReleaseMutex.Unlock()
+	fake.InstallReleaseStub = stub
 }
 
-func (fake *FakeMyHelmClient) UpdateChartReturns(result1 *rls.UpdateReleaseResponse, result2 error) {
-	fake.UpdateChartStub = nil
-	fake.updateChartReturns = struct {
-		result1 *rls.UpdateReleaseResponse
+func (fake *FakeMyHelmClient) InstallReleaseArgsForCall(i int) (string, string, []helma.InstallOption) {
+	fake.installReleaseMutex.RLock()
+	defer fake.installReleaseMutex.RUnlock()
+	argsForCall := fake.installReleaseArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeMyHelmClient) InstallReleaseReturns(result1 *services.InstallReleaseResponse, result2 error) {
+	fake.installReleaseMutex.Lock()
+	defer fake.installReleaseMutex.Unlock()
+	fake.InstallReleaseStub = nil
+	fake.installReleaseReturns = struct {
+		result1 *services.InstallReleaseResponse
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeMyHelmClient) UpdateChartReturnsOnCall(i int, result1 *rls.UpdateReleaseResponse, result2 error) {
-	fake.UpdateChartStub = nil
-	if fake.updateChartReturnsOnCall == nil {
-		fake.updateChartReturnsOnCall = make(map[int]struct {
-			result1 *rls.UpdateReleaseResponse
+func (fake *FakeMyHelmClient) InstallReleaseReturnsOnCall(i int, result1 *services.InstallReleaseResponse, result2 error) {
+	fake.installReleaseMutex.Lock()
+	defer fake.installReleaseMutex.Unlock()
+	fake.InstallReleaseStub = nil
+	if fake.installReleaseReturnsOnCall == nil {
+		fake.installReleaseReturnsOnCall = make(map[int]struct {
+			result1 *services.InstallReleaseResponse
 			result2 error
 		})
 	}
-	fake.updateChartReturnsOnCall[i] = struct {
-		result1 *rls.UpdateReleaseResponse
+	fake.installReleaseReturnsOnCall[i] = struct {
+		result1 *services.InstallReleaseResponse
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeMyHelmClient) MergeValueBytes(base []byte, override []byte) ([]byte, error) {
-	var baseCopy []byte
-	if base != nil {
-		baseCopy = make([]byte, len(base))
-		copy(baseCopy, base)
+func (fake *FakeMyHelmClient) InstallReleaseFromChart(arg1 *chart.Chart, arg2 string, arg3 ...helma.InstallOption) (*services.InstallReleaseResponse, error) {
+	fake.installReleaseFromChartMutex.Lock()
+	ret, specificReturn := fake.installReleaseFromChartReturnsOnCall[len(fake.installReleaseFromChartArgsForCall)]
+	fake.installReleaseFromChartArgsForCall = append(fake.installReleaseFromChartArgsForCall, struct {
+		arg1 *chart.Chart
+		arg2 string
+		arg3 []helma.InstallOption
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("InstallReleaseFromChart", []interface{}{arg1, arg2, arg3})
+	fake.installReleaseFromChartMutex.Unlock()
+	if fake.InstallReleaseFromChartStub != nil {
+		return fake.InstallReleaseFromChartStub(arg1, arg2, arg3...)
 	}
-	var overrideCopy []byte
-	if override != nil {
-		overrideCopy = make([]byte, len(override))
-		copy(overrideCopy, override)
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.installReleaseFromChartReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeMyHelmClient) InstallReleaseFromChartCallCount() int {
+	fake.installReleaseFromChartMutex.RLock()
+	defer fake.installReleaseFromChartMutex.RUnlock()
+	return len(fake.installReleaseFromChartArgsForCall)
+}
+
+func (fake *FakeMyHelmClient) InstallReleaseFromChartCalls(stub func(*chart.Chart, string, ...helma.InstallOption) (*services.InstallReleaseResponse, error)) {
+	fake.installReleaseFromChartMutex.Lock()
+	defer fake.installReleaseFromChartMutex.Unlock()
+	fake.InstallReleaseFromChartStub = stub
+}
+
+func (fake *FakeMyHelmClient) InstallReleaseFromChartArgsForCall(i int) (*chart.Chart, string, []helma.InstallOption) {
+	fake.installReleaseFromChartMutex.RLock()
+	defer fake.installReleaseFromChartMutex.RUnlock()
+	argsForCall := fake.installReleaseFromChartArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeMyHelmClient) InstallReleaseFromChartReturns(result1 *services.InstallReleaseResponse, result2 error) {
+	fake.installReleaseFromChartMutex.Lock()
+	defer fake.installReleaseFromChartMutex.Unlock()
+	fake.InstallReleaseFromChartStub = nil
+	fake.installReleaseFromChartReturns = struct {
+		result1 *services.InstallReleaseResponse
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) InstallReleaseFromChartReturnsOnCall(i int, result1 *services.InstallReleaseResponse, result2 error) {
+	fake.installReleaseFromChartMutex.Lock()
+	defer fake.installReleaseFromChartMutex.Unlock()
+	fake.InstallReleaseFromChartStub = nil
+	if fake.installReleaseFromChartReturnsOnCall == nil {
+		fake.installReleaseFromChartReturnsOnCall = make(map[int]struct {
+			result1 *services.InstallReleaseResponse
+			result2 error
+		})
+	}
+	fake.installReleaseFromChartReturnsOnCall[i] = struct {
+		result1 *services.InstallReleaseResponse
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) ListReleases(arg1 ...helma.ReleaseListOption) (*services.ListReleasesResponse, error) {
+	fake.listReleasesMutex.Lock()
+	ret, specificReturn := fake.listReleasesReturnsOnCall[len(fake.listReleasesArgsForCall)]
+	fake.listReleasesArgsForCall = append(fake.listReleasesArgsForCall, struct {
+		arg1 []helma.ReleaseListOption
+	}{arg1})
+	fake.recordInvocation("ListReleases", []interface{}{arg1})
+	fake.listReleasesMutex.Unlock()
+	if fake.ListReleasesStub != nil {
+		return fake.ListReleasesStub(arg1...)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.listReleasesReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeMyHelmClient) ListReleasesCallCount() int {
+	fake.listReleasesMutex.RLock()
+	defer fake.listReleasesMutex.RUnlock()
+	return len(fake.listReleasesArgsForCall)
+}
+
+func (fake *FakeMyHelmClient) ListReleasesCalls(stub func(...helma.ReleaseListOption) (*services.ListReleasesResponse, error)) {
+	fake.listReleasesMutex.Lock()
+	defer fake.listReleasesMutex.Unlock()
+	fake.ListReleasesStub = stub
+}
+
+func (fake *FakeMyHelmClient) ListReleasesArgsForCall(i int) []helma.ReleaseListOption {
+	fake.listReleasesMutex.RLock()
+	defer fake.listReleasesMutex.RUnlock()
+	argsForCall := fake.listReleasesArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeMyHelmClient) ListReleasesReturns(result1 *services.ListReleasesResponse, result2 error) {
+	fake.listReleasesMutex.Lock()
+	defer fake.listReleasesMutex.Unlock()
+	fake.ListReleasesStub = nil
+	fake.listReleasesReturns = struct {
+		result1 *services.ListReleasesResponse
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) ListReleasesReturnsOnCall(i int, result1 *services.ListReleasesResponse, result2 error) {
+	fake.listReleasesMutex.Lock()
+	defer fake.listReleasesMutex.Unlock()
+	fake.ListReleasesStub = nil
+	if fake.listReleasesReturnsOnCall == nil {
+		fake.listReleasesReturnsOnCall = make(map[int]struct {
+			result1 *services.ListReleasesResponse
+			result2 error
+		})
+	}
+	fake.listReleasesReturnsOnCall[i] = struct {
+		result1 *services.ListReleasesResponse
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) MergeValueBytes(arg1 []byte, arg2 []byte) ([]byte, error) {
+	var arg1Copy []byte
+	if arg1 != nil {
+		arg1Copy = make([]byte, len(arg1))
+		copy(arg1Copy, arg1)
+	}
+	var arg2Copy []byte
+	if arg2 != nil {
+		arg2Copy = make([]byte, len(arg2))
+		copy(arg2Copy, arg2)
 	}
 	fake.mergeValueBytesMutex.Lock()
 	ret, specificReturn := fake.mergeValueBytesReturnsOnCall[len(fake.mergeValueBytesArgsForCall)]
 	fake.mergeValueBytesArgsForCall = append(fake.mergeValueBytesArgsForCall, struct {
-		base     []byte
-		override []byte
-	}{baseCopy, overrideCopy})
-	fake.recordInvocation("MergeValueBytes", []interface{}{baseCopy, overrideCopy})
+		arg1 []byte
+		arg2 []byte
+	}{arg1Copy, arg2Copy})
+	fake.recordInvocation("MergeValueBytes", []interface{}{arg1Copy, arg2Copy})
 	fake.mergeValueBytesMutex.Unlock()
 	if fake.MergeValueBytesStub != nil {
-		return fake.MergeValueBytesStub(base, override)
+		return fake.MergeValueBytesStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.mergeValueBytesReturns.result1, fake.mergeValueBytesReturns.result2
+	fakeReturns := fake.mergeValueBytesReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeMyHelmClient) MergeValueBytesCallCount() int {
@@ -1298,13 +918,22 @@ func (fake *FakeMyHelmClient) MergeValueBytesCallCount() int {
 	return len(fake.mergeValueBytesArgsForCall)
 }
 
+func (fake *FakeMyHelmClient) MergeValueBytesCalls(stub func([]byte, []byte) ([]byte, error)) {
+	fake.mergeValueBytesMutex.Lock()
+	defer fake.mergeValueBytesMutex.Unlock()
+	fake.MergeValueBytesStub = stub
+}
+
 func (fake *FakeMyHelmClient) MergeValueBytesArgsForCall(i int) ([]byte, []byte) {
 	fake.mergeValueBytesMutex.RLock()
 	defer fake.mergeValueBytesMutex.RUnlock()
-	return fake.mergeValueBytesArgsForCall[i].base, fake.mergeValueBytesArgsForCall[i].override
+	argsForCall := fake.mergeValueBytesArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeMyHelmClient) MergeValueBytesReturns(result1 []byte, result2 error) {
+	fake.mergeValueBytesMutex.Lock()
+	defer fake.mergeValueBytesMutex.Unlock()
 	fake.MergeValueBytesStub = nil
 	fake.mergeValueBytesReturns = struct {
 		result1 []byte
@@ -1313,6 +942,8 @@ func (fake *FakeMyHelmClient) MergeValueBytesReturns(result1 []byte, result2 err
 }
 
 func (fake *FakeMyHelmClient) MergeValueBytesReturnsOnCall(i int, result1 []byte, result2 error) {
+	fake.mergeValueBytesMutex.Lock()
+	defer fake.mergeValueBytesMutex.Unlock()
 	fake.MergeValueBytesStub = nil
 	if fake.mergeValueBytesReturnsOnCall == nil {
 		fake.mergeValueBytesReturnsOnCall = make(map[int]struct {
@@ -1326,62 +957,75 @@ func (fake *FakeMyHelmClient) MergeValueBytesReturnsOnCall(i int, result1 []byte
 	}{result1, result2}
 }
 
-func (fake *FakeMyHelmClient) HasDifferentTLSConfig() bool {
-	fake.hasDifferentTLSConfigMutex.Lock()
-	ret, specificReturn := fake.hasDifferentTLSConfigReturnsOnCall[len(fake.hasDifferentTLSConfigArgsForCall)]
-	fake.hasDifferentTLSConfigArgsForCall = append(fake.hasDifferentTLSConfigArgsForCall, struct{}{})
-	fake.recordInvocation("HasDifferentTLSConfig", []interface{}{})
-	fake.hasDifferentTLSConfigMutex.Unlock()
-	if fake.HasDifferentTLSConfigStub != nil {
-		return fake.HasDifferentTLSConfigStub()
+func (fake *FakeMyHelmClient) PingTiller() error {
+	fake.pingTillerMutex.Lock()
+	ret, specificReturn := fake.pingTillerReturnsOnCall[len(fake.pingTillerArgsForCall)]
+	fake.pingTillerArgsForCall = append(fake.pingTillerArgsForCall, struct {
+	}{})
+	fake.recordInvocation("PingTiller", []interface{}{})
+	fake.pingTillerMutex.Unlock()
+	if fake.PingTillerStub != nil {
+		return fake.PingTillerStub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.hasDifferentTLSConfigReturns.result1
+	fakeReturns := fake.pingTillerReturns
+	return fakeReturns.result1
 }
 
-func (fake *FakeMyHelmClient) HasDifferentTLSConfigCallCount() int {
-	fake.hasDifferentTLSConfigMutex.RLock()
-	defer fake.hasDifferentTLSConfigMutex.RUnlock()
-	return len(fake.hasDifferentTLSConfigArgsForCall)
+func (fake *FakeMyHelmClient) PingTillerCallCount() int {
+	fake.pingTillerMutex.RLock()
+	defer fake.pingTillerMutex.RUnlock()
+	return len(fake.pingTillerArgsForCall)
 }
 
-func (fake *FakeMyHelmClient) HasDifferentTLSConfigReturns(result1 bool) {
-	fake.HasDifferentTLSConfigStub = nil
-	fake.hasDifferentTLSConfigReturns = struct {
-		result1 bool
+func (fake *FakeMyHelmClient) PingTillerCalls(stub func() error) {
+	fake.pingTillerMutex.Lock()
+	defer fake.pingTillerMutex.Unlock()
+	fake.PingTillerStub = stub
+}
+
+func (fake *FakeMyHelmClient) PingTillerReturns(result1 error) {
+	fake.pingTillerMutex.Lock()
+	defer fake.pingTillerMutex.Unlock()
+	fake.PingTillerStub = nil
+	fake.pingTillerReturns = struct {
+		result1 error
 	}{result1}
 }
 
-func (fake *FakeMyHelmClient) HasDifferentTLSConfigReturnsOnCall(i int, result1 bool) {
-	fake.HasDifferentTLSConfigStub = nil
-	if fake.hasDifferentTLSConfigReturnsOnCall == nil {
-		fake.hasDifferentTLSConfigReturnsOnCall = make(map[int]struct {
-			result1 bool
+func (fake *FakeMyHelmClient) PingTillerReturnsOnCall(i int, result1 error) {
+	fake.pingTillerMutex.Lock()
+	defer fake.pingTillerMutex.Unlock()
+	fake.PingTillerStub = nil
+	if fake.pingTillerReturnsOnCall == nil {
+		fake.pingTillerReturnsOnCall = make(map[int]struct {
+			result1 error
 		})
 	}
-	fake.hasDifferentTLSConfigReturnsOnCall[i] = struct {
-		result1 bool
+	fake.pingTillerReturnsOnCall[i] = struct {
+		result1 error
 	}{result1}
 }
 
-func (fake *FakeMyHelmClient) PrintStatus(out io.Writer, deploymentName string) error {
+func (fake *FakeMyHelmClient) PrintStatus(arg1 io.Writer, arg2 string) error {
 	fake.printStatusMutex.Lock()
 	ret, specificReturn := fake.printStatusReturnsOnCall[len(fake.printStatusArgsForCall)]
 	fake.printStatusArgsForCall = append(fake.printStatusArgsForCall, struct {
-		out            io.Writer
-		deploymentName string
-	}{out, deploymentName})
-	fake.recordInvocation("PrintStatus", []interface{}{out, deploymentName})
+		arg1 io.Writer
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("PrintStatus", []interface{}{arg1, arg2})
 	fake.printStatusMutex.Unlock()
 	if fake.PrintStatusStub != nil {
-		return fake.PrintStatusStub(out, deploymentName)
+		return fake.PrintStatusStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.printStatusReturns.result1
+	fakeReturns := fake.printStatusReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeMyHelmClient) PrintStatusCallCount() int {
@@ -1390,13 +1034,22 @@ func (fake *FakeMyHelmClient) PrintStatusCallCount() int {
 	return len(fake.printStatusArgsForCall)
 }
 
+func (fake *FakeMyHelmClient) PrintStatusCalls(stub func(io.Writer, string) error) {
+	fake.printStatusMutex.Lock()
+	defer fake.printStatusMutex.Unlock()
+	fake.PrintStatusStub = stub
+}
+
 func (fake *FakeMyHelmClient) PrintStatusArgsForCall(i int) (io.Writer, string) {
 	fake.printStatusMutex.RLock()
 	defer fake.printStatusMutex.RUnlock()
-	return fake.printStatusArgsForCall[i].out, fake.printStatusArgsForCall[i].deploymentName
+	argsForCall := fake.printStatusArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeMyHelmClient) PrintStatusReturns(result1 error) {
+	fake.printStatusMutex.Lock()
+	defer fake.printStatusMutex.Unlock()
 	fake.PrintStatusStub = nil
 	fake.printStatusReturns = struct {
 		result1 error
@@ -1404,6 +1057,8 @@ func (fake *FakeMyHelmClient) PrintStatusReturns(result1 error) {
 }
 
 func (fake *FakeMyHelmClient) PrintStatusReturnsOnCall(i int, result1 error) {
+	fake.printStatusMutex.Lock()
+	defer fake.printStatusMutex.Unlock()
 	fake.PrintStatusStub = nil
 	if fake.printStatusReturnsOnCall == nil {
 		fake.printStatusReturnsOnCall = make(map[int]struct {
@@ -1415,53 +1070,694 @@ func (fake *FakeMyHelmClient) PrintStatusReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeMyHelmClient) ReleaseContent(arg1 string, arg2 ...helma.ContentOption) (*services.GetReleaseContentResponse, error) {
+	fake.releaseContentMutex.Lock()
+	ret, specificReturn := fake.releaseContentReturnsOnCall[len(fake.releaseContentArgsForCall)]
+	fake.releaseContentArgsForCall = append(fake.releaseContentArgsForCall, struct {
+		arg1 string
+		arg2 []helma.ContentOption
+	}{arg1, arg2})
+	fake.recordInvocation("ReleaseContent", []interface{}{arg1, arg2})
+	fake.releaseContentMutex.Unlock()
+	if fake.ReleaseContentStub != nil {
+		return fake.ReleaseContentStub(arg1, arg2...)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.releaseContentReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeMyHelmClient) ReleaseContentCallCount() int {
+	fake.releaseContentMutex.RLock()
+	defer fake.releaseContentMutex.RUnlock()
+	return len(fake.releaseContentArgsForCall)
+}
+
+func (fake *FakeMyHelmClient) ReleaseContentCalls(stub func(string, ...helma.ContentOption) (*services.GetReleaseContentResponse, error)) {
+	fake.releaseContentMutex.Lock()
+	defer fake.releaseContentMutex.Unlock()
+	fake.ReleaseContentStub = stub
+}
+
+func (fake *FakeMyHelmClient) ReleaseContentArgsForCall(i int) (string, []helma.ContentOption) {
+	fake.releaseContentMutex.RLock()
+	defer fake.releaseContentMutex.RUnlock()
+	argsForCall := fake.releaseContentArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeMyHelmClient) ReleaseContentReturns(result1 *services.GetReleaseContentResponse, result2 error) {
+	fake.releaseContentMutex.Lock()
+	defer fake.releaseContentMutex.Unlock()
+	fake.ReleaseContentStub = nil
+	fake.releaseContentReturns = struct {
+		result1 *services.GetReleaseContentResponse
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) ReleaseContentReturnsOnCall(i int, result1 *services.GetReleaseContentResponse, result2 error) {
+	fake.releaseContentMutex.Lock()
+	defer fake.releaseContentMutex.Unlock()
+	fake.ReleaseContentStub = nil
+	if fake.releaseContentReturnsOnCall == nil {
+		fake.releaseContentReturnsOnCall = make(map[int]struct {
+			result1 *services.GetReleaseContentResponse
+			result2 error
+		})
+	}
+	fake.releaseContentReturnsOnCall[i] = struct {
+		result1 *services.GetReleaseContentResponse
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) ReleaseHistory(arg1 string, arg2 ...helma.HistoryOption) (*services.GetHistoryResponse, error) {
+	fake.releaseHistoryMutex.Lock()
+	ret, specificReturn := fake.releaseHistoryReturnsOnCall[len(fake.releaseHistoryArgsForCall)]
+	fake.releaseHistoryArgsForCall = append(fake.releaseHistoryArgsForCall, struct {
+		arg1 string
+		arg2 []helma.HistoryOption
+	}{arg1, arg2})
+	fake.recordInvocation("ReleaseHistory", []interface{}{arg1, arg2})
+	fake.releaseHistoryMutex.Unlock()
+	if fake.ReleaseHistoryStub != nil {
+		return fake.ReleaseHistoryStub(arg1, arg2...)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.releaseHistoryReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeMyHelmClient) ReleaseHistoryCallCount() int {
+	fake.releaseHistoryMutex.RLock()
+	defer fake.releaseHistoryMutex.RUnlock()
+	return len(fake.releaseHistoryArgsForCall)
+}
+
+func (fake *FakeMyHelmClient) ReleaseHistoryCalls(stub func(string, ...helma.HistoryOption) (*services.GetHistoryResponse, error)) {
+	fake.releaseHistoryMutex.Lock()
+	defer fake.releaseHistoryMutex.Unlock()
+	fake.ReleaseHistoryStub = stub
+}
+
+func (fake *FakeMyHelmClient) ReleaseHistoryArgsForCall(i int) (string, []helma.HistoryOption) {
+	fake.releaseHistoryMutex.RLock()
+	defer fake.releaseHistoryMutex.RUnlock()
+	argsForCall := fake.releaseHistoryArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeMyHelmClient) ReleaseHistoryReturns(result1 *services.GetHistoryResponse, result2 error) {
+	fake.releaseHistoryMutex.Lock()
+	defer fake.releaseHistoryMutex.Unlock()
+	fake.ReleaseHistoryStub = nil
+	fake.releaseHistoryReturns = struct {
+		result1 *services.GetHistoryResponse
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) ReleaseHistoryReturnsOnCall(i int, result1 *services.GetHistoryResponse, result2 error) {
+	fake.releaseHistoryMutex.Lock()
+	defer fake.releaseHistoryMutex.Unlock()
+	fake.ReleaseHistoryStub = nil
+	if fake.releaseHistoryReturnsOnCall == nil {
+		fake.releaseHistoryReturnsOnCall = make(map[int]struct {
+			result1 *services.GetHistoryResponse
+			result2 error
+		})
+	}
+	fake.releaseHistoryReturnsOnCall[i] = struct {
+		result1 *services.GetHistoryResponse
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) ReleaseStatus(arg1 string, arg2 ...helma.StatusOption) (*services.GetReleaseStatusResponse, error) {
+	fake.releaseStatusMutex.Lock()
+	ret, specificReturn := fake.releaseStatusReturnsOnCall[len(fake.releaseStatusArgsForCall)]
+	fake.releaseStatusArgsForCall = append(fake.releaseStatusArgsForCall, struct {
+		arg1 string
+		arg2 []helma.StatusOption
+	}{arg1, arg2})
+	fake.recordInvocation("ReleaseStatus", []interface{}{arg1, arg2})
+	fake.releaseStatusMutex.Unlock()
+	if fake.ReleaseStatusStub != nil {
+		return fake.ReleaseStatusStub(arg1, arg2...)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.releaseStatusReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeMyHelmClient) ReleaseStatusCallCount() int {
+	fake.releaseStatusMutex.RLock()
+	defer fake.releaseStatusMutex.RUnlock()
+	return len(fake.releaseStatusArgsForCall)
+}
+
+func (fake *FakeMyHelmClient) ReleaseStatusCalls(stub func(string, ...helma.StatusOption) (*services.GetReleaseStatusResponse, error)) {
+	fake.releaseStatusMutex.Lock()
+	defer fake.releaseStatusMutex.Unlock()
+	fake.ReleaseStatusStub = stub
+}
+
+func (fake *FakeMyHelmClient) ReleaseStatusArgsForCall(i int) (string, []helma.StatusOption) {
+	fake.releaseStatusMutex.RLock()
+	defer fake.releaseStatusMutex.RUnlock()
+	argsForCall := fake.releaseStatusArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeMyHelmClient) ReleaseStatusReturns(result1 *services.GetReleaseStatusResponse, result2 error) {
+	fake.releaseStatusMutex.Lock()
+	defer fake.releaseStatusMutex.Unlock()
+	fake.ReleaseStatusStub = nil
+	fake.releaseStatusReturns = struct {
+		result1 *services.GetReleaseStatusResponse
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) ReleaseStatusReturnsOnCall(i int, result1 *services.GetReleaseStatusResponse, result2 error) {
+	fake.releaseStatusMutex.Lock()
+	defer fake.releaseStatusMutex.Unlock()
+	fake.ReleaseStatusStub = nil
+	if fake.releaseStatusReturnsOnCall == nil {
+		fake.releaseStatusReturnsOnCall = make(map[int]struct {
+			result1 *services.GetReleaseStatusResponse
+			result2 error
+		})
+	}
+	fake.releaseStatusReturnsOnCall[i] = struct {
+		result1 *services.GetReleaseStatusResponse
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) RollbackRelease(arg1 string, arg2 ...helma.RollbackOption) (*services.RollbackReleaseResponse, error) {
+	fake.rollbackReleaseMutex.Lock()
+	ret, specificReturn := fake.rollbackReleaseReturnsOnCall[len(fake.rollbackReleaseArgsForCall)]
+	fake.rollbackReleaseArgsForCall = append(fake.rollbackReleaseArgsForCall, struct {
+		arg1 string
+		arg2 []helma.RollbackOption
+	}{arg1, arg2})
+	fake.recordInvocation("RollbackRelease", []interface{}{arg1, arg2})
+	fake.rollbackReleaseMutex.Unlock()
+	if fake.RollbackReleaseStub != nil {
+		return fake.RollbackReleaseStub(arg1, arg2...)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.rollbackReleaseReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeMyHelmClient) RollbackReleaseCallCount() int {
+	fake.rollbackReleaseMutex.RLock()
+	defer fake.rollbackReleaseMutex.RUnlock()
+	return len(fake.rollbackReleaseArgsForCall)
+}
+
+func (fake *FakeMyHelmClient) RollbackReleaseCalls(stub func(string, ...helma.RollbackOption) (*services.RollbackReleaseResponse, error)) {
+	fake.rollbackReleaseMutex.Lock()
+	defer fake.rollbackReleaseMutex.Unlock()
+	fake.RollbackReleaseStub = stub
+}
+
+func (fake *FakeMyHelmClient) RollbackReleaseArgsForCall(i int) (string, []helma.RollbackOption) {
+	fake.rollbackReleaseMutex.RLock()
+	defer fake.rollbackReleaseMutex.RUnlock()
+	argsForCall := fake.rollbackReleaseArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeMyHelmClient) RollbackReleaseReturns(result1 *services.RollbackReleaseResponse, result2 error) {
+	fake.rollbackReleaseMutex.Lock()
+	defer fake.rollbackReleaseMutex.Unlock()
+	fake.RollbackReleaseStub = nil
+	fake.rollbackReleaseReturns = struct {
+		result1 *services.RollbackReleaseResponse
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) RollbackReleaseReturnsOnCall(i int, result1 *services.RollbackReleaseResponse, result2 error) {
+	fake.rollbackReleaseMutex.Lock()
+	defer fake.rollbackReleaseMutex.Unlock()
+	fake.RollbackReleaseStub = nil
+	if fake.rollbackReleaseReturnsOnCall == nil {
+		fake.rollbackReleaseReturnsOnCall = make(map[int]struct {
+			result1 *services.RollbackReleaseResponse
+			result2 error
+		})
+	}
+	fake.rollbackReleaseReturnsOnCall[i] = struct {
+		result1 *services.RollbackReleaseResponse
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) RunReleaseTest(arg1 string, arg2 ...helma.ReleaseTestOption) (<-chan *services.TestReleaseResponse, <-chan error) {
+	fake.runReleaseTestMutex.Lock()
+	ret, specificReturn := fake.runReleaseTestReturnsOnCall[len(fake.runReleaseTestArgsForCall)]
+	fake.runReleaseTestArgsForCall = append(fake.runReleaseTestArgsForCall, struct {
+		arg1 string
+		arg2 []helma.ReleaseTestOption
+	}{arg1, arg2})
+	fake.recordInvocation("RunReleaseTest", []interface{}{arg1, arg2})
+	fake.runReleaseTestMutex.Unlock()
+	if fake.RunReleaseTestStub != nil {
+		return fake.RunReleaseTestStub(arg1, arg2...)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.runReleaseTestReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeMyHelmClient) RunReleaseTestCallCount() int {
+	fake.runReleaseTestMutex.RLock()
+	defer fake.runReleaseTestMutex.RUnlock()
+	return len(fake.runReleaseTestArgsForCall)
+}
+
+func (fake *FakeMyHelmClient) RunReleaseTestCalls(stub func(string, ...helma.ReleaseTestOption) (<-chan *services.TestReleaseResponse, <-chan error)) {
+	fake.runReleaseTestMutex.Lock()
+	defer fake.runReleaseTestMutex.Unlock()
+	fake.RunReleaseTestStub = stub
+}
+
+func (fake *FakeMyHelmClient) RunReleaseTestArgsForCall(i int) (string, []helma.ReleaseTestOption) {
+	fake.runReleaseTestMutex.RLock()
+	defer fake.runReleaseTestMutex.RUnlock()
+	argsForCall := fake.runReleaseTestArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeMyHelmClient) RunReleaseTestReturns(result1 <-chan *services.TestReleaseResponse, result2 <-chan error) {
+	fake.runReleaseTestMutex.Lock()
+	defer fake.runReleaseTestMutex.Unlock()
+	fake.RunReleaseTestStub = nil
+	fake.runReleaseTestReturns = struct {
+		result1 <-chan *services.TestReleaseResponse
+		result2 <-chan error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) RunReleaseTestReturnsOnCall(i int, result1 <-chan *services.TestReleaseResponse, result2 <-chan error) {
+	fake.runReleaseTestMutex.Lock()
+	defer fake.runReleaseTestMutex.Unlock()
+	fake.RunReleaseTestStub = nil
+	if fake.runReleaseTestReturnsOnCall == nil {
+		fake.runReleaseTestReturnsOnCall = make(map[int]struct {
+			result1 <-chan *services.TestReleaseResponse
+			result2 <-chan error
+		})
+	}
+	fake.runReleaseTestReturnsOnCall[i] = struct {
+		result1 <-chan *services.TestReleaseResponse
+		result2 <-chan error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) Uninstall(arg1 *installer.Options) error {
+	fake.uninstallMutex.Lock()
+	ret, specificReturn := fake.uninstallReturnsOnCall[len(fake.uninstallArgsForCall)]
+	fake.uninstallArgsForCall = append(fake.uninstallArgsForCall, struct {
+		arg1 *installer.Options
+	}{arg1})
+	fake.recordInvocation("Uninstall", []interface{}{arg1})
+	fake.uninstallMutex.Unlock()
+	if fake.UninstallStub != nil {
+		return fake.UninstallStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.uninstallReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeMyHelmClient) UninstallCallCount() int {
+	fake.uninstallMutex.RLock()
+	defer fake.uninstallMutex.RUnlock()
+	return len(fake.uninstallArgsForCall)
+}
+
+func (fake *FakeMyHelmClient) UninstallCalls(stub func(*installer.Options) error) {
+	fake.uninstallMutex.Lock()
+	defer fake.uninstallMutex.Unlock()
+	fake.UninstallStub = stub
+}
+
+func (fake *FakeMyHelmClient) UninstallArgsForCall(i int) *installer.Options {
+	fake.uninstallMutex.RLock()
+	defer fake.uninstallMutex.RUnlock()
+	argsForCall := fake.uninstallArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeMyHelmClient) UninstallReturns(result1 error) {
+	fake.uninstallMutex.Lock()
+	defer fake.uninstallMutex.Unlock()
+	fake.UninstallStub = nil
+	fake.uninstallReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeMyHelmClient) UninstallReturnsOnCall(i int, result1 error) {
+	fake.uninstallMutex.Lock()
+	defer fake.uninstallMutex.Unlock()
+	fake.UninstallStub = nil
+	if fake.uninstallReturnsOnCall == nil {
+		fake.uninstallReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.uninstallReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeMyHelmClient) UpdateChart(arg1 *helm.MyChart, arg2 string, arg3 string, arg4 []byte) (*services.UpdateReleaseResponse, error) {
+	var arg4Copy []byte
+	if arg4 != nil {
+		arg4Copy = make([]byte, len(arg4))
+		copy(arg4Copy, arg4)
+	}
+	fake.updateChartMutex.Lock()
+	ret, specificReturn := fake.updateChartReturnsOnCall[len(fake.updateChartArgsForCall)]
+	fake.updateChartArgsForCall = append(fake.updateChartArgsForCall, struct {
+		arg1 *helm.MyChart
+		arg2 string
+		arg3 string
+		arg4 []byte
+	}{arg1, arg2, arg3, arg4Copy})
+	fake.recordInvocation("UpdateChart", []interface{}{arg1, arg2, arg3, arg4Copy})
+	fake.updateChartMutex.Unlock()
+	if fake.UpdateChartStub != nil {
+		return fake.UpdateChartStub(arg1, arg2, arg3, arg4)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.updateChartReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeMyHelmClient) UpdateChartCallCount() int {
+	fake.updateChartMutex.RLock()
+	defer fake.updateChartMutex.RUnlock()
+	return len(fake.updateChartArgsForCall)
+}
+
+func (fake *FakeMyHelmClient) UpdateChartCalls(stub func(*helm.MyChart, string, string, []byte) (*services.UpdateReleaseResponse, error)) {
+	fake.updateChartMutex.Lock()
+	defer fake.updateChartMutex.Unlock()
+	fake.UpdateChartStub = stub
+}
+
+func (fake *FakeMyHelmClient) UpdateChartArgsForCall(i int) (*helm.MyChart, string, string, []byte) {
+	fake.updateChartMutex.RLock()
+	defer fake.updateChartMutex.RUnlock()
+	argsForCall := fake.updateChartArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+}
+
+func (fake *FakeMyHelmClient) UpdateChartReturns(result1 *services.UpdateReleaseResponse, result2 error) {
+	fake.updateChartMutex.Lock()
+	defer fake.updateChartMutex.Unlock()
+	fake.UpdateChartStub = nil
+	fake.updateChartReturns = struct {
+		result1 *services.UpdateReleaseResponse
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) UpdateChartReturnsOnCall(i int, result1 *services.UpdateReleaseResponse, result2 error) {
+	fake.updateChartMutex.Lock()
+	defer fake.updateChartMutex.Unlock()
+	fake.UpdateChartStub = nil
+	if fake.updateChartReturnsOnCall == nil {
+		fake.updateChartReturnsOnCall = make(map[int]struct {
+			result1 *services.UpdateReleaseResponse
+			result2 error
+		})
+	}
+	fake.updateChartReturnsOnCall[i] = struct {
+		result1 *services.UpdateReleaseResponse
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) UpdateRelease(arg1 string, arg2 string, arg3 ...helma.UpdateOption) (*services.UpdateReleaseResponse, error) {
+	fake.updateReleaseMutex.Lock()
+	ret, specificReturn := fake.updateReleaseReturnsOnCall[len(fake.updateReleaseArgsForCall)]
+	fake.updateReleaseArgsForCall = append(fake.updateReleaseArgsForCall, struct {
+		arg1 string
+		arg2 string
+		arg3 []helma.UpdateOption
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("UpdateRelease", []interface{}{arg1, arg2, arg3})
+	fake.updateReleaseMutex.Unlock()
+	if fake.UpdateReleaseStub != nil {
+		return fake.UpdateReleaseStub(arg1, arg2, arg3...)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.updateReleaseReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeMyHelmClient) UpdateReleaseCallCount() int {
+	fake.updateReleaseMutex.RLock()
+	defer fake.updateReleaseMutex.RUnlock()
+	return len(fake.updateReleaseArgsForCall)
+}
+
+func (fake *FakeMyHelmClient) UpdateReleaseCalls(stub func(string, string, ...helma.UpdateOption) (*services.UpdateReleaseResponse, error)) {
+	fake.updateReleaseMutex.Lock()
+	defer fake.updateReleaseMutex.Unlock()
+	fake.UpdateReleaseStub = stub
+}
+
+func (fake *FakeMyHelmClient) UpdateReleaseArgsForCall(i int) (string, string, []helma.UpdateOption) {
+	fake.updateReleaseMutex.RLock()
+	defer fake.updateReleaseMutex.RUnlock()
+	argsForCall := fake.updateReleaseArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeMyHelmClient) UpdateReleaseReturns(result1 *services.UpdateReleaseResponse, result2 error) {
+	fake.updateReleaseMutex.Lock()
+	defer fake.updateReleaseMutex.Unlock()
+	fake.UpdateReleaseStub = nil
+	fake.updateReleaseReturns = struct {
+		result1 *services.UpdateReleaseResponse
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) UpdateReleaseReturnsOnCall(i int, result1 *services.UpdateReleaseResponse, result2 error) {
+	fake.updateReleaseMutex.Lock()
+	defer fake.updateReleaseMutex.Unlock()
+	fake.UpdateReleaseStub = nil
+	if fake.updateReleaseReturnsOnCall == nil {
+		fake.updateReleaseReturnsOnCall = make(map[int]struct {
+			result1 *services.UpdateReleaseResponse
+			result2 error
+		})
+	}
+	fake.updateReleaseReturnsOnCall[i] = struct {
+		result1 *services.UpdateReleaseResponse
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) UpdateReleaseFromChart(arg1 string, arg2 *chart.Chart, arg3 ...helma.UpdateOption) (*services.UpdateReleaseResponse, error) {
+	fake.updateReleaseFromChartMutex.Lock()
+	ret, specificReturn := fake.updateReleaseFromChartReturnsOnCall[len(fake.updateReleaseFromChartArgsForCall)]
+	fake.updateReleaseFromChartArgsForCall = append(fake.updateReleaseFromChartArgsForCall, struct {
+		arg1 string
+		arg2 *chart.Chart
+		arg3 []helma.UpdateOption
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("UpdateReleaseFromChart", []interface{}{arg1, arg2, arg3})
+	fake.updateReleaseFromChartMutex.Unlock()
+	if fake.UpdateReleaseFromChartStub != nil {
+		return fake.UpdateReleaseFromChartStub(arg1, arg2, arg3...)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.updateReleaseFromChartReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeMyHelmClient) UpdateReleaseFromChartCallCount() int {
+	fake.updateReleaseFromChartMutex.RLock()
+	defer fake.updateReleaseFromChartMutex.RUnlock()
+	return len(fake.updateReleaseFromChartArgsForCall)
+}
+
+func (fake *FakeMyHelmClient) UpdateReleaseFromChartCalls(stub func(string, *chart.Chart, ...helma.UpdateOption) (*services.UpdateReleaseResponse, error)) {
+	fake.updateReleaseFromChartMutex.Lock()
+	defer fake.updateReleaseFromChartMutex.Unlock()
+	fake.UpdateReleaseFromChartStub = stub
+}
+
+func (fake *FakeMyHelmClient) UpdateReleaseFromChartArgsForCall(i int) (string, *chart.Chart, []helma.UpdateOption) {
+	fake.updateReleaseFromChartMutex.RLock()
+	defer fake.updateReleaseFromChartMutex.RUnlock()
+	argsForCall := fake.updateReleaseFromChartArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeMyHelmClient) UpdateReleaseFromChartReturns(result1 *services.UpdateReleaseResponse, result2 error) {
+	fake.updateReleaseFromChartMutex.Lock()
+	defer fake.updateReleaseFromChartMutex.Unlock()
+	fake.UpdateReleaseFromChartStub = nil
+	fake.updateReleaseFromChartReturns = struct {
+		result1 *services.UpdateReleaseResponse
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) UpdateReleaseFromChartReturnsOnCall(i int, result1 *services.UpdateReleaseResponse, result2 error) {
+	fake.updateReleaseFromChartMutex.Lock()
+	defer fake.updateReleaseFromChartMutex.Unlock()
+	fake.UpdateReleaseFromChartStub = nil
+	if fake.updateReleaseFromChartReturnsOnCall == nil {
+		fake.updateReleaseFromChartReturnsOnCall = make(map[int]struct {
+			result1 *services.UpdateReleaseResponse
+			result2 error
+		})
+	}
+	fake.updateReleaseFromChartReturnsOnCall[i] = struct {
+		result1 *services.UpdateReleaseResponse
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) Upgrade(arg1 *installer.Options) error {
+	fake.upgradeMutex.Lock()
+	ret, specificReturn := fake.upgradeReturnsOnCall[len(fake.upgradeArgsForCall)]
+	fake.upgradeArgsForCall = append(fake.upgradeArgsForCall, struct {
+		arg1 *installer.Options
+	}{arg1})
+	fake.recordInvocation("Upgrade", []interface{}{arg1})
+	fake.upgradeMutex.Unlock()
+	if fake.UpgradeStub != nil {
+		return fake.UpgradeStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.upgradeReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeMyHelmClient) UpgradeCallCount() int {
+	fake.upgradeMutex.RLock()
+	defer fake.upgradeMutex.RUnlock()
+	return len(fake.upgradeArgsForCall)
+}
+
+func (fake *FakeMyHelmClient) UpgradeCalls(stub func(*installer.Options) error) {
+	fake.upgradeMutex.Lock()
+	defer fake.upgradeMutex.Unlock()
+	fake.UpgradeStub = stub
+}
+
+func (fake *FakeMyHelmClient) UpgradeArgsForCall(i int) *installer.Options {
+	fake.upgradeMutex.RLock()
+	defer fake.upgradeMutex.RUnlock()
+	argsForCall := fake.upgradeArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeMyHelmClient) UpgradeReturns(result1 error) {
+	fake.upgradeMutex.Lock()
+	defer fake.upgradeMutex.Unlock()
+	fake.UpgradeStub = nil
+	fake.upgradeReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeMyHelmClient) UpgradeReturnsOnCall(i int, result1 error) {
+	fake.upgradeMutex.Lock()
+	defer fake.upgradeMutex.Unlock()
+	fake.UpgradeStub = nil
+	if fake.upgradeReturnsOnCall == nil {
+		fake.upgradeReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.upgradeReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeMyHelmClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.listReleasesMutex.RLock()
-	defer fake.listReleasesMutex.RUnlock()
-	fake.installReleaseMutex.RLock()
-	defer fake.installReleaseMutex.RUnlock()
-	fake.installReleaseFromChartMutex.RLock()
-	defer fake.installReleaseFromChartMutex.RUnlock()
 	fake.deleteReleaseMutex.RLock()
 	defer fake.deleteReleaseMutex.RUnlock()
-	fake.releaseStatusMutex.RLock()
-	defer fake.releaseStatusMutex.RUnlock()
-	fake.updateReleaseMutex.RLock()
-	defer fake.updateReleaseMutex.RUnlock()
-	fake.updateReleaseFromChartMutex.RLock()
-	defer fake.updateReleaseFromChartMutex.RUnlock()
-	fake.rollbackReleaseMutex.RLock()
-	defer fake.rollbackReleaseMutex.RUnlock()
-	fake.releaseContentMutex.RLock()
-	defer fake.releaseContentMutex.RUnlock()
-	fake.releaseHistoryMutex.RLock()
-	defer fake.releaseHistoryMutex.RUnlock()
 	fake.getVersionMutex.RLock()
 	defer fake.getVersionMutex.RUnlock()
-	fake.runReleaseTestMutex.RLock()
-	defer fake.runReleaseTestMutex.RUnlock()
-	fake.pingTillerMutex.RLock()
-	defer fake.pingTillerMutex.RUnlock()
+	fake.hasDifferentTLSConfigMutex.RLock()
+	defer fake.hasDifferentTLSConfigMutex.RUnlock()
 	fake.installMutex.RLock()
 	defer fake.installMutex.RUnlock()
-	fake.upgradeMutex.RLock()
-	defer fake.upgradeMutex.RUnlock()
-	fake.uninstallMutex.RLock()
-	defer fake.uninstallMutex.RUnlock()
 	fake.installChartMutex.RLock()
 	defer fake.installChartMutex.RUnlock()
 	fake.installOperatorMutex.RLock()
 	defer fake.installOperatorMutex.RUnlock()
-	fake.updateChartMutex.RLock()
-	defer fake.updateChartMutex.RUnlock()
+	fake.installReleaseMutex.RLock()
+	defer fake.installReleaseMutex.RUnlock()
+	fake.installReleaseFromChartMutex.RLock()
+	defer fake.installReleaseFromChartMutex.RUnlock()
+	fake.listReleasesMutex.RLock()
+	defer fake.listReleasesMutex.RUnlock()
 	fake.mergeValueBytesMutex.RLock()
 	defer fake.mergeValueBytesMutex.RUnlock()
-	fake.hasDifferentTLSConfigMutex.RLock()
-	defer fake.hasDifferentTLSConfigMutex.RUnlock()
+	fake.pingTillerMutex.RLock()
+	defer fake.pingTillerMutex.RUnlock()
 	fake.printStatusMutex.RLock()
 	defer fake.printStatusMutex.RUnlock()
+	fake.releaseContentMutex.RLock()
+	defer fake.releaseContentMutex.RUnlock()
+	fake.releaseHistoryMutex.RLock()
+	defer fake.releaseHistoryMutex.RUnlock()
+	fake.releaseStatusMutex.RLock()
+	defer fake.releaseStatusMutex.RUnlock()
+	fake.rollbackReleaseMutex.RLock()
+	defer fake.rollbackReleaseMutex.RUnlock()
+	fake.runReleaseTestMutex.RLock()
+	defer fake.runReleaseTestMutex.RUnlock()
+	fake.uninstallMutex.RLock()
+	defer fake.uninstallMutex.RUnlock()
+	fake.updateChartMutex.RLock()
+	defer fake.updateChartMutex.RUnlock()
+	fake.updateReleaseMutex.RLock()
+	defer fake.updateReleaseMutex.RUnlock()
+	fake.updateReleaseFromChartMutex.RLock()
+	defer fake.updateReleaseFromChartMutex.RUnlock()
+	fake.upgradeMutex.RLock()
+	defer fake.upgradeMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

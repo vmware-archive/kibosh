@@ -51,8 +51,7 @@ type myHelmClient struct {
 	logger    *logrus.Logger
 }
 
-//- go:generate counterfeiter ./ MyHelmClient
-//^ counterfeiter is generating bad stubs interface. If needing to regenerate, fix above line & then re-fix stubs
+//go:generate counterfeiter ./ MyHelmClient
 type MyHelmClient interface {
 	helm.Interface
 	Install(*helmstaller.Options) error
@@ -152,7 +151,7 @@ func (c *myHelmClient) Upgrade(opts *helmstaller.Options) error {
 }
 
 func (c *myHelmClient) Uninstall(opts *helmstaller.Options) error {
-	return helmstaller.Uninstall(c.cluster.GetInternalClient(), opts)
+	return helmstaller.Uninstall(c.cluster.GetClient(), opts)
 }
 
 func (c myHelmClient) ListReleases(opts ...helm.ReleaseListOption) (*rls.ListReleasesResponse, error) {
