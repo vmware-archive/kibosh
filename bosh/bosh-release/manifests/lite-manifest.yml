@@ -19,6 +19,7 @@ stemcells:
 
 compilation:
   workers: 3
+  network: default
   reuse_compilation_vms: true
 
 update:
