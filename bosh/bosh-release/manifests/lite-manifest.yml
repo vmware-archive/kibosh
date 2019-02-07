@@ -17,6 +17,10 @@ stemcells:
     os: ubuntu-trusty
     version: latest
 
+compilation:
+  workers: 3
+  reuse_compilation_vms: true
+
 update:
   canaries: 1
   max_in_flight: 10
