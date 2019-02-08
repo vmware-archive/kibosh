@@ -18,6 +18,7 @@ package helm
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -88,11 +89,26 @@ func (c myHelmClient) open() (*kube.Tunnel, helm.Interface, error) {
 		helm.Host(host),
 	}
 	if c.tlsConf.HasTillerTLS() {
+		pemData, err := ioutil.ReadFile(c.tlsConf.TillerTLSCertFile)
+		if err != nil {
+			c.logger.Error(err)
+		}
+		block, _ := pem.Decode(pemData)
+		if block == nil {
+			c.logger.Error("pem decode")
+		}
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			c.logger.Error(err)
+		}
+		servername := cert.Subject.CommonName
+
 		tlsOpts := tlsutil.Options{
 			CaCertFile:         c.tlsConf.TLSCaCertFile,
 			KeyFile:            c.tlsConf.HelmTLSKeyFile,
 			CertFile:           c.tlsConf.HelmTLSCertFile,
 			InsecureSkipVerify: false,
+			ServerName:         servername,
 		}
 
 		tlsCfg, err := tlsutil.ClientConfig(tlsOpts)
