@@ -58,7 +58,7 @@ ignored = [
   name = "github.com/emicklei/go-restful"
   version = "~v2.2"
 
-# Helm v2.9.x is locked to 1.7.2. We ran into concrete
+# Helm v2.12.x is locked to 1.7.2. We ran into concrete
 # issues on a more current version w/ how it surfaced tls errors
 [[override]]
   name = "google.golang.org/grpc"
