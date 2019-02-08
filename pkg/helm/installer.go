@@ -70,7 +70,7 @@ func NewInstaller(c *config.Config, cluster k8s.Cluster, client MyHelmClient, lo
 
 func (i *installer) Install() error {
 	if "" == tillerTag {
-		tillerTag = "v2.9.0"
+		tillerTag = "v2.12.1"
 	}
 	i.logger.Debug(fmt.Sprintf("Installing helm with Tiller version %s", tillerTag))
 
