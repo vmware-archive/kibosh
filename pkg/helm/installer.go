@@ -158,13 +158,14 @@ func (i *installer) installWithTLS(tillerImage string) error {
 	}
 
 	options := helmstaller.Options{
-		Namespace:      i.config.TillerNamespace,
-		ImageSpec:      tillerImage,
-		ServiceAccount: k8s.ServiceAccountName,
-		VerifyTLS:      true,
-		TLSCertFile:    i.config.HelmTLSConfig.TillerTLSCertFile,
-		TLSKeyFile:     i.config.HelmTLSConfig.TillerTLSKeyFile,
-		TLSCaCertFile:  i.config.HelmTLSConfig.TLSCaCertFile,
+		Namespace:                    i.config.TillerNamespace,
+		ImageSpec:                    tillerImage,
+		ServiceAccount:               k8s.ServiceAccountName,
+		AutoMountServiceAccountToken: true,
+		VerifyTLS:                    true,
+		TLSCertFile:                  i.config.HelmTLSConfig.TillerTLSCertFile,
+		TLSKeyFile:                   i.config.HelmTLSConfig.TillerTLSKeyFile,
+		TLSCaCertFile:                i.config.HelmTLSConfig.TLSCaCertFile,
 	}
 	err := i.client.Install(&options)
 	if err != nil {
@@ -176,9 +177,10 @@ func (i *installer) installWithTLS(tillerImage string) error {
 
 func (i *installer) installInsecure(tillerImage string) error {
 	options := helmstaller.Options{
-		Namespace:      i.config.TillerNamespace,
-		ImageSpec:      tillerImage,
-		ServiceAccount: k8s.ServiceAccountName,
+		Namespace:                    i.config.TillerNamespace,
+		ImageSpec:                    tillerImage,
+		ServiceAccount:               k8s.ServiceAccountName,
+		AutoMountServiceAccountToken: true,
 	}
 
 	err := i.client.Install(&options)
