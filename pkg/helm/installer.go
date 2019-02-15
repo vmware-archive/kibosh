@@ -167,12 +167,7 @@ func (i *installer) installWithTLS(tillerImage string) error {
 		TLSKeyFile:                   i.config.HelmTLSConfig.TillerTLSKeyFile,
 		TLSCaCertFile:                i.config.HelmTLSConfig.TLSCaCertFile,
 	}
-	err := i.client.Install(&options)
-	if err != nil {
-		return errors.Wrap(err, "Error installing helm with security")
-	}
-
-	return nil
+	return i.doInstall(tillerImage, options)
 }
 
 func (i *installer) installInsecure(tillerImage string) error {
@@ -183,6 +178,10 @@ func (i *installer) installInsecure(tillerImage string) error {
 		AutoMountServiceAccountToken: true,
 	}
 
+	return i.doInstall(tillerImage, options)
+}
+
+func (i *installer) doInstall(tillerImage string, options helmstaller.Options) error {
 	err := i.client.Install(&options)
 	if err != nil {
 		if !apierrors.IsAlreadyExists(err) {
