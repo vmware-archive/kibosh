@@ -10,6 +10,7 @@ PIDFILE="$RUN_DIR/kibosh.pid"
 export SECURITY_USER_NAME=<%= p("kibosh.username", "admin") %>
 export SECURITY_USER_PASSWORD=<%= p("kibosh.password") %>
 export PORT=<%= p("kibosh.port", "8080") %>
+export TILLER_NAMESPACE=kibosh
 export HELM_CHART_DIR=<%= p("kibosh.helm_chart_dir", "charts") %>
 <% if p("kibosh.operator_dir", "") != "" %>
 export OPERATOR_DIR=<%= p("kibosh.operator_dir") %>
