@@ -2,16 +2,16 @@
 package helmfakes
 
 import (
-	io "io"
-	sync "sync"
+	"io"
+	"sync"
 
-	config "github.com/cf-platform-eng/kibosh/pkg/config"
-	helm "github.com/cf-platform-eng/kibosh/pkg/helm"
+	"github.com/cf-platform-eng/kibosh/pkg/config"
+	"github.com/cf-platform-eng/kibosh/pkg/helm"
 	v1 "k8s.io/api/core/v1"
-	installer "k8s.io/helm/cmd/helm/installer"
+	"k8s.io/helm/cmd/helm/installer"
 	helma "k8s.io/helm/pkg/helm"
-	chart "k8s.io/helm/pkg/proto/hapi/chart"
-	services "k8s.io/helm/pkg/proto/hapi/services"
+	"k8s.io/helm/pkg/proto/hapi/chart"
+	"k8s.io/helm/pkg/proto/hapi/services"
 )
 
 type FakeMyHelmClient struct {

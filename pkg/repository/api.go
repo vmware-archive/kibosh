@@ -19,10 +19,8 @@ import (
 	"net/http"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/cf-platform-eng/kibosh/pkg/broker"
 	"github.com/cf-platform-eng/kibosh/pkg/cf"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
-	"github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/pkg/errors"
 	"strings"
@@ -33,16 +31,14 @@ type API interface {
 }
 
 type api struct {
-	broker     *broker.PksServiceBroker
 	repository Repository
 	cfClient   cf.Client
 	conf       *config.Config
 	logger     *logrus.Logger
 }
 
-func NewAPI(b *broker.PksServiceBroker, r Repository, c cf.Client, conf *config.Config, l *logrus.Logger) API {
+func NewAPI(r Repository, c cf.Client, conf *config.Config, l *logrus.Logger) API {
 	return &api{
-		broker:     b,
 		repository: r,
 		cfClient:   c,
 		conf:       conf,
@@ -53,22 +49,12 @@ func NewAPI(b *broker.PksServiceBroker, r Repository, c cf.Client, conf *config.
 
 func (api *api) ReloadCharts() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		charts, err := api.repository.LoadCharts()
-		if err != nil {
-			api.logger.WithError(err).Error("Unable to load charts")
-			w.WriteHeader(500)
-			w.Write([]byte("Unable to load charts"))
-			return
-		} else {
-			api.broker.SetCharts(charts)
-
-			if api.cfClient != nil {
-				err = api.refreshCloudFoundry(charts)
-				if err != nil {
-					w.WriteHeader(500)
-					w.Write([]byte(err.Error()))
-					return
-				}
+		if api.cfClient != nil {
+			err := api.refreshCloudFoundry()
+			if err != nil {
+				w.WriteHeader(500)
+				w.Write([]byte(err.Error()))
+				return
 			}
 		}
 
@@ -76,7 +62,7 @@ func (api *api) ReloadCharts() http.Handler {
 	})
 }
 
-func (api *api) refreshCloudFoundry(charts []*helm.MyChart) error {
+func (api *api) refreshCloudFoundry() error {
 	bro, err := api.cfClient.GetServiceBrokerByName(api.conf.CFClientConfig.BrokerName)
 
 	if err == nil {

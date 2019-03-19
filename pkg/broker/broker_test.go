@@ -25,6 +25,7 @@ import (
 	"github.com/cf-platform-eng/kibosh/pkg/helm/helmfakes"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s/k8sfakes"
+	"github.com/cf-platform-eng/kibosh/pkg/repository/repositoryfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
@@ -57,6 +58,7 @@ var _ = Describe("Broker", func() {
 	var fakeServiceAccountInstallerFactory k8sfakes.FakeServiceAccountInstallerFactory
 	var fakeInstaller helmfakes.FakeInstaller
 	var fakeInstallerFactory my_helm.InstallerFactory
+	var fakeRepo *repositoryfakes.FakeRepository
 
 	BeforeEach(func() {
 		logger = logrus.New()
@@ -136,11 +138,13 @@ var _ = Describe("Broker", func() {
 		fakeInstallerFactory = func(c *my_config.Config, cluster k8s.Cluster, client my_helm.MyHelmClient, logger *logrus.Logger) my_helm.Installer {
 			return &fakeInstaller
 		}
+		fakeRepo = &repositoryfakes.FakeRepository{}
+		fakeRepo.GetChartsReturns(charts, nil)
 	})
 
 	Context("catalog", func() {
 		It("Provides a catalog with correct service", func() {
-			serviceBroker := NewPksServiceBroker(config, nil, nil, nil, nil, charts, nil, logger)
+			serviceBroker := NewPksServiceBroker(config, nil, nil, nil, nil, fakeRepo, nil, logger)
 			serviceCatalog, err := serviceBroker.Services(nil)
 			Expect(err).To(BeNil())
 
@@ -168,7 +172,7 @@ var _ = Describe("Broker", func() {
 		})
 
 		It("Provides a catalog with correct plans", func() {
-			serviceBroker := NewPksServiceBroker(config, nil, nil, nil, nil, charts, nil, logger)
+			serviceBroker := NewPksServiceBroker(config, nil, nil, nil, nil, fakeRepo, nil, logger)
 			serviceCatalog, err := serviceBroker.Services(nil)
 			Expect(err).To(BeNil())
 
@@ -209,7 +213,15 @@ var _ = Describe("Broker", func() {
 			} else {
 				Expect(service2.Plans).Should(ConsistOf(expectedPlans))
 			}
+		})
 
+		It("Returns error when problem with catalog", func() {
+			fakeRepo.GetChartsReturns(nil, errors.New("issue with catalog"))
+
+			serviceBroker := NewPksServiceBroker(config, nil, nil, nil, nil, fakeRepo, nil, logger)
+			_, err := serviceBroker.Services(nil)
+			Expect(err).NotTo(BeNil())
+			Expect(err.Error()).To(ContainSubstring("issue with catalog"))
 		})
 	})
 
@@ -222,7 +234,7 @@ var _ = Describe("Broker", func() {
 				ServiceID: spacebearsServiceGUID,
 			}
 
-			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, charts, nil, logger)
+			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, logger)
 			Expect(fakeClusterFactory.DefaultClusterCallCount()).To(Equal(0))
 			Expect(fakeClusterFactory.GetClusterCallCount()).To(Equal(0))
 
@@ -285,7 +297,7 @@ var _ = Describe("Broker", func() {
 					PlanID:    spacebearsServiceGUID + "-small",
 				}
 
-				broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, charts, nil, logger)
+				broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, logger)
 			})
 
 			It("uses cluster configured in plan to build helm client", func() {
@@ -315,7 +327,7 @@ var _ = Describe("Broker", func() {
 		Context("registry secrets", func() {
 			It("doesn't mess with secrets when not configured", func() {
 				config = &my_config.Config{RegistryConfig: &my_config.RegistryConfig{}, HelmTLSConfig: &my_config.HelmTLSConfig{}}
-				broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, charts, nil, logger)
+				broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, logger)
 
 				_, err := broker.Provision(nil, "my-instance-guid", details, true)
 
@@ -393,7 +405,7 @@ var _ = Describe("Broker", func() {
 		var broker *PksServiceBroker
 
 		BeforeEach(func() {
-			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, charts, nil, logger)
+			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, logger)
 
 			serviceList := api_v1.ServiceList{
 				Items: []api_v1.Service{
@@ -711,7 +723,7 @@ var _ = Describe("Broker", func() {
 
 			fakeClusterFactory.GetClusterFromK8sConfigReturns(&fakeCluster, nil)
 
-			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, charts, nil, logger)
+			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, logger)
 
 			details := brokerapi.PollDetails{
 				OperationData: "provision",
@@ -734,7 +746,7 @@ var _ = Describe("Broker", func() {
 		var broker *PksServiceBroker
 
 		BeforeEach(func() {
-			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, charts, nil, logger)
+			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, logger)
 		})
 
 		It("bind returns cluster secrets", func() {
@@ -929,7 +941,7 @@ var _ = Describe("Broker", func() {
 
 			fakeClusterFactory.GetClusterFromK8sConfigReturns(&fakeCluster, nil)
 
-			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, charts, nil, logger)
+			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, logger)
 
 			serviceList := api_v1.ServiceList{Items: []api_v1.Service{}}
 			fakeCluster.ListServicesReturns(&serviceList, nil)
@@ -999,7 +1011,7 @@ var _ = Describe("Broker", func() {
 		var broker *PksServiceBroker
 
 		BeforeEach(func() {
-			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, charts, nil, logger)
+			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, logger)
 		})
 
 		It("correctly calls deletion", func() {
@@ -1056,14 +1068,27 @@ var _ = Describe("Broker", func() {
 
 			fakeClusterFactory.GetClusterFromK8sConfigReturns(&fakeCluster, nil)
 
-			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, charts, nil, logger)
+			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, logger)
 
 			_, err := broker.Deprovision(nil, "my-instance-guid", details, true)
 
 			Expect(err).To(BeNil())
 
-			Expect(fakeClusterFactory.DefaultClusterCallCount()).To(Equal(0))
-			Expect(fakeClusterFactory.GetClusterFromK8sConfigCallCount()).To(Equal(1))
+			Eventually(func() int {
+				return fakeHelmClient.DeleteReleaseCallCount()
+			}).Should(Equal(1))
+			Eventually(func() int {
+				return fakeCluster.DeleteNamespaceCallCount()
+			}).Should(Equal(1))
+
+			Consistently(func() int {
+				return fakeClusterFactory.DefaultClusterCallCount()
+			}).Should(Equal(0))
+
+			Eventually(func() int {
+				return fakeClusterFactory.GetClusterFromK8sConfigCallCount()
+			}).Should(Equal(1))
+
 			c := fakeClusterFactory.GetClusterFromK8sConfigArgsForCall(0)
 			Expect(c.CurrentContext).To(Equal("context2"))
 		})
@@ -1073,7 +1098,7 @@ var _ = Describe("Broker", func() {
 		var broker *PksServiceBroker
 
 		BeforeEach(func() {
-			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, charts, nil, logger)
+			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, logger)
 		})
 
 		It("requires async", func() {
@@ -1130,7 +1155,7 @@ var _ = Describe("Broker", func() {
 
 			fakeClusterFactory.GetClusterFromK8sConfigReturns(&fakeCluster, nil)
 
-			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, charts, nil, logger)
+			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, logger)
 
 			_, err := broker.Update(nil, "my-instance-guid", details, true)
 
@@ -1147,7 +1172,7 @@ var _ = Describe("Broker", func() {
 		var broker *PksServiceBroker
 
 		It("does not support async", func() {
-			broker = NewPksServiceBroker(config, nil, nil, nil, fakeInstallerFactory, charts, nil, logger)
+			broker = NewPksServiceBroker(config, nil, nil, nil, fakeInstallerFactory, fakeRepo, nil, logger)
 			response, err := broker.Unbind(nil, "my-instance-id", "my-binding-id", brokerapi.UnbindDetails{}, false)
 
 			Expect(err).To(BeNil())

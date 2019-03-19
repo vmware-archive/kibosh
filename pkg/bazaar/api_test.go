@@ -96,7 +96,7 @@ var _ = Describe("Api", func() {
 			}
 			charts := []*helm.MyChart{spacebearsChart}
 
-			repo.LoadChartsReturns(charts, nil)
+			repo.GetChartsReturns(charts, nil)
 			req, err := http.NewRequest("GET", "/charts/", nil)
 			Expect(err).To(BeNil())
 
@@ -117,7 +117,7 @@ var _ = Describe("Api", func() {
 		})
 
 		It("500s on failure", func() {
-			repo.LoadChartsReturns(nil, errors.New("something went south"))
+			repo.GetChartsReturns(nil, errors.New("something went south"))
 			req, err := http.NewRequest("GET", "/charts/", nil)
 			Expect(err).To(BeNil())
 
@@ -272,7 +272,7 @@ var _ = Describe("Api", func() {
 				},
 			}
 
-			repo.LoadChartsReturns([]*helm.MyChart{
+			repo.GetChartsReturns([]*helm.MyChart{
 				spacebearsChart,
 			}, nil)
 			req, err := http.NewRequest("DELETE", "/charts/spacebears", nil)

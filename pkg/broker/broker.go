@@ -22,6 +22,7 @@ import (
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
+	"github.com/cf-platform-eng/kibosh/pkg/repository"
 	"github.com/ghodss/yaml"
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
@@ -36,7 +37,7 @@ const registrySecretName = "registry-secret"
 
 type PksServiceBroker struct {
 	config    *config.Config
-	charts    []*my_helm.MyChart
+	repo      repository.Repository
 	operators []*my_helm.MyChart
 
 	clusterFactory                 k8s.ClusterFactory
@@ -50,11 +51,11 @@ type PksServiceBroker struct {
 func NewPksServiceBroker(
 	config *config.Config, clusterFactory k8s.ClusterFactory, helmClientFactory my_helm.HelmClientFactory,
 	serviceAccountInstallerFactory k8s.ServiceAccountInstallerFactory, helmInstallerFactory my_helm.InstallerFactory,
-	charts []*my_helm.MyChart, operators []*my_helm.MyChart, logger *logrus.Logger,
+	repo repository.Repository, operators []*my_helm.MyChart, logger *logrus.Logger,
 ) *PksServiceBroker {
 	broker := &PksServiceBroker{
 		config:    config,
-		charts:    charts,
+		repo:      repo,
 		operators: operators,
 
 		clusterFactory:                 clusterFactory,
@@ -68,22 +69,26 @@ func NewPksServiceBroker(
 	return broker
 }
 
-func (broker *PksServiceBroker) SetCharts(charts []*my_helm.MyChart) {
-	broker.charts = charts
-}
-
-func (broker *PksServiceBroker) GetChartsMap() map[string]*my_helm.MyChart {
+func (broker *PksServiceBroker) GetChartsMap() (map[string]*my_helm.MyChart, error) {
 	chartsMap := map[string]*my_helm.MyChart{}
-	for _, chart := range broker.charts {
+	charts, err := broker.repo.GetCharts()
+	if err != nil {
+		return nil, err
+	}
+	for _, chart := range charts {
 		chartsMap[broker.getServiceID(chart)] = chart
 	}
-	return chartsMap
+	return chartsMap, nil
 }
 
 func (broker *PksServiceBroker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 	serviceCatalog := []brokerapi.Service{}
 
-	for _, chart := range broker.GetChartsMap() {
+	charts, err := broker.GetChartsMap()
+	if err != nil {
+		return nil, err
+	}
+	for _, chart := range charts {
 		plans := []brokerapi.ServicePlan{}
 		for _, plan := range chart.Plans {
 			plans = append(plans, brokerapi.ServicePlan{
@@ -138,13 +143,16 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 	}
 
 	planName := strings.TrimPrefix(details.PlanID, details.ServiceID+"-")
-	chart := broker.GetChartsMap()[details.ServiceID]
+	charts, err := broker.GetChartsMap()
+	if err != nil {
+		return brokerapi.ProvisionedServiceSpec{}, err
+	}
+	chart := charts[details.ServiceID]
 	if chart == nil {
 		return brokerapi.ProvisionedServiceSpec{}, errors.New(fmt.Sprintf("Chart not found for [%s]", details.ServiceID))
 	}
 
 	var installValues []byte
-	var err error
 	if details.GetRawParameters() != nil {
 		installValues, err = yaml.JSONToYAML(details.GetRawParameters())
 		if err != nil {
@@ -204,7 +212,6 @@ func (broker *PksServiceBroker) GetInstance(context context.Context, instanceID 
 }
 
 func (broker *PksServiceBroker) Deprovision(ctx context.Context, instanceID string, details brokerapi.DeprovisionDetails, asyncAllowed bool) (brokerapi.DeprovisionServiceSpec, error) {
-
 	planID := details.PlanID
 	serviceID := details.ServiceID
 	cluster, err := broker.getCluster(planID, serviceID)
@@ -237,7 +244,6 @@ func (broker *PksServiceBroker) Deprovision(ctx context.Context, instanceID stri
 }
 
 func (broker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID string, details brokerapi.BindDetails, asyncAllowed bool) (brokerapi.Binding, error) {
-
 	planID := details.PlanID
 	serviceID := details.ServiceID
 	cluster, err := broker.getCluster(planID, serviceID)
@@ -257,7 +263,11 @@ func (broker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID 
 
 func (broker *PksServiceBroker) getCluster(planID, serviceID string) (k8s.Cluster, error) {
 	planName := strings.TrimPrefix(planID, serviceID+"-")
-	chart := broker.GetChartsMap()[serviceID]
+	charts, err := broker.GetChartsMap()
+	if err != nil {
+		return nil, err
+	}
+	chart := charts[serviceID]
 
 	if chart != nil {
 		plan, planFound := chart.Plans[planName]
@@ -354,7 +364,11 @@ func (broker *PksServiceBroker) Update(ctx context.Context, instanceID string, d
 		}
 	}
 
-	chart := broker.GetChartsMap()[details.ServiceID]
+	charts, err := broker.GetChartsMap()
+	if err != nil {
+		return brokerapi.UpdateServiceSpec{}, err
+	}
+	chart := charts[details.ServiceID]
 	if chart == nil {
 		return brokerapi.UpdateServiceSpec{}, errors.New(fmt.Sprintf("Chart not found for [%s]", details.ServiceID))
 	}

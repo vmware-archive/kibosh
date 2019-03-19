@@ -2,9 +2,9 @@
 package k8sfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	k8s "github.com/cf-platform-eng/kibosh/pkg/k8s"
+	"github.com/cf-platform-eng/kibosh/pkg/k8s"
 )
 
 type FakeServiceAccountInstaller struct {

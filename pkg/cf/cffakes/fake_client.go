@@ -2,9 +2,9 @@
 package cffakes
 
 import (
-	sync "sync"
+	"sync"
 
-	cf "github.com/cf-platform-eng/kibosh/pkg/cf"
+	"github.com/cf-platform-eng/kibosh/pkg/cf"
 	cfclient "github.com/cloudfoundry-community/go-cfclient"
 )
 

@@ -88,7 +88,7 @@ func (api *api) Charts() http.Handler {
 }
 
 func (api *api) ListCharts(w http.ResponseWriter, r *http.Request) error {
-	charts, err := api.repo.LoadCharts()
+	charts, err := api.repo.GetCharts()
 	if err != nil {
 		api.logger.WithError(err).Error("Unable to load charts")
 		api.ServerError(500, errors.Wrap(err, "Unable to load charts").Error(), w)
@@ -134,7 +134,7 @@ func (api *api) DeleteChart(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}
 
-	charts, err := api.repo.LoadCharts()
+	charts, err := api.repo.GetCharts()
 	if err != nil {
 		api.ServerError(500, errors.Wrap(err, "Unable to delete chart").Error(), w)
 		return nil

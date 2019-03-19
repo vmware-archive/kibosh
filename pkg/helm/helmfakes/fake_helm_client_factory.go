@@ -2,10 +2,10 @@
 package helmfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	helm "github.com/cf-platform-eng/kibosh/pkg/helm"
-	k8s "github.com/cf-platform-eng/kibosh/pkg/k8s"
+	"github.com/cf-platform-eng/kibosh/pkg/helm"
+	"github.com/cf-platform-eng/kibosh/pkg/k8s"
 )
 
 type FakeHelmClientFactory struct {

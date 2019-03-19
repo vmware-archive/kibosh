@@ -22,40 +22,26 @@ import (
 	"net/http/httptest"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/cf-platform-eng/kibosh/pkg/broker"
 	"github.com/cf-platform-eng/kibosh/pkg/cf/cffakes"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
-	"github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/repository"
 	"github.com/cf-platform-eng/kibosh/pkg/repository/repositoryfakes"
 	"github.com/cloudfoundry-community/go-cfclient"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	hapi_chart "k8s.io/helm/pkg/proto/hapi/chart"
 )
 
 var _ = Describe("Api", func() {
 	const spacebearsServiceGUID = "37b7acb6-6755-56fe-a17f-2307657023ef"
 
-	var spacebearsChart *helm.MyChart
 	var repo repositoryfakes.FakeRepository
-	var bro broker.PksServiceBroker
 	var cfClient cffakes.FakeClient
 	var conf *config.Config
 	var logger *logrus.Logger
 	var api repository.API
 
 	BeforeEach(func() {
-		spacebearsChart = &helm.MyChart{
-			Chart: &hapi_chart.Chart{
-				Metadata: &hapi_chart.Metadata{
-					Name:        "spacebears",
-					Description: "spacebears service and spacebears broker helm chart",
-				},
-			},
-		}
 		repo = repositoryfakes.FakeRepository{}
-		bro = broker.PksServiceBroker{}
 		cfClient = cffakes.FakeClient{}
 		conf = &config.Config{
 			AdminUsername: "bob_the_broker",
@@ -66,37 +52,7 @@ var _ = Describe("Api", func() {
 			},
 		}
 		logger = logrus.New()
-		api = repository.NewAPI(&bro, &repo, &cfClient, conf, logger)
-	})
-
-	It("sets charts on broker", func() {
-		charts := []*helm.MyChart{spacebearsChart}
-
-		repo.LoadChartsReturns(charts, nil)
-		req, err := http.NewRequest("GET", "/reload_charts", nil)
-		Expect(err).To(BeNil())
-
-		recorder := httptest.NewRecorder()
-
-		apiHandler := api.ReloadCharts()
-		apiHandler.ServeHTTP(recorder, req)
-
-		Expect(recorder.Code).To(Equal(200))
-		broCharts := bro.GetChartsMap()
-		Expect(len(broCharts)).To(Equal(1))
-		Expect(broCharts[spacebearsServiceGUID].Metadata.Name).To(Equal("spacebears"))
-	})
-
-	It("500s on failure", func() {
-		repo.LoadChartsReturns(nil, errors.New("something went south"))
-		req, err := http.NewRequest("GET", "/reload_charts", nil)
-		Expect(err).To(BeNil())
-
-		recorder := httptest.NewRecorder()
-
-		apiHandler := api.ReloadCharts()
-		apiHandler.ServeHTTP(recorder, req)
-		Expect(recorder.Code).To(Equal(500))
+		api = repository.NewAPI(&repo, &cfClient, conf, logger)
 	})
 
 	Context("reload self in cf", func() {
@@ -173,7 +129,7 @@ var _ = Describe("Api", func() {
 
 			recorder := httptest.NewRecorder()
 
-			api = repository.NewAPI(&bro, &repo, nil, conf, logger)
+			api = repository.NewAPI(&repo, nil, conf, logger)
 
 			apiHandler := api.ReloadCharts()
 			apiHandler.ServeHTTP(recorder, req)

@@ -17,20 +17,19 @@ package repository
 
 import (
 	"fmt"
-	"github.com/cf-platform-eng/kibosh/pkg/moreio"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-
 	"github.com/Sirupsen/logrus"
 	"github.com/cf-platform-eng/kibosh/pkg/helm"
+	"github.com/cf-platform-eng/kibosh/pkg/moreio"
 	"github.com/pkg/errors"
+	"io/ioutil"
 	"k8s.io/helm/pkg/chartutil"
+	"os"
+	"path/filepath"
 )
 
 //go:generate counterfeiter ./ Repository
 type Repository interface {
-	LoadCharts() ([]*helm.MyChart, error)
+	GetCharts() ([]*helm.MyChart, error)
 	SaveChart(path string) error
 	DeleteChart(name string) error
 }
@@ -38,6 +37,7 @@ type Repository interface {
 type repository struct {
 	helmChartDir          string
 	privateRegistryServer string
+	chartsCache           []*helm.MyChart
 	logger                *logrus.Logger
 }
 
@@ -49,50 +49,54 @@ func NewRepository(chartPath string, privateRegistryServer string, logger *logru
 	}
 }
 
-func (r *repository) LoadCharts() ([]*helm.MyChart, error) {
-	charts := []*helm.MyChart{}
+func (r *repository) GetCharts() ([]*helm.MyChart, error) {
+	if r.chartsCache == nil {
+		charts := []*helm.MyChart{}
 
-	chartExists, err := moreio.FileExists(filepath.Join(r.helmChartDir, "Chart.yaml"))
-	if err != nil {
-		return charts, err
-	}
+		chartExists, err := moreio.FileExists(filepath.Join(r.helmChartDir, "Chart.yaml"))
+		if err != nil {
+			return nil, err
+		}
 
-	if chartExists {
-		myChart, err := helm.NewChart(r.helmChartDir, r.privateRegistryServer)
-		if err != nil {
-			return charts, err
-		}
-		charts = append(charts, myChart)
-	} else {
-		helmDirFiles, err := ioutil.ReadDir(r.helmChartDir)
-		if err != nil {
-			return charts, err
-		}
-		for _, fileInfo := range helmDirFiles {
-			if fileInfo.Name() == "workspace_tmp" {
-				//rename doesn't support moving things across disks, so we're expanding to a working dir
-				continue
+		if chartExists {
+			myChart, err := helm.NewChart(r.helmChartDir, r.privateRegistryServer)
+			if err != nil {
+				return nil, err
 			}
-			if fileInfo.IsDir() {
-				subChartPath := filepath.Join(r.helmChartDir, fileInfo.Name())
-				subdirChartExists, err := moreio.FileExists(filepath.Join(subChartPath, "Chart.yaml"))
-				if err != nil {
-					return charts, err
+			charts = append(charts, myChart)
+		} else {
+			helmDirFiles, err := ioutil.ReadDir(r.helmChartDir)
+			if err != nil {
+				return nil, err
+			}
+			for _, fileInfo := range helmDirFiles {
+				if fileInfo.Name() == "workspace_tmp" {
+					//rename doesn't support moving things across disks, so we're expanding to a working dir
+					continue
 				}
-				if subdirChartExists {
-					myChart, err := helm.NewChart(filepath.Join(subChartPath), r.privateRegistryServer)
+				if fileInfo.IsDir() {
+					subChartPath := filepath.Join(r.helmChartDir, fileInfo.Name())
+					subdirChartExists, err := moreio.FileExists(filepath.Join(subChartPath, "Chart.yaml"))
 					if err != nil {
-						return charts, err
+						return nil, err
 					}
-					charts = append(charts, myChart)
-				} else {
-					r.logger.Info(fmt.Sprintf("[%s] does not contain Chart.yml, skipping", subChartPath))
+					if subdirChartExists {
+						myChart, err := helm.NewChart(filepath.Join(subChartPath), r.privateRegistryServer)
+						if err != nil {
+							return nil, err
+						}
+						charts = append(charts, myChart)
+					} else {
+						r.logger.Info(fmt.Sprintf("[%s] does not contain Chart.yml, skipping", subChartPath))
+					}
 				}
 			}
 		}
+
+		r.chartsCache = charts
 	}
 
-	return charts, nil
+	return r.chartsCache, nil
 }
 
 func (r *repository) SaveChart(path string) error {
@@ -149,6 +153,7 @@ func (r *repository) SaveChart(path string) error {
 		return err
 	}
 
+	r.chartsCache = nil
 	return nil
 }
 
@@ -165,7 +170,7 @@ func (r *repository) DeleteChart(name string) error {
 		return err
 	}
 	os.RemoveAll(deletePath)
+	r.chartsCache = nil
 
 	return nil
-
 }

@@ -2,10 +2,10 @@
 package helmfakes
 
 import (
-	sync "sync"
-	time "time"
+	"sync"
+	"time"
 
-	helm "github.com/cf-platform-eng/kibosh/pkg/helm"
+	"github.com/cf-platform-eng/kibosh/pkg/helm"
 )
 
 type FakeInstaller struct {

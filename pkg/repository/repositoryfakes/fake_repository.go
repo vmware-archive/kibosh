@@ -2,10 +2,10 @@
 package repositoryfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	helm "github.com/cf-platform-eng/kibosh/pkg/helm"
-	repository "github.com/cf-platform-eng/kibosh/pkg/repository"
+	"github.com/cf-platform-eng/kibosh/pkg/helm"
+	"github.com/cf-platform-eng/kibosh/pkg/repository"
 )
 
 type FakeRepository struct {
@@ -20,15 +20,15 @@ type FakeRepository struct {
 	deleteChartReturnsOnCall map[int]struct {
 		result1 error
 	}
-	LoadChartsStub        func() ([]*helm.MyChart, error)
-	loadChartsMutex       sync.RWMutex
-	loadChartsArgsForCall []struct {
+	GetChartsStub        func() ([]*helm.MyChart, error)
+	getChartsMutex       sync.RWMutex
+	getChartsArgsForCall []struct {
 	}
-	loadChartsReturns struct {
+	getChartsReturns struct {
 		result1 []*helm.MyChart
 		result2 error
 	}
-	loadChartsReturnsOnCall map[int]struct {
+	getChartsReturnsOnCall map[int]struct {
 		result1 []*helm.MyChart
 		result2 error
 	}
@@ -107,56 +107,56 @@ func (fake *FakeRepository) DeleteChartReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeRepository) LoadCharts() ([]*helm.MyChart, error) {
-	fake.loadChartsMutex.Lock()
-	ret, specificReturn := fake.loadChartsReturnsOnCall[len(fake.loadChartsArgsForCall)]
-	fake.loadChartsArgsForCall = append(fake.loadChartsArgsForCall, struct {
+func (fake *FakeRepository) GetCharts() ([]*helm.MyChart, error) {
+	fake.getChartsMutex.Lock()
+	ret, specificReturn := fake.getChartsReturnsOnCall[len(fake.getChartsArgsForCall)]
+	fake.getChartsArgsForCall = append(fake.getChartsArgsForCall, struct {
 	}{})
-	fake.recordInvocation("LoadCharts", []interface{}{})
-	fake.loadChartsMutex.Unlock()
-	if fake.LoadChartsStub != nil {
-		return fake.LoadChartsStub()
+	fake.recordInvocation("GetCharts", []interface{}{})
+	fake.getChartsMutex.Unlock()
+	if fake.GetChartsStub != nil {
+		return fake.GetChartsStub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.loadChartsReturns
+	fakeReturns := fake.getChartsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *FakeRepository) LoadChartsCallCount() int {
-	fake.loadChartsMutex.RLock()
-	defer fake.loadChartsMutex.RUnlock()
-	return len(fake.loadChartsArgsForCall)
+func (fake *FakeRepository) GetChartsCallCount() int {
+	fake.getChartsMutex.RLock()
+	defer fake.getChartsMutex.RUnlock()
+	return len(fake.getChartsArgsForCall)
 }
 
-func (fake *FakeRepository) LoadChartsCalls(stub func() ([]*helm.MyChart, error)) {
-	fake.loadChartsMutex.Lock()
-	defer fake.loadChartsMutex.Unlock()
-	fake.LoadChartsStub = stub
+func (fake *FakeRepository) GetChartsCalls(stub func() ([]*helm.MyChart, error)) {
+	fake.getChartsMutex.Lock()
+	defer fake.getChartsMutex.Unlock()
+	fake.GetChartsStub = stub
 }
 
-func (fake *FakeRepository) LoadChartsReturns(result1 []*helm.MyChart, result2 error) {
-	fake.loadChartsMutex.Lock()
-	defer fake.loadChartsMutex.Unlock()
-	fake.LoadChartsStub = nil
-	fake.loadChartsReturns = struct {
+func (fake *FakeRepository) GetChartsReturns(result1 []*helm.MyChart, result2 error) {
+	fake.getChartsMutex.Lock()
+	defer fake.getChartsMutex.Unlock()
+	fake.GetChartsStub = nil
+	fake.getChartsReturns = struct {
 		result1 []*helm.MyChart
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeRepository) LoadChartsReturnsOnCall(i int, result1 []*helm.MyChart, result2 error) {
-	fake.loadChartsMutex.Lock()
-	defer fake.loadChartsMutex.Unlock()
-	fake.LoadChartsStub = nil
-	if fake.loadChartsReturnsOnCall == nil {
-		fake.loadChartsReturnsOnCall = make(map[int]struct {
+func (fake *FakeRepository) GetChartsReturnsOnCall(i int, result1 []*helm.MyChart, result2 error) {
+	fake.getChartsMutex.Lock()
+	defer fake.getChartsMutex.Unlock()
+	fake.GetChartsStub = nil
+	if fake.getChartsReturnsOnCall == nil {
+		fake.getChartsReturnsOnCall = make(map[int]struct {
 			result1 []*helm.MyChart
 			result2 error
 		})
 	}
-	fake.loadChartsReturnsOnCall[i] = struct {
+	fake.getChartsReturnsOnCall[i] = struct {
 		result1 []*helm.MyChart
 		result2 error
 	}{result1, result2}
@@ -227,8 +227,8 @@ func (fake *FakeRepository) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.deleteChartMutex.RLock()
 	defer fake.deleteChartMutex.RUnlock()
-	fake.loadChartsMutex.RLock()
-	defer fake.loadChartsMutex.RUnlock()
+	fake.getChartsMutex.RLock()
+	defer fake.getChartsMutex.RUnlock()
 	fake.saveChartMutex.RLock()
 	defer fake.saveChartMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

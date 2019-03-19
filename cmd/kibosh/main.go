@@ -42,7 +42,7 @@ func main() {
 	}
 
 	repo := repository.NewRepository(conf.HelmChartDir, conf.RegistryConfig.Server, kiboshLogger)
-	charts, err := repo.LoadCharts()
+	charts, err := repo.GetCharts()
 	if err != nil {
 		kiboshLogger.Fatal("Unable to load charts", err)
 	}
@@ -62,7 +62,7 @@ func main() {
 	}
 
 	operatorRepo := repository.NewRepository(conf.OperatorDir, conf.RegistryConfig.Server, kiboshLogger)
-	operatorCharts, err := operatorRepo.LoadCharts()
+	operatorCharts, err := operatorRepo.GetCharts()
 	if err != nil {
 		if !os.IsNotExist(err) {
 			kiboshLogger.Fatal("Unable to load operators", err)
@@ -80,7 +80,7 @@ func main() {
 		kiboshLogger.Fatal("Unable to prepare default cluster", err)
 	}
 
-	serviceBroker := broker.NewPksServiceBroker(conf, clusterFactory, helmClientFactory, serviceAccountInstallerFactory, helm.InstallerFactoryDefault, charts, operatorCharts, kiboshLogger)
+	serviceBroker := broker.NewPksServiceBroker(conf, clusterFactory, helmClientFactory, serviceAccountInstallerFactory, helm.InstallerFactoryDefault, repo, operatorCharts, kiboshLogger)
 	brokerCredentials := brokerapi.BrokerCredentials{
 		Username: conf.AdminUsername,
 		Password: conf.AdminPassword,
@@ -92,7 +92,7 @@ func main() {
 	brokerAPI := brokerapi.New(serviceBroker, brokerLogger, brokerCredentials)
 	http.Handle("/", brokerAPI)
 
-	repositoryAPI := repository.NewAPI(serviceBroker, repo, cfAPIClient, conf, kiboshLogger)
+	repositoryAPI := repository.NewAPI(repo, cfAPIClient, conf, kiboshLogger)
 	authFilter := httphelpers.NewAuthFilter(conf.AdminUsername, conf.AdminPassword)
 	http.Handle("/reload_charts", authFilter.Filter(
 		repositoryAPI.ReloadCharts(),

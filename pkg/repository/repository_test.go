@@ -60,20 +60,20 @@ var _ = Describe("Repository", func() {
 
 		It("returns error on empty path", func() {
 			myRepository := repository.NewRepository("", "", logger)
-			_, err := myRepository.LoadCharts()
+			_, err := myRepository.GetCharts()
 			Expect(err).NotTo(BeNil())
 		})
 
 		It("returns empty slice on directory with no charts", func() {
 			myRepository := repository.NewRepository(emptyDir, "", logger)
-			charts, err := myRepository.LoadCharts()
+			charts, err := myRepository.GetCharts()
 			Expect(charts).To(BeEmpty())
 			Expect(err).To(BeNil())
 		})
 
 		It("returns empty slice on directory with empty directories", func() {
 			myRepository := repository.NewRepository(nestedEmptyDir, "", logger)
-			charts, err := myRepository.LoadCharts()
+			charts, err := myRepository.GetCharts()
 			Expect(charts).To(BeEmpty())
 			Expect(err).To(BeNil())
 		})
@@ -98,7 +98,7 @@ var _ = Describe("Repository", func() {
 
 		It("returns single chart", func() {
 			myRepository := repository.NewRepository(chartPath, "", logger)
-			charts, err := myRepository.LoadCharts()
+			charts, err := myRepository.GetCharts()
 			Expect(err).To(BeNil())
 
 			Expect(charts).To(HaveLen(1))
@@ -125,11 +125,118 @@ var _ = Describe("Repository", func() {
 
 		It("returns a single plain chart", func() {
 			myRepository := repository.NewRepository(chartPath, "", logger)
-			charts, err := myRepository.LoadCharts()
+			charts, err := myRepository.GetCharts()
 			Expect(err).To(BeNil())
 
 			Expect(charts).To(HaveLen(1))
 			Expect(charts[0].Metadata.Name).To(Equal("spacebears"))
+		})
+	})
+
+	Context("caching", func() {
+		var repoPath, tarDir string
+
+		BeforeEach(func() {
+			var err error
+			repoPath, err = ioutil.TempDir("", "chart-")
+			Expect(err).To(BeNil())
+
+			tarDir, err = ioutil.TempDir("", "")
+			Expect(err).To(BeNil())
+
+			testChart = test.DefaultChart()
+			testChart.ChartYaml = []byte(`
+name: postgres
+description: store some data, relational style
+version: 0.0.1
+`)
+			c1Dir := filepath.Join(repoPath, "postgres")
+			err = os.Mkdir(c1Dir, 0700)
+			Expect(err).To(BeNil())
+			err = testChart.WriteChart(c1Dir)
+			Expect(err).To(BeNil())
+
+			testChart = test.DefaultChart()
+			testChart.ChartYaml = []byte(`
+name: mysql
+description: it's the M in all those acronums
+version: 0.0.1
+`)
+
+			c2Dir := filepath.Join(repoPath, "mysql")
+			err = os.Mkdir(c2Dir, 0700)
+			Expect(err).To(BeNil())
+			err = testChart.WriteChart(c2Dir)
+			Expect(err).To(BeNil())
+
+			logger = logrus.New()
+		})
+
+		AfterEach(func() {
+			os.RemoveAll(repoPath)
+		})
+
+		It("caches charts between calls", func() {
+			myRepository := repository.NewRepository(repoPath, "", logger)
+			charts, err := myRepository.GetCharts()
+			Expect(err).To(BeNil())
+			Expect(charts).To(HaveLen(2))
+
+			err = os.RemoveAll(repoPath)
+			Expect(err).To(BeNil())
+
+			charts, err = myRepository.GetCharts()
+			Expect(err).To(BeNil())
+			Expect(charts).To(HaveLen(2))
+		})
+
+		It("adding a chart invalidates the cache", func() {
+			// pre-conditions
+			myRepository := repository.NewRepository(repoPath, "", logger)
+			charts, err := myRepository.GetCharts()
+			Expect(err).To(BeNil())
+			Expect(charts).To(HaveLen(2))
+
+			// change and save chart
+			testChart = test.DefaultChart()
+			testChart.ChartYaml = []byte(`
+name: minio
+description: store some data, relational style
+version: 0.0.2
+`)
+
+			other, err := ioutil.TempDir("", "third-")
+			Expect(err).To(BeNil())
+
+			thirdChartDir := filepath.Join(other, "third")
+			err = os.Mkdir(thirdChartDir, 0700)
+			Expect(err).To(BeNil())
+			err = testChart.WriteChart(thirdChartDir)
+			Expect(err).To(BeNil())
+
+			chart, err := helm.NewChart(thirdChartDir, "")
+			tarFile, err := chartutil.Save(chart.Chart, tarDir)
+
+			err = myRepository.SaveChart(tarFile)
+
+			// validate
+			charts, err = myRepository.GetCharts()
+			Expect(err).To(BeNil())
+			Expect(charts).To(HaveLen(3))
+		})
+
+		It("deleting a chart invalidates the cache", func() {
+			myRepository := repository.NewRepository(repoPath, "", logger)
+			charts, err := myRepository.GetCharts()
+			Expect(err).To(BeNil())
+			Expect(charts).To(HaveLen(2))
+
+			err = myRepository.DeleteChart("mysql")
+			Expect(err).To(BeNil())
+
+			charts, err = myRepository.GetCharts()
+			Expect(err).To(BeNil())
+			Expect(charts).To(HaveLen(1))
 		})
 	})
 
@@ -177,7 +284,7 @@ version: 0.0.1
 			logger = logrus.New()
 			myRepository := repository.NewRepository(chartPath, "", logger)
 
-			charts, err := myRepository.LoadCharts()
+			charts, err := myRepository.GetCharts()
 			Expect(err).To(BeNil())
 
 			Expect(charts).To(HaveLen(2))
@@ -192,7 +299,7 @@ version: 0.0.1
 			logger = logrus.New()
 			myRepository := repository.NewRepository(chartPath, "", logger)
 
-			_, err = myRepository.LoadCharts()
+			_, err = myRepository.GetCharts()
 			Expect(err).NotTo(BeNil())
 		})
 	})
@@ -336,7 +443,6 @@ version: 0.0.2
 		})
 
 		It("successfully deletes chart", func() {
-
 			chartPath, err := ioutil.TempDir("", "chart-")
 			Expect(err).To(BeNil())
 			deletePath := filepath.Join(chartPath, "spacebears")
@@ -356,7 +462,6 @@ version: 0.0.2
 		})
 
 		It("successfully deletes chart with multiple charts", func() {
-
 			chartPath, err := ioutil.TempDir("", "chart-")
 			Expect(err).To(BeNil())
 			deletePath := filepath.Join(chartPath, "spacebears")
@@ -385,7 +490,6 @@ version: 0.0.2
 		})
 
 		It("fails to find chart on chart path", func() {
-
 			chartPath, err := ioutil.TempDir("", "chart-")
 			Expect(err).To(BeNil())
 

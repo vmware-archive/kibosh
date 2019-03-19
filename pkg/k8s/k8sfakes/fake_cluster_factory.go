@@ -2,11 +2,11 @@
 package k8sfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	config "github.com/cf-platform-eng/kibosh/pkg/config"
-	k8s "github.com/cf-platform-eng/kibosh/pkg/k8s"
-	api "k8s.io/client-go/tools/clientcmd/api"
+	"github.com/cf-platform-eng/kibosh/pkg/config"
+	"github.com/cf-platform-eng/kibosh/pkg/k8s"
+	"k8s.io/client-go/tools/clientcmd/api"
 )
 
 type FakeClusterFactory struct {
