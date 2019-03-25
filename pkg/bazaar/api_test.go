@@ -78,7 +78,6 @@ var _ = Describe("Api", func() {
 	Context("List charts", func() {
 		It("List charts on bazaar", func() {
 			spacebearsChart := &helm.MyChart{
-				Chartpath: "/foo/bar",
 				Plans: map[string]helm.Plan{
 					"plan1": {
 						Name: "plan1",
@@ -113,7 +112,6 @@ var _ = Describe("Api", func() {
 			Expect(err).To(BeNil())
 
 			Expect(body[0]["name"]).To(Equal("spacebears"))
-			Expect(body[0]["chartpath"]).To(Equal("/foo/bar"))
 		})
 
 		It("500s on failure", func() {
@@ -259,7 +257,6 @@ var _ = Describe("Api", func() {
 
 		It("reject deletion when there is only one chart", func() {
 			spacebearsChart := &helm.MyChart{
-				Chartpath: "/foo/bar",
 				Plans: map[string]helm.Plan{
 					"plan1": {
 						Name: "plan1",

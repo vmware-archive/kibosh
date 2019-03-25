@@ -16,6 +16,7 @@
 package test
 
 import (
+	"github.com/cf-platform-eng/kibosh/pkg/helm"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -140,4 +141,20 @@ func (t *TestChart) WriteChart(chartPath string) error {
 	}
 
 	return nil
+}
+
+func DefaultMyChart() (*helm.MyChart, error) {
+	chartPath, err := ioutil.TempDir("", "chart-")
+	if err != nil {
+		return nil, err
+	}
+	defer os.RemoveAll(chartPath)
+
+	testChart := DefaultChart()
+	err = testChart.WriteChart(chartPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return helm.NewChart(chartPath, "docker.example.com")
 }

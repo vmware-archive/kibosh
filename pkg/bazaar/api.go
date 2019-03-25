@@ -53,10 +53,9 @@ func NewAPI(repo repository.Repository, kiboshConfig *KiboshConfig, logger *logr
 }
 
 type DisplayChart struct {
-	Name      string   `json:"name"`
-	Plans     []string `json:"plans"`
-	Chartpath string   `json:"chartpath"`
-	Version   string   `json:"version"`
+	Name    string   `json:"name"`
+	Plans   []string `json:"plans"`
+	Version string   `json:"version"`
 }
 
 type DisplayResponse struct {
@@ -100,10 +99,9 @@ func (api *api) ListCharts(w http.ResponseWriter, r *http.Request) error {
 				plans = append(plans, plan.Name)
 			}
 			displayCharts = append(displayCharts, DisplayChart{
-				Name:      chart.Metadata.Name,
-				Version:   chart.Metadata.Version,
-				Plans:     plans,
-				Chartpath: chart.Chartpath,
+				Name:    chart.Metadata.Name,
+				Version: chart.Metadata.Version,
+				Plans:   plans,
 			})
 		}
 		return api.WriteJSONResponse(w, displayCharts)

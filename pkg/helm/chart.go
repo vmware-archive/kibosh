@@ -36,13 +36,13 @@ import (
 	"k8s.io/helm/pkg/proto/hapi/chart"
 )
 
+//todo: test transformedValues refactor
 type MyChart struct {
 	*chart.Chart
 
-	Chartpath             string
-	privateRegistryServer string
-	Values                []byte
-	Plans                 map[string]Plan
+	PrivateRegistryServer string          `json:"privateRegistryServer"`
+	TransformedValues     []byte          `json:"transformedValues"`
+	Plans                 map[string]Plan `json:"plans"`
 }
 
 func NewChartValidationError(err error) *ChartValidationError {
@@ -56,19 +56,19 @@ type ChartValidationError struct {
 }
 
 type Plan struct {
-	Name            string   `yaml:"name"`
-	Description     string   `yaml:"description"`
-	Bullets         []string `yaml:"bullets"`
-	File            string   `yaml:"file"`
-	Free            *bool    `yaml:"free,omitempty"`
-	Bindable        *bool    `yaml:"bindable,omitempty"`
-	CredentialsPath string   `yaml:"credentials"`
+	Name            string   `yaml:"name" json:"name"`
+	Description     string   `yaml:"description" json:"description"`
+	Bullets         []string `yaml:"bullets" json:"bullets"`
+	File            string   `yaml:"file" json:"file"`
+	Free            *bool    `yaml:"free,omitempty" json:"free"`
+	Bindable        *bool    `yaml:"bindable,omitempty" json:"bindable"`
+	CredentialsPath string   `yaml:"credentials" json:"credentialsPath"`
 
-	ClusterConfig *k8sAPI.Config
-	Values        []byte
+	Values        []byte         `json:"values"`
+	ClusterConfig *k8sAPI.Config `json:"clusterConfig"`
 }
 
-func LoadFromDir(dir string, log *logrus.Logger, requirePlans bool) ([]*MyChart, error) {
+func LoadFromDir(dir string, log *logrus.Logger) ([]*MyChart, error) {
 	sourceDirStat, err := os.Stat(dir)
 	if err != nil {
 		return nil, err
@@ -97,8 +97,7 @@ func LoadFromDir(dir string, log *logrus.Logger, requirePlans bool) ([]*MyChart,
 
 func NewChart(chartPath string, privateRegistryServer string) (*MyChart, error) {
 	myChart := &MyChart{
-		Chartpath:             chartPath,
-		privateRegistryServer: privateRegistryServer,
+		PrivateRegistryServer: privateRegistryServer,
 	}
 
 	chartPathStat, err := os.Stat(chartPath)
@@ -107,7 +106,7 @@ func NewChart(chartPath string, privateRegistryServer string) (*MyChart, error) 
 	}
 
 	if chartPathStat.IsDir() {
-		err = myChart.EnsureIgnore()
+		err = myChart.ensureIgnore(chartPath)
 		if err != nil {
 			return nil, errors.Wrap(err, "Error fixing .helmignore")
 		}
@@ -125,9 +124,9 @@ func NewChart(chartPath string, privateRegistryServer string) (*MyChart, error) 
 	}
 
 	if chartPathStat.IsDir() {
-		err = myChart.loadPlansFromDirectory()
+		err = myChart.loadPlansFromDirectory(chartPath)
 	} else {
-		err = myChart.loadPlansFromArchive()
+		err = myChart.loadPlansFromArchive(chartPath)
 	}
 
 	if err != nil {
@@ -167,23 +166,13 @@ func (c *MyChart) LoadChartValues() error {
 		return err
 	}
 
-	c.Values = finalVals
+	c.TransformedValues = finalVals
 
 	return nil
 }
 
-func (c *MyChart) ReadDefaultVals(chartPath string) ([]byte, error) {
-	valuesPath := path.Join(chartPath, "values.yaml")
-	bytes, err := ioutil.ReadFile(valuesPath)
-	if err != nil {
-		return nil, err
-	}
-
-	return bytes, nil
-}
-
 func (c *MyChart) OverrideImageSources(rawVals map[string]interface{}) (map[string]interface{}, error) {
-	if c.privateRegistryServer == "" {
+	if c.PrivateRegistryServer == "" {
 		return rawVals, nil
 	}
 
@@ -195,7 +184,7 @@ func (c *MyChart) OverrideImageSources(rawVals map[string]interface{}) (map[stri
 				return nil, errors.New("'image' key value is not a string, vals structure is incorrect")
 			}
 			split := strings.Split(stringVal, "/")
-			transformedVals[key] = fmt.Sprintf("%s/%s", c.privateRegistryServer, split[len(split)-1])
+			transformedVals[key] = fmt.Sprintf("%s/%s", c.PrivateRegistryServer, split[len(split)-1])
 		} else if key == "images" {
 			remarshalled, err := yaml.Marshal(val)
 			if err != nil {
@@ -223,8 +212,8 @@ func (c *MyChart) OverrideImageSources(rawVals map[string]interface{}) (map[stri
 	return transformedVals, nil
 }
 
-func (c *MyChart) loadPlansFromArchive() error {
-	chartFile, err := os.Open(c.Chartpath)
+func (c *MyChart) loadPlansFromArchive(chartPath string) error {
+	chartFile, err := os.Open(chartPath)
 	if err != nil {
 		return err
 	}
@@ -279,8 +268,8 @@ func (c *MyChart) loadPlansFromArchive() error {
 	return err
 }
 
-func (c *MyChart) loadPlansFromDirectory() error {
-	plansPath := path.Join(c.Chartpath, "plans.yaml")
+func (c *MyChart) loadPlansFromDirectory(chartPath string) error {
+	plansPath := path.Join(chartPath, "plans.yaml")
 	_, err := os.Stat(plansPath)
 	if err != nil {
 		_, ok := err.(*os.PathError)
@@ -303,7 +292,7 @@ func (c *MyChart) loadPlansFromDirectory() error {
 		return err
 	}
 
-	return c.loadPlans(filepath.Join(c.Chartpath, "plans"), plans)
+	return c.loadPlans(filepath.Join(chartPath, "plans"), plans)
 }
 
 func (c *MyChart) loadPlans(plansPath string, plans []Plan) error {
@@ -354,19 +343,19 @@ func (c *MyChart) SetPlanDefaultValues(plan *Plan) {
 	}
 }
 
-func (c *MyChart) EnsureIgnore() error {
-	_, err := os.Stat(c.Chartpath)
+func (c *MyChart) ensureIgnore(chartPath string) error {
+	_, err := os.Stat(chartPath)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("Error reading chart dir [%s]", c.Chartpath))
+		return errors.Wrap(err, fmt.Sprintf("Error reading chart dir [%s]", chartPath))
 	}
 
-	ignoreFilePath := filepath.Join(c.Chartpath, ".helmignore")
+	ignoreFilePath := filepath.Join(chartPath, ".helmignore")
 	_, err = os.Stat(ignoreFilePath)
 	if err != nil {
 		file, err := os.Create(ignoreFilePath)
 		defer file.Close()
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("Error creating .helmignore [%s]", c.Chartpath))
+			return errors.Wrap(err, fmt.Sprintf("Error creating .helmignore [%s]", chartPath))
 		} else {
 			file.Write([]byte("images"))
 		}
@@ -382,11 +371,11 @@ func (c *MyChart) EnsureIgnore() error {
 		file, err := os.OpenFile(ignoreFilePath, os.O_APPEND|os.O_WRONLY, 0666)
 		defer file.Close()
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("Error opening .helmignore [%s]", c.Chartpath))
+			return errors.Wrap(err, fmt.Sprintf("Error opening .helmignore [%s]", chartPath))
 		} else {
 			_, err = file.Write([]byte("\nimages\n"))
 			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("Error appending to .helmignore [%s]", c.Chartpath))
+				return errors.Wrap(err, fmt.Sprintf("Error appending to .helmignore [%s]", chartPath))
 			}
 		}
 	}
