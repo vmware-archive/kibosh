@@ -21,6 +21,13 @@ export SECURITY_USER_NAME=admin
 export SECURITY_USER_PASSWORD=pass
 export TILLER_NAMESPACE=kibosh
 
+export CF_BROKER_URL="http://192.168.0.4:8080"
+export CF_BROKER_NAME="bazaar"
+export CF_API_ADDRESS="https://api.v3.pcfdev.io"
+export CF_USERNAME="admin"
+export CF_PASSWORD="admin"
+export CF_SKIP_SSL_VALIDATION="true"
+
 # REG_* settings are optional, for configuring a private docker registry
 # export REG_SERVER='gcr.io'
 # export REG_USER='_json_key'
@@ -31,6 +38,4 @@ export TILLER_NAMESPACE=kibosh
 
 #export REG_EMAIL='_json_key'
 
-LDFLAGS="-X github.com/cf-platform-eng/kibosh/pkg/helm.tillerTag=$(cat tiller-version)"
-
-go run -ldflags "${LDFLAGS}" cmd/kibosh/main.go
+go run cmd/kibosh/main.go

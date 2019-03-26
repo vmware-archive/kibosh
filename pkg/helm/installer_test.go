@@ -33,7 +33,7 @@ import (
 	"time"
 )
 
-const helmVersion = "v2.12.1"
+const helmVersion = "v2.13.1"
 
 var _ = Describe("KubeConfig", func() {
 	var logger *logrus.Logger
