@@ -19,7 +19,7 @@ resources:
 - name: source-repo
   type: git
   source:
-    branch: master
+    branch: fix-tiller
     ignore_paths:
     - ci/*
     - README.md
@@ -314,13 +314,11 @@ jobs:
 - name: tiller-version-check
   plan:
   - aggregate:
-    - get: tiller-image
     - get: source-repo
       trigger: true
   - task: do-tiller-version-check
     config:
       inputs:
-      - name: tiller-image
       - name: source-repo
       platform: linux
       image_resource:
@@ -335,9 +333,10 @@ jobs:
         - |
           set -e
 
-          helmdep=$(dep status | grep helm | awk '{print $3}')
-          helmsrc=$(grep "TillerTag string" pkg/helm/installer.go | awk '{print $4}' | tr -d '\"')
-          if [ "$helmdep" -eq "$helmsrc" ]; then
+          pushd source-repo
+          export helmdep=$(grep "k8s.io/helm" Gopkg.toml -A 1 | tail -n 1 | awk '{print $3}' | tr -d '\"')
+          export helmsrc=$(grep "TillerTag string" pkg/helm/installer.go | awk '{print $4}' | tr -d '\"')
+          if [[ "$helmdep" == "$helmsrc" ]]; then
             echo "Ok: $helmdep $helmsrc"
           else
             echo "
@@ -621,6 +620,7 @@ jobs:
 
           yes | bosh -d kibosh run-errand loader
           popd
+          exit 1
     on_failure: *slack_on_failure
 
 - name: publish-release
