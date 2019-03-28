@@ -36,7 +36,6 @@ import (
 	"k8s.io/helm/pkg/proto/hapi/chart"
 )
 
-//todo: test transformedValues refactor
 type MyChart struct {
 	*chart.Chart
 
