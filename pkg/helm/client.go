@@ -216,7 +216,7 @@ func (c myHelmClient) InstallChart(registryConfig *config.RegistryConfig, namesp
 		}
 	}
 
-	overrideValues, err := c.MergeValueBytes(chart.Values, chart.Plans[planName].Values)
+	overrideValues, err := c.MergeValueBytes(chart.TransformedValues, chart.Plans[planName].Values)
 	if err != nil {
 		return nil, err
 	}
@@ -229,11 +229,11 @@ func (c myHelmClient) InstallChart(registryConfig *config.RegistryConfig, namesp
 }
 
 func (c myHelmClient) InstallOperator(chart *MyChart, namespace string) (*rls.InstallReleaseResponse, error) {
-	return c.InstallReleaseFromChart(chart.Chart, namespace, helm.ReleaseName(namespace), helm.ValueOverrides(chart.Values))
+	return c.InstallReleaseFromChart(chart.Chart, namespace, helm.ReleaseName(namespace), helm.ValueOverrides(chart.TransformedValues))
 }
 
 func (c myHelmClient) UpdateChart(chart *MyChart, rlsName string, planName string, updateValues []byte) (*rls.UpdateReleaseResponse, error) {
-	existingChartValues, err := c.MergeValueBytes(chart.Values, chart.Plans[planName].Values)
+	existingChartValues, err := c.MergeValueBytes(chart.TransformedValues, chart.Plans[planName].Values)
 	if err != nil {
 		return nil, err
 	}

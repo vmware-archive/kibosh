@@ -4,11 +4,13 @@
 required = [
     "github.com/go-openapi/spec",
     "github.com/emicklei/go-restful",
+    "github.com/sirupsen/logrus"
 ]
 
 ignored = [
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
+    "github.com/Sirupsen/logrus"
 ]
 
 [prune]

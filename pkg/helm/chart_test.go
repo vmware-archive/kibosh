@@ -16,6 +16,7 @@
 package helm_test
 
 import (
+	"encoding/json"
 	"github.com/Sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -60,7 +61,7 @@ var _ = Describe("Broker", func() {
 		Expect(err).To(BeNil())
 
 		values := map[string]interface{}{}
-		err = yaml.Unmarshal(chart.Values, &values)
+		err = yaml.Unmarshal(chart.TransformedValues, &values)
 
 		Expect(err)
 		Expect(values["count"]).To(Equal(1))
@@ -78,6 +79,33 @@ var _ = Describe("Broker", func() {
 		Expect(chart.Plans).To(HaveLen(1))
 		_, ok := chart.Plans["default"]
 		Expect(ok).To(BeTrue())
+	})
+
+	Context("serialization", func() {
+		It("serializes and desieralizes to json", func() {
+			err := testChart.WriteChart(chartPath)
+			Expect(err).To(BeNil())
+
+			myChart, err := helm.NewChart(chartPath, "docker.example.com")
+
+			serialized, err := json.Marshal(myChart)
+			Expect(err).To(BeNil())
+
+			var deserealized helm.MyChart
+			err = json.Unmarshal(serialized, &deserealized)
+			Expect(err).To(BeNil())
+			Expect(deserealized).NotTo(BeNil())
+			Expect(deserealized.Metadata).NotTo(BeNil())
+			Expect(deserealized.Metadata.Name).To(Equal("spacebears"))
+			Expect(deserealized.TransformedValues).To(Equal(myChart.TransformedValues))
+
+			//Extensions has an `omitempty` that breaks equality comparision: nil != {}
+			myChart.Plans["medium"].ClusterConfig.Extensions = nil
+			myChart.Plans["medium"].ClusterConfig.Clusters["my-cluster"].Extensions = nil
+			myChart.Plans["medium"].ClusterConfig.Contexts["context"].Extensions = nil
+			myChart.Plans["medium"].ClusterConfig.Preferences.Extensions = nil
+			Expect(myChart.Plans).To(Equal(deserealized.Plans))
+		})
 	})
 
 	Context("archived chart (tgz)", func() {
@@ -104,7 +132,7 @@ var _ = Describe("Broker", func() {
 			loadedChart, err := helm.NewChart(chartArchivePath, "")
 
 			values := map[string]interface{}{}
-			err = yaml.Unmarshal(loadedChart.Values, &values)
+			err = yaml.Unmarshal(loadedChart.TransformedValues, &values)
 
 			Expect(err)
 			Expect(values["count"]).To(Equal(1))
@@ -171,7 +199,7 @@ var _ = Describe("Broker", func() {
 		})
 
 		It("single chart", func() {
-			charts, err := helm.LoadFromDir(chartArchiveDirPath, logrus.New(), false)
+			charts, err := helm.LoadFromDir(chartArchiveDirPath, logrus.New())
 
 			Expect(err).To(BeNil())
 
@@ -180,7 +208,7 @@ var _ = Describe("Broker", func() {
 		})
 
 		It("loads plans", func() {
-			charts, err := helm.LoadFromDir(chartArchiveDirPath, logrus.New(), true)
+			charts, err := helm.LoadFromDir(chartArchiveDirPath, logrus.New())
 
 			Expect(err).To(BeNil())
 
@@ -192,7 +220,7 @@ var _ = Describe("Broker", func() {
 		It("skips non-charts", func() {
 			err := ioutil.WriteFile(filepath.Join(chartPath, "not-a-chart.tgz"), []byte("nope"), 0666)
 
-			charts, err := helm.LoadFromDir(chartArchiveDirPath, logrus.New(), false)
+			charts, err := helm.LoadFromDir(chartArchiveDirPath, logrus.New())
 
 			Expect(err).To(BeNil())
 
@@ -206,7 +234,7 @@ var _ = Describe("Broker", func() {
 			_, err = chartutil.Save(chartToSave2.Chart, chartArchiveDirPath)
 			Expect(err).To(BeNil())
 
-			charts, err := helm.LoadFromDir(chartArchiveDirPath, logrus.New(), false)
+			charts, err := helm.LoadFromDir(chartArchiveDirPath, logrus.New())
 
 			Expect(err).To(BeNil())
 
@@ -285,7 +313,7 @@ foo: bar
 			chart, err := helm.NewChart(chartPath, "")
 			Expect(err).To(BeNil())
 
-			Expect(strings.TrimSpace(string(chart.Values))).To(Equal(strings.TrimSpace(`
+			Expect(strings.TrimSpace(string(chart.TransformedValues))).To(Equal(strings.TrimSpace(`
 foo: bar
 image: my-image
 `)))
@@ -302,7 +330,7 @@ foo: bar
 			chart, err := helm.NewChart(chartPath, "docker.example.com/some-scope")
 
 			Expect(err).To(BeNil())
-			Expect(strings.TrimSpace(string(chart.Values))).To(Equal(strings.TrimSpace(`
+			Expect(strings.TrimSpace(string(chart.TransformedValues))).To(Equal(strings.TrimSpace(`
 foo: bar
 image: docker.example.com/some-scope/my-image
 `)))
@@ -319,7 +347,7 @@ foo: bar
 			chart, err := helm.NewChart(chartPath, "docker.example.com/some-scope")
 
 			Expect(err).To(BeNil())
-			Expect(strings.TrimSpace(string(chart.Values))).To(Equal(strings.TrimSpace(`
+			Expect(strings.TrimSpace(string(chart.TransformedValues))).To(Equal(strings.TrimSpace(`
 foo: bar
 image: docker.example.com/some-scope/my-image
 `)))
@@ -341,7 +369,7 @@ images:
 			chart, err := helm.NewChart(chartPath, "docker.example.com")
 
 			Expect(err).To(BeNil())
-			Expect(strings.TrimSpace(string(chart.Values))).To(Equal(strings.TrimSpace(`
+			Expect(strings.TrimSpace(string(chart.TransformedValues))).To(Equal(strings.TrimSpace(`
 images:
   thing1:
     image: docker.example.com/my-first-image
