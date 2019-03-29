@@ -17,10 +17,10 @@ package repository
 
 import (
 	"fmt"
-	"github.com/Sirupsen/logrus"
 	"github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/moreio"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"k8s.io/helm/pkg/chartutil"
 	"os"

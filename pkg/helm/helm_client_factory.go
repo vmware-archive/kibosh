@@ -16,9 +16,9 @@
 package helm
 
 import (
-	"github.com/Sirupsen/logrus"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
+	"github.com/sirupsen/logrus"
 )
 
 //go:generate counterfeiter ./ HelmClientFactory

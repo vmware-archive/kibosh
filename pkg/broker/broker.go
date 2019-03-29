@@ -18,7 +18,6 @@ package broker
 import (
 	"context"
 	"fmt"
-	"github.com/Sirupsen/logrus"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
@@ -27,6 +26,7 @@ import (
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	api_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	hapi_release "k8s.io/helm/pkg/proto/hapi/release"

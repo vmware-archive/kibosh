@@ -24,11 +24,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/cf-platform-eng/kibosh/pkg/bazaar"
 	"github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/httphelpers"
 	"github.com/cf-platform-eng/kibosh/pkg/repository/repositoryfakes"
+	"github.com/sirupsen/logrus"
 	hapi_chart "k8s.io/helm/pkg/proto/hapi/chart"
 )
 

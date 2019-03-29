@@ -5,10 +5,10 @@ import (
 	"bytes"
 	"code.cloudfoundry.org/lager"
 	"errors"
-	"github.com/Sirupsen/logrus"
 	"github.com/cf-platform-eng/kibosh/pkg/logger"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
 )
 
 var _ = Describe("lager adapter", func() {

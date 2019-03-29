@@ -2,7 +2,7 @@ package logger
 
 import (
 	"code.cloudfoundry.org/lager"
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 func NewLogrusSink(logger *logrus.Logger) *LogrusSink {

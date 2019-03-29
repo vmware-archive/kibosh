@@ -17,7 +17,7 @@ package helm_test
 
 import (
 	"encoding/json"
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"k8s.io/helm/pkg/chartutil"
