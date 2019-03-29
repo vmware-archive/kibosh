@@ -16,7 +16,6 @@
 package broker_test
 
 import (
-	"github.com/Sirupsen/logrus"
 	"github.com/cf-platform-eng/kibosh/pkg/broker"
 	my_config "github.com/cf-platform-eng/kibosh/pkg/config"
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
@@ -25,6 +24,7 @@ import (
 	"github.com/cf-platform-eng/kibosh/pkg/k8s/k8sfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
 	hapi_chart "k8s.io/helm/pkg/proto/hapi/chart"
 )
 

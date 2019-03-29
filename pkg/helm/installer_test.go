@@ -20,12 +20,12 @@ import (
 	. "github.com/onsi/gomega"
 
 	"errors"
-	"github.com/Sirupsen/logrus"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	. "github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/helm/helmfakes"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s/k8sfakes"
 	"github.com/cf-platform-eng/kibosh/pkg/test"
+	"github.com/sirupsen/logrus"
 	"k8s.io/api/core/v1"
 	v1_beta1 "k8s.io/api/extensions/v1beta1"
 	api_errors "k8s.io/apimachinery/pkg/api/errors"

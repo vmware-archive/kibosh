@@ -21,10 +21,10 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver"
-	"github.com/Sirupsen/logrus"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	helmstaller "k8s.io/helm/cmd/helm/installer"

@@ -24,12 +24,12 @@ import (
 	"net"
 	"reflect"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
 	"github.com/gosuri/uitable/util/strutil"
+	"github.com/sirupsen/logrus"
 	"io"
 	api_v1 "k8s.io/api/core/v1"
 	helmstaller "k8s.io/helm/cmd/helm/installer"

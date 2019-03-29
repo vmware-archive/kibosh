@@ -16,7 +16,7 @@
 package k8s
 
 import (
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 //go:generate counterfeiter ./ ServiceAccountInstallerFactory

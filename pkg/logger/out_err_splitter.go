@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // See this, once merged, this can go away https://github.com/sirupsen/logrus/pull/671
