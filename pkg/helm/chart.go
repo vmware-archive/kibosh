@@ -283,12 +283,18 @@ func (c *MyChart) loadPlansFromDirectory() error {
 	plansPath := path.Join(c.Chartpath, "plans.yaml")
 	_, err := os.Stat(plansPath)
 	if err != nil {
-		_, ok := err.(*os.PathError)
-		if ok {
-			c.Plans = map[string]Plan{}
-			return nil
-		} else {
-			return err
+		plansPath = path.Join(c.Chartpath, "plans.yml")
+		_, err := os.Stat(plansPath)
+		if err != nil {
+			_, ok := err.(*os.PathError)
+			if ok {
+				// @TODO: How should we log in a place like this??
+				// log.Info(fmt.Sprintf("No plan file found, creating default plan"))
+				c.Plans = map[string]Plan{}
+				return nil
+			} else {
+				return err
+			}
 		}
 	}
 

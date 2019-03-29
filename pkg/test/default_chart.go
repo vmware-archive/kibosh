@@ -106,7 +106,7 @@ name: value
 	}
 }
 
-func (t *TestChart) WriteChart(chartPath string) error {
+func (t *TestChart) WriteChart(chartPath string, useYml ...bool) error {
 	plansPath := filepath.Join(chartPath, "plans")
 	_, plansPathExists := os.Stat(plansPath)
 	if os.IsNotExist(plansPathExists) {
@@ -114,6 +114,25 @@ func (t *TestChart) WriteChart(chartPath string) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	var suffix string
+	plansYml := []byte(`
+- name: "small"
+  description: "default (small) plan for mysql"
+  file: "small.yml"
+- name: "medium"
+  description: "medium sized plan for mysql"
+  file: "medium.yml"
+  free: false
+  credentials: "medium-creds.yml"
+`)
+
+	if len(useYml) > 0 && useYml[0] {
+		suffix = ".yml"
+		t.PlansYaml = plansYml
+	} else {
+		suffix = ".yaml"
 	}
 
 	err := ioutil.WriteFile(filepath.Join(chartPath, "Chart.yaml"), t.ChartYaml, 0666)
@@ -126,12 +145,12 @@ func (t *TestChart) WriteChart(chartPath string) error {
 	}
 
 	if t.HasPlans {
-		err = ioutil.WriteFile(filepath.Join(chartPath, "plans.yaml"), t.PlansYaml, 0666)
+		err = ioutil.WriteFile(filepath.Join(chartPath, "plans"+suffix), t.PlansYaml, 0666)
 		if err != nil {
 			return err
 		}
 		for key, value := range t.PlanContents {
-			path := filepath.Join(chartPath, "plans", key+".yaml")
+			path := filepath.Join(chartPath, "plans", key+suffix)
 			err = ioutil.WriteFile(path, value, 0666)
 			if err != nil {
 				return err
