@@ -271,7 +271,7 @@ func (c *MyChart) loadPlansFromDirectory(chartPath string) error {
 	plansPath := path.Join(chartPath, "plans.yaml")
 	_, err := os.Stat(plansPath)
 	if err != nil {
-		plansPath = path.Join(c.Chartpath, "plans.yml")
+		plansPath = path.Join(chartPath, "plans.yml")
 		_, err := os.Stat(plansPath)
 		if err != nil {
 			_, ok := err.(*os.PathError)
