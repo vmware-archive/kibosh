@@ -56,6 +56,23 @@ var _ = Describe("Broker", func() {
 		Expect(chart).NotTo(BeNil())
 	})
 
+	It("should load chart with .yml extensions", func() {
+		var err error
+		chartPath, err = ioutil.TempDir("", "chart-")
+		Expect(err).To(BeNil())
+
+		testChart = test.DefaultChart()
+		err = testChart.WriteChart(chartPath, true)
+		Expect(err).To(BeNil())
+		chart, err := helm.NewChart(chartPath, "")
+
+		Expect(err).To(BeNil())
+		Expect(chart).NotTo(BeNil())
+		Expect(len(chart.Plans)).To(Equal(2))
+		Expect(chart.Plans["small"]).NotTo(BeNil())
+		Expect(chart.Plans["medium"]).NotTo(BeNil())
+	})
+
 	It("should load chart default values.yaml", func() {
 		chart, err := helm.NewChart(chartPath, "")
 		Expect(err).To(BeNil())
