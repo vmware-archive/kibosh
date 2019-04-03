@@ -1,6 +1,7 @@
 ---
 vars:
 - &odb_version "v0.20.0"
+- &golang_version "1.12"
 
 resource_types:
 - name: gcs-resource
@@ -30,19 +31,6 @@ resources:
   type: bosh-io-release
   source:
     repository: bosh-packages/cf-cli-release
-
-- name: tiller-image
-  type: docker-image
-  source:
-    repository: gcr.io/kubernetes-helm/tiller
-    tag: "v2.12.1"
-
-- name: tiller-image-fixed
-  type: gcs-resource
-  source:
-    bucket: kibosh
-    json_key: {{gcp_service_account_key}}
-    regexp: images/tiller-(?P<version>.*).tgz
 
 # reminder: how do we auto-consume production releases?
 # they're releases alpha tags, which we don't want to consume
@@ -261,7 +249,7 @@ jobs:
         type: docker-image
         source:
           repository: golang
-          tag: "1.11"
+          tag: *golang_version
       run:
         path: bash
         args:
@@ -296,7 +284,7 @@ jobs:
         type: docker-image
         source:
           repository: golang
-          tag: "1.9"
+          tag: *golang_version
       params:
         ODB_VERSION: *odb_version
       run:
@@ -326,20 +314,18 @@ jobs:
 - name: tiller-version-check
   plan:
   - aggregate:
-    - get: tiller-image
     - get: source-repo
       trigger: true
   - task: do-tiller-version-check
     config:
       inputs:
-      - name: tiller-image
       - name: source-repo
       platform: linux
       image_resource:
         type: docker-image
         source:
           repository: golang
-          tag: "1.9"
+          tag: *golang_version
       run:
         path: bash
         args:
@@ -347,12 +333,15 @@ jobs:
         - |
           set -e
 
-          if cmp tiller-image/tag source-repo/tiller-version; then
-            echo "Ok: $(cat tiller-image/tag) $(cat source-repo/tiller-version)"
+          pushd source-repo
+          export helmdep=$(grep "k8s.io/helm" Gopkg.toml -A 1 | tail -n 1 | awk '{print $3}' | tr -d '\"')
+          export helmsrc=$(grep "TillerTag string" pkg/helm/installer.go | awk '{print $4}' | tr -d '\"')
+          if [[ "$helmdep" == "$helmsrc" ]]; then
+            echo "Ok: $helmdep $helmsrc"
           else
             echo "
-              CI is including tiller version: $(cat tiller-image/tag)
-              Build is using tiller version: $(cat source-repo/tiller-version)
+              go dep is including helm version: $helmdep
+              source is expecting helm version: $helmsrc
               Failing due to mismatch"
             exit 1
           fi
@@ -377,7 +366,7 @@ jobs:
         type: docker-image
         source:
           repository: golang
-          tag: "1.11"
+          tag: *golang_version
       run:
         path: bash
         args:
@@ -633,68 +622,6 @@ jobs:
           popd
     on_failure: *slack_on_failure
 
-- name: save-tiller-image
-  plan:
-  - aggregate:
-    - get: tiller-image
-      params:
-        save: true
-  - task: do-save
-    config:
-      inputs:
-      - name: tiller-image
-      outputs:
-      - name: out
-      platform: linux
-      image_resource:
-        type: docker-image
-        source:
-          repository: cfplatformeng/tile-generator
-      params:
-        IMAGE_DIR: tiller-image
-      run:
-        path: bash
-        args:
-        - -exc
-        - |
-          pushd ${IMAGE_DIR}
-          mkdir -p new-image out
-          pushd new-image
-          tar -xvf ../image
-          popd
-
-          cp new-image/manifest.json manifest.json.bk
-
-          echo '
-          import json
-
-          with open("repository") as repo_file:
-            repo = repo_file.read().strip()
-
-          with open("tag") as tag_file:
-            tag = tag_file.read().strip()
-
-          with open("new-image/manifest.json", "r+") as file:
-            manifest = json.load(file)
-            repo_tags = ["{}:{}".format(repo, tag)]
-            manifest[0]["RepoTags"] = repo_tags
-            new_manifest = json.dumps(manifest)
-
-            file.seek(0)
-            print("\n", new_manifest, "\n")
-            file.write(new_manifest)
-          ' > fix_manifest.py
-
-          python fix_manifest.py
-
-          export IMAGE_FILE_NAME=tiller-$(cat tag).tgz
-          tar -cvf ../out/${IMAGE_FILE_NAME} -C new-image $(ls new-image)
-    on_failure: *slack_on_failure
-  - put: tiller-image-fixed
-    params:
-      file: out/tiller-v*.tgz
-
-
 - name: publish-release
   plan:
   - aggregate:
@@ -709,12 +636,6 @@ jobs:
       passed: [push-image-errand]
     - get: version
       passed: [build-boshrelease]
-    - get: tiller-image
-      passed: [save-tiller-image]
-    - get: tiller-image-fixed
-      passed: [save-tiller-image]
-      params:
-        save: true
   - task: publish-release
     config:
       inputs:
@@ -725,8 +646,6 @@ jobs:
       - name: bazaarcli-mac
       - name: kibosh-release
       - name: version
-      - name: tiller-image
-      - name: tiller-image-fixed
       outputs:
       - name: output
       platform: linux
@@ -747,7 +666,6 @@ jobs:
           mv bazaarcli-linux/bazaarcli-*.linux output/
           mv bazaarcli-mac/bazaarcli-*.mac output/
           mv kibosh-release/kibosh*.tgz output/
-          mv tiller-image-fixed/tiller-v*.tgz output/
     on_failure: *slack_on_failure
   - put: release-repo
     params:
@@ -756,7 +674,6 @@ jobs:
       globs:
       - output/kibosh*.*
       - output/bazaarcli*.*
-      - output/tiller-*.tgz
 
 - name: delete-deployment
   plan:

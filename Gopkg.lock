@@ -85,6 +85,14 @@
   revision = "de5bf2ad457846296e2031421a34e2568e304e35"
 
 [[projects]]
+  digest = "1:4e5ac329afc6cf296eb5257cad503bfdfd8d96277ddf3ba7b144ca4af4182b7d"
+  name = "github.com/Sirupsen/logrus"
+  packages = ["."]
+  pruneopts = "U"
+  revision = "dae0fa8d5b0c810a8ab733fbd5510c7cae84eca4"
+  version = "v1.4.0"
+
+[[projects]]
   branch = "master"
   digest = "1:010e072526ea219f17252bc5d050f7767584bc8ab10b4d83d68636bba82d9d18"
   name = "github.com/chai2010/gettext-go"
@@ -194,7 +202,7 @@
   packages = ["."]
   pruneopts = "U"
   revision = "ef5f0afec364d3b9396b7b77b43dbe26bf1f8004"
-  version = "v0.18.0"
+  version = "v0.19.0"
 
 [[projects]]
   digest = "1:cb3d7af9ccaa2735d2e34c7deee40077850b9f11d38e824abb4268cbcca62fb4"
@@ -202,23 +210,23 @@
   packages = ["."]
   pruneopts = "U"
   revision = "8483a886a90412cd6858df4ea3483dce9c8e35a3"
-  version = "v0.18.0"
+  version = "v0.19.0"
 
 [[projects]]
-  digest = "1:1d41e8eeb90153e695fec42c6ae89a2ff1c18b8acee505ba9cc43d28b5777e1e"
+  digest = "1:bdcdbb9d5b38b6db30333d431554f87bea367561d3800d3bb7df046f97c1cbc4"
   name = "github.com/go-openapi/spec"
   packages = ["."]
   pruneopts = "U"
-  revision = "5b6cdde3200976e3ecceb2868706ee39b6aff3e4"
-  version = "v0.18.0"
+  revision = "53d776530bf78a11b03a7b52dd8a083086b045e5"
+  version = "v0.19.0"
 
 [[projects]]
-  digest = "1:427be0df09deca9dfc094029f618e48afb005a19ff24441b0928f136c102563a"
+  digest = "1:8cd754ae6fdf3282e02a645a22a5d48ef2e142f34261927e5db0b5d57f297532"
   name = "github.com/go-openapi/swag"
   packages = ["."]
   pruneopts = "U"
-  revision = "1d29f06aebd59ccdf11ae04aa0334ded96e2d909"
-  version = "v0.18.0"
+  revision = "b3e2804c8535ee0d1b89320afd98474d5b8e9e3b"
+  version = "v0.19.0"
 
 [[projects]]
   digest = "1:0e743205b622e84faf424453312f3e7e1035217d279af582fe43abb628116cad"
@@ -532,7 +540,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:f333ce3abe00f5916bdaa1d74eee9751232b96f10c5d6a7a92d538f590462479"
+  digest = "1:e1537ec9f081a430077de6f6a381a78277a45373fa61e301fd06da44640116d7"
   name = "golang.org/x/crypto"
   packages = [
     "ed25519",
@@ -542,7 +550,7 @@
     "ssh/terminal",
   ]
   pruneopts = "U"
-  revision = "b7391e95e576cacdcdd422573063bc057239113d"
+  revision = "a5d413f7728c81fb97d96a2b722368945f651e78"
 
 [[projects]]
   branch = "master"
@@ -559,7 +567,7 @@
     "trace",
   ]
   pruneopts = "U"
-  revision = "addf6b3196f61cd44ce5a76657913698c73479d0"
+  revision = "e3b2ff56ed879efa686c9d09ed74f9bfe42f1a1d"
 
 [[projects]]
   branch = "master"
@@ -1111,8 +1119,8 @@
     "pkg/version",
   ]
   pruneopts = "U"
-  revision = "c27b913fddd1a6c480c229191a087698aa92f0b1"
-  version = "v1.13.4"
+  revision = "2166946f41b36dea2c4626f90a77706f426cdea2"
+  version = "v1.13.5"
 
 [[projects]]
   branch = "master"
