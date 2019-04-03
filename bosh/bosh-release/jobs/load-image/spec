@@ -17,4 +17,4 @@ properties:
     description: Private registry password
   chart_path:
     description: Path to chart directory
-    default: /var/vcap/pacakges/kibosh-chart
+    default: /var/vcap/packages/kibosh-chart

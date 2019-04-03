@@ -19,7 +19,7 @@ resources:
 - name: source-repo
   type: git
   source:
-    branch: fix-tiller
+    branch: master
     ignore_paths:
     - ci/*
     - README.md
@@ -620,7 +620,6 @@ jobs:
 
           yes | bosh -d kibosh run-errand loader
           popd
-          exit 1
     on_failure: *slack_on_failure
 
 - name: publish-release
