@@ -2,15 +2,12 @@ default: all
 
 GO_PACKAGES = $$(go list ./... ./cmd/loader | grep -v vendor)
 GO_FILES = $$(find . -name "*.go" | grep -v vendor | uniq)
-VERSION = $$(cat tiller-version)
-
-LDFLAGS="-X github.com/cf-platform-eng/kibosh/pkg/helm.tillerTag=$(VERSION)"
 
 linux:
-	GOOS=linux GOARCH=amd64 go build -o kibosh.linux -ldflags ${LDFLAGS} ./cmd/kibosh/main.go
+	GOOS=linux GOARCH=amd64 go build -o kibosh.linux ./cmd/kibosh/main.go
 
 mac:
-	GOOS=darwin GOARCH=amd64 go build -o kibosh.darwin -ldflags ${LDFLAGS} ./cmd/kibosh/main.go
+	GOOS=darwin GOARCH=amd64 go build -o kibosh.darwin ./cmd/kibosh/main.go
 
 build: linux mac
 
@@ -40,7 +37,7 @@ build-bazaar-cli: build-bazaar-cli-mac build-bazaar-cli-linux
 
 
 unit-test:
-	@go test -ldflags ${LDFLAGS} ${GO_PACKAGES}
+	@go test ${GO_PACKAGES}
 
 fmt:
 	gofmt -s -l -w $(GO_FILES)

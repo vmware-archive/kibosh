@@ -44,8 +44,8 @@ type Installer interface {
 	SetMaxWait(duration time.Duration)
 }
 
-var (
-	tillerTag string
+const (
+	TillerTag string = "v2.13.1"
 )
 
 const (
@@ -69,12 +69,9 @@ func NewInstaller(c *config.Config, cluster k8s.Cluster, client MyHelmClient, lo
 }
 
 func (i *installer) Install() error {
-	if "" == tillerTag {
-		tillerTag = "v2.12.1"
-	}
-	i.logger.Debug(fmt.Sprintf("Installing helm with Tiller version %s", tillerTag))
+	i.logger.Debug(fmt.Sprintf("Installing helm with Tiller version %s", TillerTag))
 
-	tillerImage := "gcr.io/kubernetes-helm/tiller:" + tillerTag
+	tillerImage := "gcr.io/kubernetes-helm/tiller:" + TillerTag
 	if i.config.RegistryConfig.HasRegistryConfig() {
 		privateRegistrySetup := k8s.NewPrivateRegistrySetup(i.config.TillerNamespace, k8s.ServiceAccountName, i.cluster, i.config.RegistryConfig)
 		err := privateRegistrySetup.Setup()
@@ -82,7 +79,7 @@ func (i *installer) Install() error {
 			return err
 		}
 
-		tillerImage = fmt.Sprintf("%s/tiller:%s", i.config.RegistryConfig.Server, tillerTag)
+		tillerImage = fmt.Sprintf("%s/tiller:%s", i.config.RegistryConfig.Server, TillerTag)
 	}
 
 	var err error

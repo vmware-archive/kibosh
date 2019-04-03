@@ -20,6 +20,4 @@ export SECURITY_USER_NAME=admin
 export SECURITY_USER_PASSWORD=pass
 export TILLER_NAMESPACE=kibosh
 
-LDFLAGS="-X github.com/cf-platform-eng/kibosh/pkg/helm.tillerTag=$(cat tiller-version)"
-
-go run -ldflags "${LDFLAGS}" cmd/kibosh/main.go
+go run cmd/kibosh/main.go
