@@ -83,7 +83,7 @@ func LoadFromDir(dir string, log *logrus.Logger) ([]*MyChart, error) {
 	charts := []*MyChart{}
 	for _, source := range sources {
 		chartPath := path.Join(dir, source.Name())
-		c, err := NewChart(chartPath, "")
+		c, err := NewChart(chartPath, "", log)
 		if err != nil {
 			log.Debug(fmt.Sprintf("The file [%s] not failed to load as a chart", chartPath), err)
 		} else {
@@ -94,7 +94,7 @@ func LoadFromDir(dir string, log *logrus.Logger) ([]*MyChart, error) {
 	return charts, nil
 }
 
-func NewChart(chartPath string, privateRegistryServer string) (*MyChart, error) {
+func NewChart(chartPath string, privateRegistryServer string, log *logrus.Logger) (*MyChart, error) {
 	myChart := &MyChart{
 		PrivateRegistryServer: privateRegistryServer,
 	}
@@ -123,9 +123,9 @@ func NewChart(chartPath string, privateRegistryServer string) (*MyChart, error) 
 	}
 
 	if chartPathStat.IsDir() {
-		err = myChart.loadPlansFromDirectory(chartPath)
+		err = myChart.loadPlansFromDirectory(chartPath, log)
 	} else {
-		err = myChart.loadPlansFromArchive(chartPath)
+		err = myChart.loadPlansFromArchive(chartPath, log)
 	}
 
 	if err != nil {
@@ -211,7 +211,7 @@ func (c *MyChart) OverrideImageSources(rawVals map[string]interface{}) (map[stri
 	return transformedVals, nil
 }
 
-func (c *MyChart) loadPlansFromArchive(chartPath string) error {
+func (c *MyChart) loadPlansFromArchive(chartPath string, log *logrus.Logger) error {
 	chartFile, err := os.Open(chartPath)
 	if err != nil {
 		return err
@@ -238,7 +238,8 @@ func (c *MyChart) loadPlansFromArchive(chartPath string) error {
 			break
 		}
 
-		if strings.HasSuffix(header.Name, "plans.yaml") {
+		if strings.HasSuffix(header.Name, "plans.yaml") || strings.HasSuffix(header.Name, "plans.yml") {
+			log.Info(fmt.Sprintf("plans.yaml found, reading from plans.yaml"))
 			plansBytes, err := ioutil.ReadAll(tarReader)
 			if err != nil {
 				return err
@@ -246,6 +247,7 @@ func (c *MyChart) loadPlansFromArchive(chartPath string) error {
 
 			err = yaml.Unmarshal(plansBytes, &plans)
 			if err != nil {
+				log.Info(fmt.Sprintf("Error unmarshalling plan"))
 				return err
 			}
 		} else if strings.Contains(header.Name, "/plans") {
@@ -267,7 +269,7 @@ func (c *MyChart) loadPlansFromArchive(chartPath string) error {
 	return err
 }
 
-func (c *MyChart) loadPlansFromDirectory(chartPath string) error {
+func (c *MyChart) loadPlansFromDirectory(chartPath string, log *logrus.Logger) error {
 	plansPath := path.Join(chartPath, "plans.yaml")
 	_, err := os.Stat(plansPath)
 	if err != nil {
@@ -276,8 +278,7 @@ func (c *MyChart) loadPlansFromDirectory(chartPath string) error {
 		if err != nil {
 			_, ok := err.(*os.PathError)
 			if ok {
-				// @TODO: How should we log in a place like this??
-				// log.Info(fmt.Sprintf("No plan file found, creating default plan"))
+				log.Info(fmt.Sprintf("No plan file found in path %s, creating default plan", chartPath))
 				c.Plans = map[string]Plan{}
 				return nil
 			} else {
