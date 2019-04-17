@@ -39,8 +39,13 @@ cf:
         config_file_name = "/var/vcap/jobs/delete-all-and-deregister/config_{}.yml".format(service_name)
         with open(config_file_name, "w+") as file:
             file.write(contents)
-        binary_path = "/var/vcap/packages/delete-all-and-deregister/delete_all_and_deregister.linux"
-        process = subprocess.Popen("{} -configFilePath {} -brokerName <%= p('broker_name') %>".format(binary_path, config_file_name), shell=True,  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        binary_path = "/var/vcap/packages/delete-all-and-deregister/delete_all.linux"
+        cmd = "{} -configFilePath {}".format(binary_path, config_file_name)
+        if service == services[-1]:
+            binary_path = "/var/vcap/packages/delete-all-and-deregister/delete_all_and_deregister.linux"
+            cmd = "{} -configFilePath {} -brokerName bazaar".format(binary_path, config_file_name)
+
+        process = subprocess.Popen(cmd, shell=True,  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         raw_stdout, raw_stderr = process.communicate()
         stdout = raw_stdout.decode('utf-8')
         stderr = raw_stderr.decode('utf-8')

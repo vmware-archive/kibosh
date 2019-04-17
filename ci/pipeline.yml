@@ -1,6 +1,6 @@
 ---
 vars:
-- &odb_version "v0.20.0"
+- &odb_version "v0.27.0"
 - &golang_version "1.12"
 
 resource_types:
@@ -100,6 +100,13 @@ resources:
     bucket: kibosh-public
     json_key: {{gcp_service_account_key}}
     regexp: delete_all_and_deregister-(?P<version>.*).linux
+
+- name: delete-all
+  type: gcs-resource
+  source:
+    bucket: kibosh-public
+    json_key: {{gcp_service_account_key}}
+    regexp: delete_all-(?P<version>.*).linux
 
 - name: bazaarcli-linux
   type: gcs-resource
@@ -301,13 +308,21 @@ jobs:
           GOOS=linux GOARCH=amd64 go build \
               -o delete_all_and_deregister.linux \
               cmd/delete-all-service-instances-and-deregister-broker/delete_all_service_instances_and_deregister_broker.go
+          GOOS=linux GOARCH=amd64 go build \
+              -o delete_all.linux \
+              cmd/delete-all-service-instances/delete_all_service_instances.go
           popd
 
           cp $SRC/delete_all_and_deregister.linux output/delete_all_and_deregister-${ODB_VERSION}.linux
+          cp $SRC/delete_all.linux output/delete_all-${ODB_VERSION}.linux
     on_failure: *slack_on_failure
   - put: delete-all-and-deregister
     params:
       file: output/delete_all_and_deregister-*.linux
+      predefined_acl: publicRead
+  - put: delete-all
+    params:
+      file: output/delete_all-*.linux
       predefined_acl: publicRead
 
 
@@ -448,6 +463,7 @@ jobs:
       - name: bazaar-linux
       - name: bazaarcli-linux
       - name: delete-all-and-deregister
+      - name: delete-all
       - name: cf-cli-binary
       - name: version
       outputs:
@@ -474,6 +490,7 @@ jobs:
           bosh add-blob ../../../bazaar-linux/bazaar-*.linux bazaar.linux
           bosh add-blob ../../../bazaarcli-linux/bazaarcli-*.linux bazaarcli.linux
           bosh add-blob ../../../delete-all-and-deregister/delete_all_and_deregister-*.linux delete_all_and_deregister.linux
+          bosh add-blob ../../../delete-all/delete_all-*.linux delete_all_and_deregister.linux
           bosh add-blob ../../../cf-cli-binary/cf-cli.tgz cf-cli.tgz
 
 
