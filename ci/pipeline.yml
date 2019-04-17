@@ -452,6 +452,8 @@ jobs:
       passed: [unit-tests]
     - get: delete-all-and-deregister
       passed: [build-delete-all-and-deregister]
+    - get: delete-all
+      passed: [build-delete-all-and-deregister]
     - get: cf-cli-binary
     - get: version
   - task: build-release
