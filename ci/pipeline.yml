@@ -27,6 +27,21 @@ resources:
     username: cf-pe-bot
     password: {{github_token}}
 
+- name: cluster-config
+  type: gcs-resource
+  source:
+    bucket: kibosh
+    json_key: {{gcp_service_account_key}}
+    regexp: cluster-config-(?P<version>.*)
+
+- name: cluster-token
+  type: gcs-resource
+  source:
+    bucket: kibosh
+    json_key: {{gcp_service_account_key}}
+    regexp: cluster-token-(?P<version>.*)
+
+
 - name: cf-cli
   type: bosh-io-release
   source:
@@ -559,6 +574,79 @@ jobs:
           ./deploy.sh
           popd
     on_failure: *slack_on_failure
+
+- name: create-gke-cluster
+  plan:
+  - aggregate:
+    - get: version
+    - get: source-repo
+      trigger: true
+      passed: [unit-tests]
+  - task: create-gke-cluster
+    config:
+      platform: linux
+      inputs:
+      - name: source-repo
+      - name: version
+      outputs:
+      - name: output
+      image_resource:
+        type: docker-image
+        source:
+          repository: google/cloud-sdk
+          tag: "latest"
+      params:
+        SERVICE_ACCOUNT: {{gcp_service_account_key}}
+      run:
+        path: bash
+        args:
+        - -exc
+        - |
+          export VERSION=`cat version/version`
+
+          echo $SERVICE_ACCOUNT > serviceaccount.key
+          export KUBECONFIG=output/cluster-config-${VERSION}
+          gcloud auth activate-service-account --key-file serviceaccount.key
+          gcloud beta container --project "pgtm-gwestenberg" clusters create "kibosh-ci2" --zone "us-central1-a" --username "admin" --cluster-version "1.11.8-gke.6" --machine-type "n1-standard-1" --image-type "COS" --disk-type "pd-standard" --disk-size "100" --scopes "https://www.googleapis.com/auth/devstorage.read_only","https://www.googleapis.com/auth/logging.write","https://www.googleapis.com/auth/monitoring","https://www.googleapis.com/auth/servicecontrol","https://www.googleapis.com/auth/service.management.readonly","https://www.googleapis.com/auth/trace.append" --preemptible --num-nodes "1" --enable-cloud-logging --enable-cloud-monitoring --no-enable-ip-alias --network "projects/pgtm-gwestenberg/global/networks/default" --subnetwork "projects/pgtm-gwestenberg/regions/us-central1/subnetworks/default" --addons HorizontalPodAutoscaling,HttpLoadBalancing --no-enable-autoupgrade --enable-autorepair
+          kubectl get secret -o yaml > output/cluster-token-${VERSION}
+  - put: cluster-config
+    params:
+      file: output/cluster-config-*
+  - put: cluster-token
+    params:
+      file: output/cluster-token-*
+
+
+- name: delete-gke-cluster
+  plan:
+  - aggregate:
+    - get: cluster-config
+      trigger: true
+      passed: [create-gke-cluster]
+    - get: cluster-token
+      trigger: true
+      passed: [create-gke-cluster]
+  - task: create-gke-cluster
+    config:
+      platform: linux
+      inputs:
+        - name: cluster-config
+        - name: cluster-token
+      image_resource:
+        type: docker-image
+        source:
+          repository: google/cloud-sdk
+          tag: "latest"
+      params:
+        SERVICE_ACCOUNT: {{gcp_service_account_key}}
+      run:
+        path: bash
+        args:
+          - -exc
+          - |
+            echo $SERVICE_ACCOUNT > serviceaccount.key
+            gcloud auth activate-service-account --key-file serviceaccount.key
+            gcloud beta container clusters delete "kibosh-ci2" --zone "us-central1-a" --quiet
 
 - name: deploy
   plan:
