@@ -32,7 +32,7 @@ resources:
   source:
     bucket: kibosh
     json_key: {{gcp_service_account_key}}
-    regexp: ci-config/cluster-config-(?P<version>.*).sh
+    regexp: ci-config/cluster-config-new(?P<version>.*).sh
 
 - name: cf-cli
   type: bosh-io-release
@@ -632,8 +632,8 @@ jobs:
           echo "export KUBE_SERVER=$(kubectl config view -o=jsonpath='{.clusters[0].cluster.server}')" >> cluster_config.sh
           echo "export KUBE_SECRET=$(kubectl get secret -o=jsonpath='{.items[0].data.ca\.crt}')" >> cluster_config.sh
           export SECRET_NAME=$(kubectl get serviceaccount kibosh-admin --namespace=kube-system -o jsonpath='{.secrets[0].name}')
-          echo "export KUBE_TOKEN=$(kubectl --namespace=kube-system get secret $SECRET_NAME -o jsonpath='{.data.token}')" >> cluster_config.sh
-          mv cluster_config.sh output/cluster-config-$VERSION.sh
+          echo "export KUBE_TOKEN=$(kubectl --namespace=kube-system get secret $SECRET_NAME -o jsonpath='{.data.token}' | base64 -d)" >> cluster_config.sh
+          mv cluster_config.sh output/cluster-config-new$VERSION.sh
 
   - put: cluster-config
     params:
@@ -645,8 +645,9 @@ jobs:
     - get: kibosh-bbl-pool
     - get: cf-deployment-concourse-tasks-docker
     - get: cluster-config
+      passed: [create-gke-cluster]
     - get: source-repo
-      passed: [upload-stemcell-and-release]
+      passed: [upload-stemcell-and-release, create-gke-cluster]
       trigger: true
     - get: kibosh-release
       passed: [upload-stemcell-and-release]
@@ -801,6 +802,7 @@ jobs:
           trigger: true
           passed: [push-image-errand]
         - get: cluster-config
+          passed: [create-gke-cluster]
     - task: create-gke-cluster
       config:
         platform: linux
