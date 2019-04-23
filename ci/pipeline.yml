@@ -32,15 +32,7 @@ resources:
   source:
     bucket: kibosh
     json_key: {{gcp_service_account_key}}
-    regexp: cluster-config-(?P<version>.*)
-
-- name: cluster-token
-  type: gcs-resource
-  source:
-    bucket: kibosh
-    json_key: {{gcp_service_account_key}}
-    regexp: cluster-token-(?P<version>.*)
-
+    regexp: ci-config/cluster-config-(?P<version>.*).sh
 
 - name: cf-cli
   type: bosh-io-release
@@ -603,50 +595,49 @@ jobs:
         - -exc
         - |
           export VERSION=`cat version/version`
+          export CLUSTER_NAME=kibosh-ci-${VERSION//.}
 
           echo $SERVICE_ACCOUNT > serviceaccount.key
-          export KUBECONFIG=output/cluster-config-${VERSION}
           gcloud auth activate-service-account --key-file serviceaccount.key
-          gcloud beta container --project "pgtm-gwestenberg" clusters create "kibosh-ci2" --zone "us-central1-a" --username "admin" --cluster-version "1.11.8-gke.6" --machine-type "n1-standard-1" --image-type "COS" --disk-type "pd-standard" --disk-size "100" --scopes "https://www.googleapis.com/auth/devstorage.read_only","https://www.googleapis.com/auth/logging.write","https://www.googleapis.com/auth/monitoring","https://www.googleapis.com/auth/servicecontrol","https://www.googleapis.com/auth/service.management.readonly","https://www.googleapis.com/auth/trace.append" --preemptible --num-nodes "1" --enable-cloud-logging --enable-cloud-monitoring --no-enable-ip-alias --network "projects/pgtm-gwestenberg/global/networks/default" --subnetwork "projects/pgtm-gwestenberg/regions/us-central1/subnetworks/default" --addons HorizontalPodAutoscaling,HttpLoadBalancing --no-enable-autoupgrade --enable-autorepair
-          kubectl get secret -o yaml > output/cluster-token-${VERSION}
+          gcloud beta container --project "pgtm-gwestenberg" clusters create $CLUSTER_NAME --zone "us-central1-a" --username "admin" --cluster-version "1.11.8-gke.6" --machine-type "n1-standard-1" --image-type "COS" --disk-type "pd-standard" --disk-size "100" --scopes "https://www.googleapis.com/auth/devstorage.read_only","https://www.googleapis.com/auth/logging.write","https://www.googleapis.com/auth/monitoring","https://www.googleapis.com/auth/servicecontrol","https://www.googleapis.com/auth/service.management.readonly","https://www.googleapis.com/auth/trace.append" --preemptible --num-nodes "1" --enable-cloud-logging --enable-cloud-monitoring --no-enable-ip-alias --network "projects/pgtm-gwestenberg/global/networks/default" --subnetwork "projects/pgtm-gwestenberg/regions/us-central1/subnetworks/default" --addons HorizontalPodAutoscaling,HttpLoadBalancing --no-enable-autoupgrade --enable-autorepair
+
+          # Do parsing of output here to make easier input to deploy job
+          # we need 3 things
+          # deployment_cluster_ca_cert, deployment_k8s_cluster_server, deployment_cluster_token
+          # we need to remove ^^^ from kibosh-ci-creds
+          cat <<EOF | kubectl apply -f -
+          ---
+          apiVersion: v1
+          kind: ServiceAccount
+          metadata:
+            name: kibosh-admin
+            namespace: kube-system
+
+          ---
+          apiVersion: rbac.authorization.k8s.io/v1beta1
+          kind: ClusterRoleBinding
+          metadata:
+            name: kibosh-cluster-admin
+          roleRef:
+            apiGroup: rbac.authorization.k8s.io
+            kind: ClusterRole
+            name: cluster-admin
+          subjects:
+            - kind: ServiceAccount
+              name: kibosh-admin
+              namespace: kube-system
+          EOF
+
+          echo "export CLUSTER_NAME=${CLUSTER_NAME}" > cluster_config.sh
+          echo "export KUBE_SERVER=$(kubectl config view -o=jsonpath='{.clusters[0].cluster.server}')" >> cluster_config.sh
+          echo "export KUBE_SECRET=$(kubectl get secret -o=jsonpath='{.items[0].data.ca\.crt}')" >> cluster_config.sh
+          export SECRET_NAME=$(kubectl get serviceaccount kibosh-admin --namespace=kube-system -o jsonpath='{.secrets[0].name}')
+          echo "export KUBE_TOKEN=$(kubectl --namespace=kube-system get secret $SECRET_NAME -o jsonpath='{.data.token}')" >> cluster_config.sh
+          mv cluster_config.sh output/cluster-config-$VERSION.sh
+
   - put: cluster-config
     params:
       file: output/cluster-config-*
-  - put: cluster-token
-    params:
-      file: output/cluster-token-*
-
-
-- name: delete-gke-cluster
-  plan:
-  - aggregate:
-    - get: cluster-config
-      trigger: true
-      passed: [create-gke-cluster]
-    - get: cluster-token
-      trigger: true
-      passed: [create-gke-cluster]
-  - task: create-gke-cluster
-    config:
-      platform: linux
-      inputs:
-        - name: cluster-config
-        - name: cluster-token
-      image_resource:
-        type: docker-image
-        source:
-          repository: google/cloud-sdk
-          tag: "latest"
-      params:
-        SERVICE_ACCOUNT: {{gcp_service_account_key}}
-      run:
-        path: bash
-        args:
-          - -exc
-          - |
-            echo $SERVICE_ACCOUNT > serviceaccount.key
-            gcloud auth activate-service-account --key-file serviceaccount.key
-            gcloud beta container clusters delete "kibosh-ci2" --zone "us-central1-a" --quiet
 
 - name: deploy
   plan:
@@ -799,6 +790,35 @@ jobs:
       DEPLOYMENT_NAME: kibosh
     input_mapping:
       bbl-state: kibosh-bbl-pool
+
+- name: delete-gke-cluster
+  plan:
+    - aggregate:
+        - get: source-repo
+          trigger: true
+          passed: [push-image-errand]
+        - get: cluster-config
+    - task: create-gke-cluster
+      config:
+        platform: linux
+        inputs:
+          - name: cluster-config
+        image_resource:
+          type: docker-image
+          source:
+            repository: google/cloud-sdk
+            tag: "latest"
+        params:
+          SERVICE_ACCOUNT: {{gcp_service_account_key}}
+        run:
+          path: bash
+          args:
+            - -exc
+            - |
+              source cluster-config/*.sh
+              echo $SERVICE_ACCOUNT > serviceaccount.key
+              gcloud auth activate-service-account --key-file serviceaccount.key
+              gcloud beta container clusters delete $CLUSTER_NAME --zone "us-central1-a" --quiet
 
 - name: clean-up
   plan:
