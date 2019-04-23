@@ -644,6 +644,7 @@ jobs:
   - aggregate:
     - get: kibosh-bbl-pool
     - get: cf-deployment-concourse-tasks-docker
+    - get: cluster-config
     - get: source-repo
       passed: [upload-stemcell-and-release]
       trigger: true
@@ -656,11 +657,13 @@ jobs:
       inputs:
       - name: kibosh-bbl-pool
       - name: source-repo
+      - name: cluster-config
       run:
         path: bash
         args:
         - -exc
         - |
+          source cluster-config/*.sh
           pushd kibosh-bbl-pool/bbl-state
           set +x
           bbl print-env > /tmp/env.sh
@@ -670,16 +673,16 @@ jobs:
 
           pushd source-repo
 
-          echo '
+          cat <<EOF > values.yml
           stemcell: bosh-google-kvm-ubuntu-trusty-go_agent
           kibosh-password: {{deployment_broker_password}}
-          k8s-cluster-ca-cert: {{deployment_cluster_ca_cert}}
-          k8s-cluster-server: {{deployment_k8s_cluster_server}}
-          k8s-cluster-token: {{deployment_cluster_token}}
+          k8s-cluster-ca-cert: $KUBE_SECRET
+          k8s-cluster-server: $KUBE_SERVER
+          k8s-cluster-token: $KUBE_TOKEN
           registry-server: {{deployment_registry_server}}
           registry-user: {{deployment_registry_user}}
           registry-pass: {{deployment_registry_pass}}
-          ' > values.yml
+          EOF
 
           yes | bosh -d kibosh deploy bosh/bosh-release/manifests/lite-manifest.yml --no-redact --vars-store=values.yml
           popd
