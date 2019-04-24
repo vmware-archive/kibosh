@@ -17,18 +17,18 @@ package helm_test
 
 import (
 	"encoding/json"
+	"github.com/cf-platform-eng/kibosh/pkg/helm"
+	"github.com/cf-platform-eng/kibosh/pkg/test"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"k8s.io/helm/pkg/chartutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
-
-	"github.com/cf-platform-eng/kibosh/pkg/helm"
-	"github.com/cf-platform-eng/kibosh/pkg/test"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Broker", func() {
@@ -124,6 +124,61 @@ var _ = Describe("Broker", func() {
 			myChart.Plans["medium"].ClusterConfig.Contexts["context"].Extensions = nil
 			myChart.Plans["medium"].ClusterConfig.Preferences.Extensions = nil
 			Expect(myChart.Plans).To(Equal(deserealized.Plans))
+		})
+	})
+
+	Context("bind template", func() {
+		It("loads bind transform with archived chart", func() {
+			bindTemplate := `template: '{hostname: $.services[0].status.loadBalancer.ingress[0].ip}'`
+
+			err := ioutil.WriteFile(path.Join(chartPath, "bind.yaml"), []byte(bindTemplate), 0666)
+			Expect(err).To(BeNil())
+
+			chartToSave, err := helm.NewChart(chartPath, "", logger)
+			Expect(err).To(BeNil())
+
+			chartArchiveDirPath, err := ioutil.TempDir("", "chartarcive-")
+			Expect(err).To(BeNil())
+
+			chartArchivePath, err := chartutil.Save(chartToSave.Chart, chartArchiveDirPath)
+			Expect(err).To(BeNil())
+
+			loadedChart, err := helm.NewChart(chartArchivePath, "", logger)
+			Expect(err).To(BeNil())
+
+			Expect(loadedChart.BindTemplate).To(Equal("{hostname: $.services[0].status.loadBalancer.ingress[0].ip}"))
+		})
+
+		It("returns error on bad template in chart", func() {
+			bindTemplate := `template: {hostname: $.services[0].status.loadBalancer.ingress[0].ip}`
+
+			err := ioutil.WriteFile(path.Join(chartPath, "bind.yaml"), []byte(bindTemplate), 0666)
+			Expect(err).To(BeNil())
+
+			_, err = helm.NewChart(chartPath, "", logger)
+			Expect(err.Error()).To(ContainSubstring("yaml"))
+		})
+
+		It("loads bind transform with bind in directory (yaml)", func() {
+			bindTemplate := `template: '{hostname: $.services[0].status.loadBalancer.ingress[0].ip}'`
+
+			err := ioutil.WriteFile(path.Join(chartPath, "bind.yaml"), []byte(bindTemplate), 0666)
+			Expect(err).To(BeNil())
+
+			chart, err := helm.NewChart(chartPath, "", nil)
+
+			Expect(chart.BindTemplate).To(Equal("{hostname: $.services[0].status.loadBalancer.ingress[0].ip}"))
+		})
+
+		It("loads bind transform with bind in directory (yml)", func() {
+			bindTemplate := `template: '{hostname: $.services[0].status.loadBalancer.ingress[0].ip}'`
+
+			err := ioutil.WriteFile(path.Join(chartPath, "bind.yaml"), []byte(bindTemplate), 0666)
+			Expect(err).To(BeNil())
+
+			chart, err := helm.NewChart(chartPath, "", nil)
+
+			Expect(chart.BindTemplate).To(Equal("{hostname: $.services[0].status.loadBalancer.ingress[0].ip}"))
 		})
 	})
 
@@ -225,7 +280,6 @@ var _ = Describe("Broker", func() {
 			Expect(len(loadedChart.Plans)).To(Equal(2))
 			Expect(loadedChart.Plans["small"]).NotTo(BeNil())
 			Expect(loadedChart.Plans["medium"]).NotTo(BeNil())
-
 		})
 	})
 

@@ -27,6 +27,7 @@ import (
 	"github.com/cf-platform-eng/kibosh/pkg/repository/repositoryfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/sirupsen/logrus"
 	api_v1 "k8s.io/api/core/v1"
@@ -59,6 +60,8 @@ var _ = Describe("Broker", func() {
 	var fakeInstaller helmfakes.FakeInstaller
 	var fakeInstallerFactory my_helm.InstallerFactory
 	var fakeRepo *repositoryfakes.FakeRepository
+
+	mysqlServiceID := uuid.NewSHA1(uuid.NameSpace_OID, []byte("mysql")).String()
 
 	BeforeEach(func() {
 		logger = logrus.New()
@@ -742,7 +745,7 @@ var _ = Describe("Broker", func() {
 		})
 	})
 
-	Context("bind", func() {
+	FContext("bind", func() {
 		var broker *PksServiceBroker
 
 		BeforeEach(func() {
@@ -764,7 +767,7 @@ var _ = Describe("Broker", func() {
 			}
 			fakeCluster.ListSecretsReturns(&secretsList, nil)
 
-			binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{}, false)
+			binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{ ServiceID: mysqlServiceID}, false)
 
 			Expect(err).To(BeNil())
 			Expect(fakeCluster.ListSecretsCallCount()).To(Equal(1))
@@ -961,6 +964,130 @@ var _ = Describe("Broker", func() {
 			c := fakeClusterFactory.GetClusterFromK8sConfigArgsForCall(0)
 			Expect(c.CurrentContext).To(Equal("context2"))
 		})
+
+		Context("bind templates", func() {
+			It("transforms successfully when template is present", func() {
+				mysqlChart.BindTemplate = `{hostname: $.services[0].status.loadBalancer.ingress[0].ip}`
+				serviceList := api_v1.ServiceList{
+					Items: []api_v1.Service{
+						{
+							ObjectMeta: meta_v1.ObjectMeta{Name: "kibosh-my-mysql-db-instance"},
+							Spec: api_v1.ServiceSpec{
+								Ports: []api_v1.ServicePort{
+									{
+										Name:     "mysql",
+										NodePort: 30092,
+										Port:     3306,
+										Protocol: "TCP",
+									},
+								},
+							},
+							Status: api_v1.ServiceStatus{
+								LoadBalancer: api_v1.LoadBalancerStatus{
+									Ingress: []api_v1.LoadBalancerIngress{
+										{IP: "127.0.0.1"},
+									},
+								},
+							},
+						},
+					},
+				}
+				fakeCluster.ListServicesReturns(&serviceList, nil)
+
+				secretsList := api_v1.SecretList{
+					Items: []api_v1.Secret{
+						{
+							ObjectMeta: meta_v1.ObjectMeta{Name: "passwords"},
+							Data:       map[string][]byte{"db-password": []byte("abc123")},
+							Type:       api_v1.SecretTypeOpaque,
+						},
+					},
+				}
+				fakeCluster.ListSecretsReturns(&secretsList, nil)
+
+				binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{
+					ServiceID: mysqlServiceID,
+				}, false)
+
+				Expect(err).To(BeNil())
+				Expect(fakeCluster.ListSecretsCallCount()).To(Equal(1))
+
+				Expect(binding).NotTo(BeNil())
+
+				creds := binding.Credentials
+				credsJson, err := json.Marshal(creds.(map[string]interface{}))
+				Expect(string(credsJson)).To(Equal(`{"hostname":"127.0.0.1"}`))
+			})
+			It("fails when no keys found in bind", func() {
+				mysqlChart.BindTemplate = `{hostname: $.services[0].status.loadBalancer.ingress[0].ip}`
+				serviceList := api_v1.ServiceList{
+					Items: []api_v1.Service{
+						{
+							ObjectMeta: meta_v1.ObjectMeta{Name: "kibosh-my-mysql-db-instance"},
+							Spec: api_v1.ServiceSpec{},
+						},
+					},
+				}
+				fakeCluster.ListServicesReturns(&serviceList, nil)
+
+				secretsList := api_v1.SecretList{
+					Items: []api_v1.Secret{
+						{
+							ObjectMeta: meta_v1.ObjectMeta{Name: "passwords"},
+							Data:       map[string][]byte{"db-password": []byte("abc123")},
+							Type:       api_v1.SecretTypeOpaque,
+						},
+					},
+				}
+				fakeCluster.ListSecretsReturns(&secretsList, nil)
+
+				binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{
+					ServiceID: mysqlServiceID,
+				}, false)
+
+				Expect(fakeCluster.ListSecretsCallCount()).To(Equal(1))
+
+				Expect(binding).NotTo(BeNil())
+				Expect(err).NotTo(BeNil())
+				Expect(err.Error()).To(ContainSubstring("ingress"))
+
+			})
+			It("fails with invalid bind template", func() {
+				mysqlChart.BindTemplate = `{{{$$$$`
+				serviceList := api_v1.ServiceList{
+					Items: []api_v1.Service{
+						{
+							ObjectMeta: meta_v1.ObjectMeta{Name: "kibosh-my-mysql-db-instance"},
+							Spec: api_v1.ServiceSpec{},
+						},
+					},
+				}
+				fakeCluster.ListServicesReturns(&serviceList, nil)
+
+				secretsList := api_v1.SecretList{
+					Items: []api_v1.Secret{
+						{
+							ObjectMeta: meta_v1.ObjectMeta{Name: "passwords"},
+							Data:       map[string][]byte{"db-password": []byte("abc123")},
+							Type:       api_v1.SecretTypeOpaque,
+						},
+					},
+				}
+				fakeCluster.ListSecretsReturns(&secretsList, nil)
+
+				binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{
+					ServiceID: mysqlServiceID,
+				}, false)
+
+				Expect(fakeCluster.ListSecretsCallCount()).To(Equal(1))
+
+				Expect(binding).NotTo(BeNil())
+				Expect(err).NotTo(BeNil())
+				Expect(err.Error()).To(ContainSubstring("parsing"))
+
+			})
+		})
+
 
 		Describe("uses proper cluster", func() {
 			var secretList api_v1.SecretList
