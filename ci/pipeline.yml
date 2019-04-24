@@ -19,7 +19,7 @@ resources:
 - name: source-repo
   type: git
   source:
-    branch: master
+    branch: cleanup-ci
     ignore_paths:
     - ci/*
     - README.md
@@ -176,6 +176,20 @@ resources:
   type: docker-image
   source:
     repository: cfplatformeng/spacebears
+
+- name: public-tiller-image
+  type: docker-image
+  source:
+    repository: gcr.io/kubernetes-helm/tiller
+    tag: v2.13.1
+
+- name: private-tiller-image
+  type: docker-image
+  source:
+    repository: bazaarfeedback1/tiller
+    tag: v2.13.1
+    username: {{deployment_registry_user}}
+    password: {{deployment_registry_pass}}
 
 - name: cf-deployment-concourse-tasks-docker
   type: docker-image
@@ -638,6 +652,16 @@ jobs:
   - put: cluster-config
     params:
       file: output/cluster-config-*
+
+- name: pull-and-push-tiller
+  plan:
+  - aggregate:
+    - get: cluster-config
+      passed: [create-gke-cluster]
+    - get: public-tiller-image
+      params: {save: true}
+  - put: private-tiller-image
+    params: {load: public-tiller-image}
 
 - name: deploy
   plan:
