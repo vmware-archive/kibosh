@@ -85,14 +85,6 @@
   revision = "de5bf2ad457846296e2031421a34e2568e304e35"
 
 [[projects]]
-  digest = "1:4e5ac329afc6cf296eb5257cad503bfdfd8d96277ddf3ba7b144ca4af4182b7d"
-  name = "github.com/Sirupsen/logrus"
-  packages = ["."]
-  pruneopts = "U"
-  revision = "dae0fa8d5b0c810a8ab733fbd5510c7cae84eca4"
-  version = "v1.4.0"
-
-[[projects]]
   branch = "master"
   digest = "1:010e072526ea219f17252bc5d050f7767584bc8ab10b4d83d68636bba82d9d18"
   name = "github.com/chai2010/gettext-go"
@@ -285,6 +277,18 @@
   pruneopts = "U"
   revision = "4030bb1f1f0c35b30ca7009e9ebd06849dd45306"
   version = "v1.0.0"
+
+[[projects]]
+  digest = "1:6765afb5f1d1b89a667a6c912769dfc8611997160c4ca8ad1799197613ec06a1"
+  name = "github.com/google/go-jsonnet"
+  packages = [
+    ".",
+    "ast",
+    "parser",
+  ]
+  pruneopts = "U"
+  revision = "493c45a403d25435774370ddfa6363906a65c23c"
+  version = "v0.12.1"
 
 [[projects]]
   branch = "master"
@@ -1159,6 +1163,7 @@
     "github.com/emicklei/go-restful",
     "github.com/ghodss/yaml",
     "github.com/go-openapi/spec",
+    "github.com/google/go-jsonnet",
     "github.com/gosuri/uitable",
     "github.com/gosuri/uitable/util/strutil",
     "github.com/kelseyhightower/envconfig",
