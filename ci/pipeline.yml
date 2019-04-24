@@ -658,8 +658,11 @@ jobs:
   - aggregate:
     - get: cluster-config
       passed: [create-gke-cluster]
+      trigger: true
     - get: public-tiller-image
       params: {save: true}
+    - get: source-repo
+      passed: [create-gke-cluster]
   - put: private-tiller-image
     params: {load: public-tiller-image}
 
@@ -671,7 +674,7 @@ jobs:
     - get: cluster-config
       passed: [pull-and-push-tiller]
     - get: source-repo
-      passed: [upload-stemcell-and-release, create-gke-cluster]
+      passed: [upload-stemcell-and-release, pull-and-push-tiller]
       trigger: true
     - get: kibosh-release
       passed: [upload-stemcell-and-release]
