@@ -17,12 +17,14 @@ package broker
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
 	"github.com/cf-platform-eng/kibosh/pkg/repository"
 	"github.com/ghodss/yaml"
+	"github.com/google/go-jsonnet"
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pkg/errors"
@@ -251,10 +253,21 @@ func (broker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID 
 		return brokerapi.Binding{}, err
 	}
 
-	credentials, err := broker.getCredentials(cluster, instanceID)
+	chartsMap, err := broker.GetChartsMap()
 	if err != nil {
 		return brokerapi.Binding{}, err
 	}
+
+	//todo: error when service not found in map & test for this
+	template := chartsMap[serviceID].BindTemplate
+	credentials, err := broker.getCredentials(cluster, instanceID, template)
+	if err != nil {
+		return brokerapi.Binding{}, err
+	}
+
+	//todo: also write up lot sof examples
+	//todo: also build a shell script to execute in a space
+	//todo: exaple will be a shell script that uses jq and jsonnet binaries, dumping a space and applying a template
 
 	return brokerapi.Binding{
 		Credentials: credentials,
@@ -284,7 +297,7 @@ func (broker *PksServiceBroker) getCluster(planID, serviceID string) (k8s.Cluste
 	return broker.clusterFactory.DefaultCluster()
 }
 
-func (broker *PksServiceBroker) getCredentials(cluster k8s.Cluster, instanceID string) (map[string]interface{}, error) {
+func (broker *PksServiceBroker) getCredentials(cluster k8s.Cluster, instanceID string, bindTemplate string ) (map[string]interface{}, error) {
 	secrets, err := cluster.ListSecrets(broker.getNamespace(instanceID), meta_v1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -326,10 +339,25 @@ func (broker *PksServiceBroker) getCredentials(cluster k8s.Cluster, instanceID s
 		servicesMap = append(servicesMap, credentialService)
 	}
 
-	return map[string]interface{}{
-		"secrets":  secretsMap,
+	servicesAndSecrets := map[string]interface{}{
+		"secrets": secretsMap,
 		"services": servicesMap,
-	}, nil
+	}
+
+	if bindTemplate != "" {
+		renderedTemplate, err := broker.getRenderedTemplate(bindTemplate, servicesAndSecrets)
+		if err != nil {
+			return nil, err
+		}
+		var bindCredentials map[string]interface{}
+		err = json.Unmarshal([]byte(renderedTemplate), &bindCredentials)
+		if err != nil {
+			return nil, err
+		}
+		return bindCredentials, nil
+	} else {
+		return servicesAndSecrets, nil
+	}
 }
 
 func (broker *PksServiceBroker) LastBindingOperation(ctx context.Context, instanceID, bindingID string, details brokerapi.PollDetails) (brokerapi.LastOperation, error) {
@@ -565,4 +593,23 @@ func (broker *PksServiceBroker) getServiceName(chart *my_helm.MyChart) string {
 
 func (broker *PksServiceBroker) getServiceID(chart *my_helm.MyChart) string {
 	return uuid.NewSHA1(uuid.NameSpace_OID, []byte(broker.getServiceName(chart))).String()
+}
+
+func (broker *PksServiceBroker) getRenderedTemplate(bindTemplate string, servicesAndSecrets map[string]interface{}) (string, error) {
+	ssTemplateBytes, err := json.Marshal(servicesAndSecrets)
+	if err != nil {
+		return "", err
+	}
+
+	ssTemplate := string(ssTemplateBytes)
+
+	i := strings.LastIndex(ssTemplate, "}")
+	fullTemplate := ssTemplate[0:i] + `,"template": ` + bindTemplate + "}"
+	vm := jsonnet.MakeVM()
+	renderedTemplate, err := vm.EvaluateSnippetMulti("", fullTemplate)
+	if err != nil {
+		return "", err
+	}
+
+	return renderedTemplate["template"], nil
 }

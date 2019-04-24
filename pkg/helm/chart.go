@@ -17,6 +17,7 @@ package helm
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"fmt"
 	"io"
@@ -41,7 +42,12 @@ type MyChart struct {
 
 	PrivateRegistryServer string          `json:"privateRegistryServer"`
 	TransformedValues     []byte          `json:"transformedValues"`
+	BindTemplate          string          `json:"bindTemplate"`
 	Plans                 map[string]Plan `json:"plans"`
+}
+
+type Bind struct {
+	Template string `yaml:"template"`
 }
 
 func NewChartValidationError(err error) *ChartValidationError {
@@ -123,14 +129,14 @@ func NewChart(chartPath string, privateRegistryServer string, log *logrus.Logger
 	}
 
 	if chartPathStat.IsDir() {
-		err = myChart.loadPlansFromDirectory(chartPath, log)
+		err = myChart.loadOSBAPIMetadataFromDirectory(chartPath, log)
 	} else {
-		err = myChart.loadPlansFromArchive(chartPath, log)
+		err = myChart.loadOSBAPIMetadataFromArchive(chartPath, log)
 	}
-
 	if err != nil {
 		return nil, NewChartValidationError(err)
 	}
+
 	if len(myChart.Plans) < 1 {
 		defaultPlan := Plan{
 			Name:        "default",
@@ -211,7 +217,7 @@ func (c *MyChart) OverrideImageSources(rawVals map[string]interface{}) (map[stri
 	return transformedVals, nil
 }
 
-func (c *MyChart) loadPlansFromArchive(chartPath string, log *logrus.Logger) error {
+func (c *MyChart) loadOSBAPIMetadataFromArchive(chartPath string, log *logrus.Logger) error {
 	chartFile, err := os.Open(chartPath)
 	if err != nil {
 		return err
@@ -262,6 +268,22 @@ func (c *MyChart) loadPlansFromArchive(chartPath string, log *logrus.Logger) err
 				return err
 			}
 		}
+
+		if strings.HasSuffix(header.Name, "bind.yaml") || strings.HasSuffix(header.Name, "bind.yml") {
+			dst := &bytes.Buffer{}
+			_, err = io.Copy(dst, tarReader)
+			if err != nil {
+				return err
+			}
+
+			bind := &Bind{}
+			err = yaml.Unmarshal(dst.Bytes(), bind)
+			if err != nil {
+				return err
+			}
+
+			c.BindTemplate = bind.Template
+		}
 	}
 
 	err = c.loadPlans(tempDir, plans)
@@ -269,9 +291,34 @@ func (c *MyChart) loadPlansFromArchive(chartPath string, log *logrus.Logger) err
 	return err
 }
 
-func (c *MyChart) loadPlansFromDirectory(chartPath string, log *logrus.Logger) error {
+func (c *MyChart) loadOSBAPIMetadataFromDirectory(chartPath string, log *logrus.Logger) error {
+	bindTemplatePath := path.Join(chartPath, "bind.yaml")
+	_, err := os.Stat(bindTemplatePath)
+	if err != nil {
+		bindTemplatePath = path.Join(chartPath, "bind.yml")
+		_, err := os.Stat(bindTemplatePath)
+		if err != nil {
+			bindTemplatePath = ""
+		}
+	}
+
+	if bindTemplatePath != "" {
+		bindTemplateBytes, err := ioutil.ReadFile(bindTemplatePath)
+		if err != nil {
+			return err
+		}
+
+		bind := &Bind{}
+		err = yaml.Unmarshal(bindTemplateBytes, bind)
+		if err != nil {
+			return err
+		}
+
+		c.BindTemplate = bind.Template
+	}
+
 	plansPath := path.Join(chartPath, "plans.yaml")
-	_, err := os.Stat(plansPath)
+	_, err = os.Stat(plansPath)
 	if err != nil {
 		plansPath = path.Join(chartPath, "plans.yml")
 		_, err := os.Stat(plansPath)
