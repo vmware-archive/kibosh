@@ -745,7 +745,7 @@ var _ = Describe("Broker", func() {
 		})
 	})
 
-	FContext("bind", func() {
+	Context("bind", func() {
 		var broker *PksServiceBroker
 
 		BeforeEach(func() {
@@ -767,7 +767,7 @@ var _ = Describe("Broker", func() {
 			}
 			fakeCluster.ListSecretsReturns(&secretsList, nil)
 
-			binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{ ServiceID: mysqlServiceID}, false)
+			binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{ServiceID: mysqlServiceID}, false)
 
 			Expect(err).To(BeNil())
 			Expect(fakeCluster.ListSecretsCallCount()).To(Equal(1))
@@ -778,6 +778,17 @@ var _ = Describe("Broker", func() {
 			secrets := creds.(map[string]interface{})["secrets"]
 			secretsJson, err := json.Marshal(secrets)
 			Expect(string(secretsJson)).To(Equal(`[{"data":{"db-password":"abc123"},"name":"passwords"}]`))
+		})
+
+		It("bind fails when service ID not found", func() {
+			serviceList := api_v1.ServiceList{Items: []api_v1.Service{}}
+			fakeCluster.ListServicesReturns(&serviceList, nil)
+
+			_, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{}, false)
+
+			Expect(err).NotTo(BeNil())
+			Expect(err.Error()).To(ContainSubstring("not found"))
+
 		})
 
 		It("bind returns externalIPs field when Service Type NodePort is used", func() {
@@ -815,7 +826,7 @@ var _ = Describe("Broker", func() {
 			fakeCluster.ListNodesReturns(&nodeList, nil)
 			fakeCluster.ListServicesReturns(&serviceList, nil)
 			fakeCluster.ListSecretsReturns(&secretsList, nil)
-			binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{}, false)
+			binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{ServiceID: mysqlServiceID}, false)
 			Expect(err).To(BeNil())
 			creds := binding.Credentials
 
@@ -844,7 +855,7 @@ var _ = Describe("Broker", func() {
 			}
 			fakeCluster.ListSecretsReturns(&secretsList, nil)
 
-			binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{}, false)
+			binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{ServiceID: mysqlServiceID}, false)
 
 			Expect(err).To(BeNil())
 			Expect(fakeCluster.ListSecretsCallCount()).To(Equal(1))
@@ -862,7 +873,7 @@ var _ = Describe("Broker", func() {
 			fakeCluster.ListServicesReturns(&serviceList, nil)
 
 			fakeCluster.ListSecretsReturns(nil, errors.New("foo failed"))
-			_, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{}, false)
+			_, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{ServiceID: mysqlServiceID}, false)
 
 			Expect(err).NotTo(BeNil())
 			Expect(fakeCluster.ListSecretsCallCount()).To(Equal(1))
@@ -898,7 +909,7 @@ var _ = Describe("Broker", func() {
 			}
 			fakeCluster.ListServicesReturns(&serviceList, nil)
 
-			binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{}, false)
+			binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{ServiceID: mysqlServiceID}, false)
 
 			Expect(err).To(BeNil())
 			Expect(fakeCluster.ListServicesCallCount()).To(Equal(1))
@@ -925,7 +936,7 @@ var _ = Describe("Broker", func() {
 
 			fakeCluster.ListServicesReturns(nil, errors.New("no services for you"))
 
-			_, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{}, false)
+			_, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{ServiceID: mysqlServiceID}, false)
 
 			Expect(err).NotTo(BeNil())
 		})
@@ -1024,7 +1035,7 @@ var _ = Describe("Broker", func() {
 					Items: []api_v1.Service{
 						{
 							ObjectMeta: meta_v1.ObjectMeta{Name: "kibosh-my-mysql-db-instance"},
-							Spec: api_v1.ServiceSpec{},
+							Spec:       api_v1.ServiceSpec{},
 						},
 					},
 				}
@@ -1058,7 +1069,7 @@ var _ = Describe("Broker", func() {
 					Items: []api_v1.Service{
 						{
 							ObjectMeta: meta_v1.ObjectMeta{Name: "kibosh-my-mysql-db-instance"},
-							Spec: api_v1.ServiceSpec{},
+							Spec:       api_v1.ServiceSpec{},
 						},
 					},
 				}
@@ -1087,7 +1098,6 @@ var _ = Describe("Broker", func() {
 
 			})
 		})
-
 
 		Describe("uses proper cluster", func() {
 			var secretList api_v1.SecretList
@@ -1125,7 +1135,7 @@ var _ = Describe("Broker", func() {
 			})
 
 			It("connects to default cluster", func() {
-				_, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{}, false)
+				_, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{ServiceID: mysqlServiceID}, false)
 
 				Expect(err).To(BeNil())
 				Expect(fakeClusterFactory.GetClusterCallCount()).To(Equal(0))
