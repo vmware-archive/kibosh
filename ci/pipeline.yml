@@ -669,7 +669,7 @@ jobs:
     - get: kibosh-bbl-pool
     - get: cf-deployment-concourse-tasks-docker
     - get: cluster-config
-      passed: [create-gke-cluster]
+      passed: [pull-and-push-tiller]
     - get: source-repo
       passed: [upload-stemcell-and-release, create-gke-cluster]
       trigger: true
