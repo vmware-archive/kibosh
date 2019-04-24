@@ -258,7 +258,11 @@ func (broker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID 
 		return brokerapi.Binding{}, err
 	}
 
-	//todo: error when service not found in map & test for this
+	_, ok := chartsMap[serviceID]
+	if !ok {
+		return brokerapi.Binding{}, errors.New(fmt.Sprintf("service %s not found ", serviceID))
+	}
+
 	template := chartsMap[serviceID].BindTemplate
 	credentials, err := broker.getCredentials(cluster, instanceID, template)
 	if err != nil {
@@ -297,7 +301,7 @@ func (broker *PksServiceBroker) getCluster(planID, serviceID string) (k8s.Cluste
 	return broker.clusterFactory.DefaultCluster()
 }
 
-func (broker *PksServiceBroker) getCredentials(cluster k8s.Cluster, instanceID string, bindTemplate string ) (map[string]interface{}, error) {
+func (broker *PksServiceBroker) getCredentials(cluster k8s.Cluster, instanceID string, bindTemplate string) (map[string]interface{}, error) {
 	secrets, err := cluster.ListSecrets(broker.getNamespace(instanceID), meta_v1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -340,7 +344,7 @@ func (broker *PksServiceBroker) getCredentials(cluster k8s.Cluster, instanceID s
 	}
 
 	servicesAndSecrets := map[string]interface{}{
-		"secrets": secretsMap,
+		"secrets":  secretsMap,
 		"services": servicesMap,
 	}
 
