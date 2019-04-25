@@ -119,6 +119,35 @@ users:
       token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
 ```
 
+#### Bind Templates
+
+Developers and libraries often have specific assumptions around how the bind
+environment variable should be structured. For example,
+[Spring Cloud Connectors](https://cloud.spring.io/spring-cloud-connectors/) will
+automatically support a service if the right environment variable structures are present.
+
+Chart authors can transform what the Kibosh broker returns by writing a
+[Jsonnet](https://jsonnet.org) template and putting it in the `bind.yaml` file
+in the root of the Chart. For example, the `bind.yaml` following will transform bind
+response into a readily consumable structure:
+
+```yaml
+template: |
+  {
+    hostname: $.services[0].status.loadBalancer.ingress[0].ip,
+    name: $.services[0].name,
+    jdbcUrl: "jdbc:mysql://" + self.hostname + "/my_db?user=" + self.username + "&password=" + self.password + "&useSSL=false",
+    uri: "mysql://" + self.username + ":" + self.password + "@" + self.hostname + ":" + self.port + "/my_db?reconnect=true",
+    password: $.secrets[0].data['mysql-root-password'],
+    port: 3306,
+    username: "root"
+  }
+```
+
+The template is executed in an environment has top-level `services` and `secrets`,
+which are json marshalled versions of the services and secrets in the namespace
+generated for the service. 
+
 ### Other Requirement
 
 * When defining a `Service`, to expose this back to any applications that are bound,
