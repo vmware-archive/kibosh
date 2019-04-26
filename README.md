@@ -124,7 +124,8 @@ users:
 Developers and libraries often have specific assumptions around how the bind
 environment variable should be structured. For example,
 [Spring Cloud Connectors](https://cloud.spring.io/spring-cloud-connectors/) will
-automatically support a service if the right environment variable structures are present.
+automatically support a service if the 
+[right structures is present](https://cloud.spring.io/spring-cloud-connectors/spring-cloud-cloud-foundry-connector.html#_mysql).
 
 Chart authors can transform what the Kibosh broker returns by writing a
 [Jsonnet](https://jsonnet.org) template and putting it in the `bind.yaml` file
