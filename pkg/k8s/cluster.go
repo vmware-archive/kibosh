@@ -36,6 +36,7 @@ type Cluster interface {
 	ClusterDelegate
 
 	CreateNamespaceIfNotExists(*api_v1.Namespace) (*api_v1.Namespace, error)
+	GetSecretsAndServices(namespace string) (map[string]interface{}, error)
 }
 
 //go:generate counterfeiter ./ ClusterDelegate
@@ -157,7 +158,56 @@ func (cluster *cluster) CreateNamespaceIfNotExists(namespace *api_v1.Namespace) 
 		return namespace, nil
 	}
 }
+func (cluster *cluster) GetSecretsAndServices(namespace string) (map[string]interface{}, error) {
+	secrets, err := cluster.ListSecrets(namespace, meta_v1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
 
+	secretsMap := []map[string]interface{}{}
+	for _, secret := range secrets.Items {
+		if secret.Type == api_v1.SecretTypeOpaque {
+			credentialSecrets := map[string]string{}
+			for key, val := range secret.Data {
+				credentialSecrets[key] = string(val)
+			}
+			credential := map[string]interface{}{
+				"name": secret.Name,
+				"data": credentialSecrets,
+			}
+			secretsMap = append(secretsMap, credential)
+		}
+	}
+
+	services, err := cluster.ListServices(namespace, meta_v1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	servicesMap := []map[string]interface{}{}
+	for _, service := range services.Items {
+		if service.Spec.Type == "NodePort" {
+			nodes, _ := cluster.ListNodes(meta_v1.ListOptions{})
+			for _, node := range nodes.Items {
+				service.Spec.ExternalIPs = append(service.Spec.ExternalIPs, node.ObjectMeta.Labels["spec.ip"])
+			}
+		}
+		credentialService := map[string]interface{}{
+			"name":   service.ObjectMeta.Name,
+			"spec":   service.Spec,
+			"status": service.Status,
+		}
+		servicesMap = append(servicesMap, credentialService)
+	}
+
+	servicesAndSecrets := map[string]interface{}{
+		"secrets":  secretsMap,
+		"services": servicesMap,
+	}
+
+	return servicesAndSecrets, nil
+
+}
 func (cluster *clusterDelegate) GetClientConfig() *rest.Config {
 	return cluster.k8sConfig
 }

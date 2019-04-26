@@ -8,6 +8,8 @@ bazaar.linux
 bazaar.mac
 bazaarcli.linux
 bazaarcli.mac
+template-tester.linux
+template-tester.mac
 
 vendor
 .vendor-new
