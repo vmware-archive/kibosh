@@ -149,6 +149,13 @@ The template is executed in an environment has top-level `services` and `secrets
 which are json marshalled versions of the services and secrets in the namespace
 generated for the service. 
 
+To test your bind template, use the template-tester binary from the [github release](https://github.com/cf-platform-eng/kibosh/releases/latest)
+It takes the namespace in which you have already deployed your helm chart and the file that has the Jsonnet template descrited above.
+
+```bash
+template-tester mynamespaceid bind.yaml
+```
+
 ### Other Requirement
 
 * When defining a `Service`, to expose this back to any applications that are bound,

@@ -269,10 +269,6 @@ func (broker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID 
 		return brokerapi.Binding{}, err
 	}
 
-	//todo: also write up lot sof examples
-	//todo: also build a shell script to execute in a space
-	//todo: exaple will be a shell script that uses jq and jsonnet binaries, dumping a space and applying a template
-
 	return brokerapi.Binding{
 		Credentials: credentials,
 	}, nil
@@ -302,54 +298,13 @@ func (broker *PksServiceBroker) getCluster(planID, serviceID string) (k8s.Cluste
 }
 
 func (broker *PksServiceBroker) getCredentials(cluster k8s.Cluster, instanceID string, bindTemplate string) (map[string]interface{}, error) {
-	secrets, err := cluster.ListSecrets(broker.getNamespace(instanceID), meta_v1.ListOptions{})
+	servicesAndSecrets, err := cluster.GetSecretsAndServices(broker.getNamespace(instanceID))
 	if err != nil {
 		return nil, err
-	}
-
-	secretsMap := []map[string]interface{}{}
-	for _, secret := range secrets.Items {
-		if secret.Type == api_v1.SecretTypeOpaque {
-			credentialSecrets := map[string]string{}
-			for key, val := range secret.Data {
-				credentialSecrets[key] = string(val)
-			}
-			credential := map[string]interface{}{
-				"name": secret.Name,
-				"data": credentialSecrets,
-			}
-			secretsMap = append(secretsMap, credential)
-		}
-	}
-
-	services, err := cluster.ListServices(broker.getNamespace(instanceID), meta_v1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	servicesMap := []map[string]interface{}{}
-	for _, service := range services.Items {
-		if service.Spec.Type == "NodePort" {
-			nodes, _ := cluster.ListNodes(meta_v1.ListOptions{})
-			for _, node := range nodes.Items {
-				service.Spec.ExternalIPs = append(service.Spec.ExternalIPs, node.ObjectMeta.Labels["spec.ip"])
-			}
-		}
-		credentialService := map[string]interface{}{
-			"name":   service.ObjectMeta.Name,
-			"spec":   service.Spec,
-			"status": service.Status,
-		}
-		servicesMap = append(servicesMap, credentialService)
-	}
-
-	servicesAndSecrets := map[string]interface{}{
-		"secrets":  secretsMap,
-		"services": servicesMap,
 	}
 
 	if bindTemplate != "" {
-		renderedTemplate, err := broker.getRenderedTemplate(bindTemplate, servicesAndSecrets)
+		renderedTemplate, err := my_helm.RenderJsonnetTemplate(bindTemplate, servicesAndSecrets)
 		if err != nil {
 			return nil, err
 		}
@@ -606,7 +561,6 @@ func (broker *PksServiceBroker) getRenderedTemplate(bindTemplate string, service
 	}
 
 	ssTemplate := string(ssTemplateBytes)
-
 	i := strings.LastIndex(ssTemplate, "}")
 	fullTemplate := ssTemplate[0:i] + `,"template": ` + bindTemplate + "}"
 	vm := jsonnet.MakeVM()

@@ -3,13 +3,13 @@ default: all
 GO_PACKAGES = $$(go list ./... ./cmd/loader | grep -v vendor)
 GO_FILES = $$(find . -name "*.go" | grep -v vendor | uniq)
 
-linux:
+build-kibosh-linux:
 	GOOS=linux GOARCH=amd64 go build -o kibosh.linux ./cmd/kibosh/main.go
 
-mac:
+build-kibosh-mac:
 	GOOS=darwin GOARCH=amd64 go build -o kibosh.darwin ./cmd/kibosh/main.go
 
-build: linux mac
+build-kibosh: build-kibosh-linux build-kibosh-mac
 
 build-loader-linux:
 	GOOS=linux GOARCH=amd64 go build -o loader.linux ./cmd/loader/main.go
@@ -35,6 +35,13 @@ build-bazaar-cli-linux:
 
 build-bazaar-cli: build-bazaar-cli-mac build-bazaar-cli-linux
 
+build-template-tester-mac:
+	GOOS=darwin GOARCH=amd64 go build -o template-tester.mac ./cmd/templatetester/main.go
+
+build-template-tester-linux:
+	GOOS=linux GOARCH=amd64 go build -o template-tester.linux ./cmd/templatetester/main.go
+
+build-template-tester: build-template-tester-mac build-template-tester-linux
 
 unit-test:
 	@go test ${GO_PACKAGES}
@@ -72,5 +79,6 @@ ifndef HAS_BINDATA
 endif
 	dep ensure -v
 
-all: fmt test build build-loader build-bazaar build-bazaar-cli
+all: fmt test build-kibosh build-loader build-template-tester
+quick: fmt test build-kibosh-mac build-loader-mac build-template-tester-mac
 
