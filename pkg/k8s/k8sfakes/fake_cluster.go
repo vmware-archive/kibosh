@@ -12,7 +12,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
 type FakeCluster struct {
@@ -129,16 +128,6 @@ type FakeCluster struct {
 	getDeploymentReturnsOnCall map[int]struct {
 		result1 *v1beta1a.Deployment
 		result2 error
-	}
-	GetInternalClientStub        func() internalclientset.Interface
-	getInternalClientMutex       sync.RWMutex
-	getInternalClientArgsForCall []struct {
-	}
-	getInternalClientReturns struct {
-		result1 internalclientset.Interface
-	}
-	getInternalClientReturnsOnCall map[int]struct {
-		result1 internalclientset.Interface
 	}
 	GetNamespaceStub        func(string, *v1a.GetOptions) (*v1.Namespace, error)
 	getNamespaceMutex       sync.RWMutex
@@ -833,58 +822,6 @@ func (fake *FakeCluster) GetDeploymentReturnsOnCall(i int, result1 *v1beta1a.Dep
 	}{result1, result2}
 }
 
-func (fake *FakeCluster) GetInternalClient() internalclientset.Interface {
-	fake.getInternalClientMutex.Lock()
-	ret, specificReturn := fake.getInternalClientReturnsOnCall[len(fake.getInternalClientArgsForCall)]
-	fake.getInternalClientArgsForCall = append(fake.getInternalClientArgsForCall, struct {
-	}{})
-	fake.recordInvocation("GetInternalClient", []interface{}{})
-	fake.getInternalClientMutex.Unlock()
-	if fake.GetInternalClientStub != nil {
-		return fake.GetInternalClientStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.getInternalClientReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeCluster) GetInternalClientCallCount() int {
-	fake.getInternalClientMutex.RLock()
-	defer fake.getInternalClientMutex.RUnlock()
-	return len(fake.getInternalClientArgsForCall)
-}
-
-func (fake *FakeCluster) GetInternalClientCalls(stub func() internalclientset.Interface) {
-	fake.getInternalClientMutex.Lock()
-	defer fake.getInternalClientMutex.Unlock()
-	fake.GetInternalClientStub = stub
-}
-
-func (fake *FakeCluster) GetInternalClientReturns(result1 internalclientset.Interface) {
-	fake.getInternalClientMutex.Lock()
-	defer fake.getInternalClientMutex.Unlock()
-	fake.GetInternalClientStub = nil
-	fake.getInternalClientReturns = struct {
-		result1 internalclientset.Interface
-	}{result1}
-}
-
-func (fake *FakeCluster) GetInternalClientReturnsOnCall(i int, result1 internalclientset.Interface) {
-	fake.getInternalClientMutex.Lock()
-	defer fake.getInternalClientMutex.Unlock()
-	fake.GetInternalClientStub = nil
-	if fake.getInternalClientReturnsOnCall == nil {
-		fake.getInternalClientReturnsOnCall = make(map[int]struct {
-			result1 internalclientset.Interface
-		})
-	}
-	fake.getInternalClientReturnsOnCall[i] = struct {
-		result1 internalclientset.Interface
-	}{result1}
-}
-
 func (fake *FakeCluster) GetNamespace(arg1 string, arg2 *v1a.GetOptions) (*v1.Namespace, error) {
 	fake.getNamespaceMutex.Lock()
 	ret, specificReturn := fake.getNamespaceReturnsOnCall[len(fake.getNamespaceArgsForCall)]
@@ -1553,8 +1490,6 @@ func (fake *FakeCluster) Invocations() map[string][][]interface{} {
 	defer fake.getClientConfigMutex.RUnlock()
 	fake.getDeploymentMutex.RLock()
 	defer fake.getDeploymentMutex.RUnlock()
-	fake.getInternalClientMutex.RLock()
-	defer fake.getInternalClientMutex.RUnlock()
 	fake.getNamespaceMutex.RLock()
 	defer fake.getNamespaceMutex.RUnlock()
 	fake.getSecretMutex.RLock()

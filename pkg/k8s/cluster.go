@@ -33,16 +33,21 @@ import (
 
 //go:generate counterfeiter ./ Cluster
 type Cluster interface {
+	ClusterDelegate
+
+	CreateNamespaceIfNotExists(*api_v1.Namespace) (*api_v1.Namespace, error)
+}
+
+//go:generate counterfeiter ./ ClusterDelegate
+type ClusterDelegate interface {
 	GetClient() kubernetes.Interface
-	GetInternalClient() internalclientset.Interface
 	GetClientConfig() *rest.Config
 
+	GetDeployment(string, string, meta_v1.GetOptions) (*v1_beta1.Deployment, error)
+	ListPods(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.PodList, error)
 	CreateNamespace(*api_v1.Namespace) (*api_v1.Namespace, error)
-	CreateNamespaceIfNotExists(*api_v1.Namespace) (*api_v1.Namespace, error)
 	DeleteNamespace(name string, options *meta_v1.DeleteOptions) error
 	GetNamespace(name string, options *meta_v1.GetOptions) (*api_v1.Namespace, error)
-	ListPods(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.PodList, error)
-	GetDeployment(string, string, meta_v1.GetOptions) (*v1_beta1.Deployment, error)
 	ListServiceAccounts(string, meta_v1.ListOptions) (*api_v1.ServiceAccountList, error)
 	CreateServiceAccount(string, *api_v1.ServiceAccount) (*api_v1.ServiceAccount, error)
 	ListClusterRoleBindings(meta_v1.ListOptions) (*rbacv1beta1.ClusterRoleBindingList, error)
@@ -57,6 +62,10 @@ type Cluster interface {
 }
 
 type cluster struct {
+	ClusterDelegate
+}
+
+type clusterDelegate struct {
 	credentials    *config.ClusterCredentials
 	client         kubernetes.Interface
 	internalClient internalclientset.Interface
@@ -79,11 +88,21 @@ func NewCluster(kuboConfig *config.ClusterCredentials) (Cluster, error) {
 		return nil, err
 	}
 
-	return &cluster{
+	cd := clusterDelegate{
 		credentials:    kuboConfig,
 		k8sConfig:      k8sConfig,
 		client:         client,
 		internalClient: internalClient,
+	}
+
+	return &cluster{
+		ClusterDelegate: &cd,
+	}, nil
+}
+
+func NewUnitTestCluster(cd ClusterDelegate) (Cluster, error) {
+	return &cluster{
+		ClusterDelegate: cd,
 	}, nil
 }
 
@@ -121,34 +140,6 @@ func GetClusterFromK8sConfig(k8sConfig *k8sAPI.Config) (Cluster, error) {
 	return NewCluster(creds)
 }
 
-func (cluster *cluster) GetClientConfig() *rest.Config {
-	return cluster.k8sConfig
-}
-
-func buildClientConfig(credentials *config.ClusterCredentials) (*rest.Config, error) {
-	tlsClientConfig := rest.TLSClientConfig{
-		CAData: credentials.CAData,
-	}
-
-	return &rest.Config{
-		Host:            credentials.Server,
-		BearerToken:     credentials.Token,
-		TLSClientConfig: tlsClientConfig,
-	}, nil
-}
-
-func (cluster *cluster) GetClient() kubernetes.Interface {
-	return cluster.client
-}
-
-func (cluster *cluster) GetInternalClient() internalclientset.Interface {
-	return cluster.internalClient
-}
-
-func (cluster *cluster) CreateNamespace(namespace *api_v1.Namespace) (*api_v1.Namespace, error) {
-	return cluster.GetClient().CoreV1().Namespaces().Create(namespace)
-}
-
 func (cluster *cluster) CreateNamespaceIfNotExists(namespace *api_v1.Namespace) (*api_v1.Namespace, error) {
 	_, err := cluster.GetNamespace(namespace.Name, &meta_v1.GetOptions{})
 	if err != nil {
@@ -167,15 +158,39 @@ func (cluster *cluster) CreateNamespaceIfNotExists(namespace *api_v1.Namespace) 
 	}
 }
 
-func (cluster *cluster) DeleteNamespace(name string, options *meta_v1.DeleteOptions) error {
+func (cluster *clusterDelegate) GetClientConfig() *rest.Config {
+	return cluster.k8sConfig
+}
+
+func buildClientConfig(credentials *config.ClusterCredentials) (*rest.Config, error) {
+	tlsClientConfig := rest.TLSClientConfig{
+		CAData: credentials.CAData,
+	}
+
+	return &rest.Config{
+		Host:            credentials.Server,
+		BearerToken:     credentials.Token,
+		TLSClientConfig: tlsClientConfig,
+	}, nil
+}
+
+func (cluster *clusterDelegate) GetClient() kubernetes.Interface {
+	return cluster.client
+}
+
+func (cluster *clusterDelegate) CreateNamespace(namespace *api_v1.Namespace) (*api_v1.Namespace, error) {
+	return cluster.GetClient().CoreV1().Namespaces().Create(namespace)
+}
+
+func (cluster *clusterDelegate) DeleteNamespace(name string, options *meta_v1.DeleteOptions) error {
 	return cluster.GetClient().CoreV1().Namespaces().Delete(name, options)
 }
 
-func (cluster *cluster) GetNamespace(name string, options *meta_v1.GetOptions) (*api_v1.Namespace, error) {
+func (cluster *clusterDelegate) GetNamespace(name string, options *meta_v1.GetOptions) (*api_v1.Namespace, error) {
 	return cluster.GetClient().CoreV1().Namespaces().Get(name, meta_v1.GetOptions{})
 }
 
-func (cluster *cluster) ListPods(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.PodList, error) {
+func (cluster *clusterDelegate) ListPods(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.PodList, error) {
 	pods, err := cluster.client.CoreV1().Pods(nameSpace).List(listOptions)
 	if err != nil {
 		return nil, err
@@ -183,50 +198,50 @@ func (cluster *cluster) ListPods(nameSpace string, listOptions meta_v1.ListOptio
 	return pods, nil
 }
 
-func (cluster *cluster) GetDeployment(nameSpace string, deploymentName string, getOptions meta_v1.GetOptions) (*v1_beta1.Deployment, error) {
+func (cluster *clusterDelegate) GetDeployment(nameSpace string, deploymentName string, getOptions meta_v1.GetOptions) (*v1_beta1.Deployment, error) {
 	return cluster.GetClient().ExtensionsV1beta1().Deployments(nameSpace).Get(deploymentName, meta_v1.GetOptions{})
 }
 
-func (cluster *cluster) ListNodes(listOptions meta_v1.ListOptions) (*api_v1.NodeList, error) {
+func (cluster *clusterDelegate) ListNodes(listOptions meta_v1.ListOptions) (*api_v1.NodeList, error) {
 	return cluster.GetClient().CoreV1().Nodes().List(listOptions)
 }
 
-func (cluster *cluster) ListServiceAccounts(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.ServiceAccountList, error) {
+func (cluster *clusterDelegate) ListServiceAccounts(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.ServiceAccountList, error) {
 	return cluster.GetClient().CoreV1().ServiceAccounts(nameSpace).List(listOptions)
 }
 
-func (cluster *cluster) CreateServiceAccount(nameSpace string, serviceAccount *api_v1.ServiceAccount) (*api_v1.ServiceAccount, error) {
+func (cluster *clusterDelegate) CreateServiceAccount(nameSpace string, serviceAccount *api_v1.ServiceAccount) (*api_v1.ServiceAccount, error) {
 	return cluster.GetClient().CoreV1().ServiceAccounts(nameSpace).Create(serviceAccount)
 }
 
-func (cluster *cluster) ListClusterRoleBindings(listOptions meta_v1.ListOptions) (*rbacv1beta1.ClusterRoleBindingList, error) {
+func (cluster *clusterDelegate) ListClusterRoleBindings(listOptions meta_v1.ListOptions) (*rbacv1beta1.ClusterRoleBindingList, error) {
 	return cluster.GetClient().RbacV1beta1().ClusterRoleBindings().List(listOptions)
 }
 
-func (cluster *cluster) CreateClusterRoleBinding(clusterRoleBinding *rbacv1beta1.ClusterRoleBinding) (*rbacv1beta1.ClusterRoleBinding, error) {
+func (cluster *clusterDelegate) CreateClusterRoleBinding(clusterRoleBinding *rbacv1beta1.ClusterRoleBinding) (*rbacv1beta1.ClusterRoleBinding, error) {
 	return cluster.GetClient().RbacV1beta1().ClusterRoleBindings().Create(clusterRoleBinding)
 }
 
-func (cluster *cluster) CreateSecret(nameSpace string, secret *api_v1.Secret) (*api_v1.Secret, error) {
+func (cluster *clusterDelegate) CreateSecret(nameSpace string, secret *api_v1.Secret) (*api_v1.Secret, error) {
 	return cluster.GetClient().CoreV1().Secrets(nameSpace).Create(secret)
 }
 
-func (cluster *cluster) UpdateSecret(nameSpace string, secret *api_v1.Secret) (*api_v1.Secret, error) {
+func (cluster *clusterDelegate) UpdateSecret(nameSpace string, secret *api_v1.Secret) (*api_v1.Secret, error) {
 	return cluster.GetClient().CoreV1().Secrets(nameSpace).Update(secret)
 }
 
-func (cluster *cluster) GetSecret(nameSpace string, name string, getOptions meta_v1.GetOptions) (*api_v1.Secret, error) {
+func (cluster *clusterDelegate) GetSecret(nameSpace string, name string, getOptions meta_v1.GetOptions) (*api_v1.Secret, error) {
 	return cluster.GetClient().CoreV1().Secrets(nameSpace).Get(name, getOptions)
 }
 
-func (cluster *cluster) ListSecrets(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.SecretList, error) {
+func (cluster *clusterDelegate) ListSecrets(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.SecretList, error) {
 	return cluster.GetClient().CoreV1().Secrets(nameSpace).List(listOptions)
 }
 
-func (cluster *cluster) ListServices(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.ServiceList, error) {
+func (cluster *clusterDelegate) ListServices(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.ServiceList, error) {
 	return cluster.GetClient().CoreV1().Services(nameSpace).List(listOptions)
 }
 
-func (cluster *cluster) Patch(nameSpace string, name string, pt types.PatchType, data []byte, subresources ...string) (result *api_v1.ServiceAccount, err error) {
+func (cluster *clusterDelegate) Patch(nameSpace string, name string, pt types.PatchType, data []byte, subresources ...string) (result *api_v1.ServiceAccount, err error) {
 	return cluster.GetClient().CoreV1().ServiceAccounts(nameSpace).Patch(name, pt, data, subresources...)
 }

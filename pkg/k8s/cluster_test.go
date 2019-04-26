@@ -16,6 +16,7 @@
 package k8s_test
 
 import (
+	"github.com/cf-platform-eng/kibosh/pkg/k8s/k8sfakes"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -25,6 +26,7 @@ import (
 	. "github.com/cf-platform-eng/kibosh/pkg/k8s"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	api_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sAPI "k8s.io/client-go/tools/clientcmd/api"
 )
@@ -40,28 +42,29 @@ var _ = Describe("Config", func() {
 		}
 	})
 
-	It("list pods", func() {
-		var url string
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			url = string(r.URL.Path)
+	Context("real delegate", func() {
+		It("list pods", func() {
+			var url string
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				url = string(r.URL.Path)
+			})
+			testserver := httptest.NewServer(handler)
+			creds.Server = testserver.URL
+
+			cluster, err := NewCluster(creds)
+
+			Expect(err).To(BeNil())
+
+			cluster.ListPods("mynamespace", meta_v1.ListOptions{})
+
+			Expect(url).To(Equal("/api/v1/namespaces/mynamespace/pods"))
 		})
-		testserver := httptest.NewServer(handler)
-		creds.Server = testserver.URL
 
-		cluster, err := NewCluster(creds)
+		It("loads default config", func() {
+			configFile, err := ioutil.TempFile("", "")
+			Expect(err).To(BeNil())
 
-		Expect(err).To(BeNil())
-
-		cluster.ListPods("mynamespace", meta_v1.ListOptions{})
-
-		Expect(url).To(Equal("/api/v1/namespaces/mynamespace/pods"))
-	})
-
-	It("loads default config", func() {
-		configFile, err := ioutil.TempFile("", "")
-		Expect(err).To(BeNil())
-
-		configFile.Write([]byte(`
+			configFile.Write([]byte(`
 apiVersion: v1
 clusters:
 - cluster:
@@ -82,94 +85,110 @@ users:
     token: cGFzc3dvcmQ=
 `))
 
-		os.Setenv("KUBECONFIG", configFile.Name())
+			os.Setenv("KUBECONFIG", configFile.Name())
 
-		cluster, err := NewClusterFromDefaultConfig()
+			cluster, err := NewClusterFromDefaultConfig()
 
-		Expect(err).To(BeNil())
-		clientConfig := cluster.GetClientConfig()
-		Expect(clientConfig).NotTo(BeNil())
-		Expect(clientConfig.BearerToken).To(Equal("cGFzc3dvcmQ="))
+			Expect(err).To(BeNil())
+			clientConfig := cluster.GetClientConfig()
+			Expect(clientConfig).NotTo(BeNil())
+			Expect(clientConfig.BearerToken).To(Equal("cGFzc3dvcmQ="))
+		})
+
+		It("load specific config", func() {
+			k8sConfig := &k8sAPI.Config{
+				Clusters: map[string]*k8sAPI.Cluster{
+					"cluster1": {
+						CertificateAuthorityData: []byte("my cat"),
+						Server:                   "myserver",
+					},
+					"cluster2": {
+						CertificateAuthorityData: []byte("my cat"),
+						Server:                   "myserver",
+					},
+				},
+				CurrentContext: "context2",
+				Contexts: map[string]*k8sAPI.Context{
+					"context1": {
+						Cluster:  "cluster1",
+						AuthInfo: "auth1",
+					},
+					"context2": {
+						Cluster:  "cluster2",
+						AuthInfo: "auth2",
+					},
+				},
+				AuthInfos: map[string]*k8sAPI.AuthInfo{
+					"auth1": {
+						Token: "my encoded token",
+					},
+					"auth2": {
+						Token: "my encoded 2nd token",
+					},
+				},
+			}
+
+			cluster, err := GetClusterFromK8sConfig(k8sConfig)
+
+			Expect(err).To(BeNil())
+
+			clientConfig := cluster.GetClientConfig()
+
+			Expect(clientConfig).NotTo(BeNil())
+			Expect(clientConfig.BearerToken).To(Equal("my encoded 2nd token"))
+		})
+
+		It("no current context", func() {
+			k8sConfig := &k8sAPI.Config{
+				Clusters: map[string]*k8sAPI.Cluster{
+					"cluster1": {
+						CertificateAuthorityData: []byte("my cat"),
+						Server:                   "myserver",
+					},
+					"cluster2": {
+						CertificateAuthorityData: []byte("my cat"),
+						Server:                   "myserver",
+					},
+				},
+				Contexts: map[string]*k8sAPI.Context{
+					"context1": {
+						Cluster:  "cluster1",
+						AuthInfo: "auth1",
+					},
+					"context2": {
+						Cluster:  "cluster2",
+						AuthInfo: "auth2",
+					},
+				},
+				AuthInfos: map[string]*k8sAPI.AuthInfo{
+					"auth1": {
+						Token: "my encoded token",
+					},
+					"auth2": {
+						Token: "my encoded 2nd token",
+					},
+				},
+			}
+
+			_, err := GetClusterFromK8sConfig(k8sConfig)
+
+			Expect(err).NotTo(BeNil())
+		})
 	})
 
-	It("load specific config", func() {
-		k8sConfig := &k8sAPI.Config{
-			Clusters: map[string]*k8sAPI.Cluster{
-				"cluster1": {
-					CertificateAuthorityData: []byte("my cat"),
-					Server:                   "myserver",
-				},
-				"cluster2": {
-					CertificateAuthorityData: []byte("my cat"),
-					Server:                   "myserver",
-				},
-			},
-			CurrentContext: "context2",
-			Contexts: map[string]*k8sAPI.Context{
-				"context1": {
-					Cluster:  "cluster1",
-					AuthInfo: "auth1",
-				},
-				"context2": {
-					Cluster:  "cluster2",
-					AuthInfo: "auth2",
-				},
-			},
-			AuthInfos: map[string]*k8sAPI.AuthInfo{
-				"auth1": {
-					Token: "my encoded token",
-				},
-				"auth2": {
-					Token: "my encoded 2nd token",
-				},
-			},
-		}
+	Context("mock delegate", func() {
+		var fakeClusterDelegate k8sfakes.FakeClusterDelegate
 
-		cluster, err := GetClusterFromK8sConfig(k8sConfig)
+		It("foo", func() {
+			fakeClusterDelegate = k8sfakes.FakeClusterDelegate{}
 
-		Expect(err).To(BeNil())
+			cluster, err := NewUnitTestCluster(&fakeClusterDelegate)
+			Expect(err).To(BeNil())
 
-		clientConfig := cluster.GetClientConfig()
+			_, err = cluster.CreateNamespaceIfNotExists(&api_v1.Namespace{})
+			Expect(err).To(BeNil())
 
-		Expect(clientConfig).NotTo(BeNil())
-		Expect(clientConfig.BearerToken).To(Equal("my encoded 2nd token"))
-	})
-
-	It("no current context", func() {
-		k8sConfig := &k8sAPI.Config{
-			Clusters: map[string]*k8sAPI.Cluster{
-				"cluster1": {
-					CertificateAuthorityData: []byte("my cat"),
-					Server:                   "myserver",
-				},
-				"cluster2": {
-					CertificateAuthorityData: []byte("my cat"),
-					Server:                   "myserver",
-				},
-			},
-			Contexts: map[string]*k8sAPI.Context{
-				"context1": {
-					Cluster:  "cluster1",
-					AuthInfo: "auth1",
-				},
-				"context2": {
-					Cluster:  "cluster2",
-					AuthInfo: "auth2",
-				},
-			},
-			AuthInfos: map[string]*k8sAPI.AuthInfo{
-				"auth1": {
-					Token: "my encoded token",
-				},
-				"auth2": {
-					Token: "my encoded 2nd token",
-				},
-			},
-		}
-
-		_, err := GetClusterFromK8sConfig(k8sConfig)
-
-		Expect(err).NotTo(BeNil())
-
+			Expect(fakeClusterDelegate.GetNamespaceCallCount()).To(Equal(1))
+		})
 	})
 })
