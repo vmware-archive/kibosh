@@ -19,7 +19,7 @@ resources:
 - name: source-repo
   type: git
   source:
-    branch: cleanup-ci
+    branch: master
     ignore_paths:
     - ci/*
     - README.md
