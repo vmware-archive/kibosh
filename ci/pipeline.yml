@@ -822,7 +822,7 @@ jobs:
     input_mapping:
       bbl-state: kibosh-bbl-pool
 
-- name: delete-gke-cluster
+- name: delete-gke-cluster-and-registry-images
   plan:
     - aggregate:
         - get: source-repo
@@ -847,12 +847,28 @@ jobs:
           args:
             - -exc
             - |
+              apt-get install -y jq
+
               source cluster-config/*.sh
               echo $SERVICE_ACCOUNT > serviceaccount.key
               gcloud auth activate-service-account --key-file serviceaccount.key
               gcloud beta container clusters delete $CLUSTER_NAME --zone "us-central1-a" --quiet
 
-- name: clean-up
+              # This will likely only work for Docker Hub
+              export USER={{deployment_registry_user}}
+              export PASS={{deployment_registry_pass}}
+              export ORG={{deployment_registry_user}}
+
+              export TOKEN=$(curl -s -H "Content-Type: application/json" -X POST -d '{"username": "'${USER}'", "password": "'${PASS}'"}' https://hub.docker.com/v2/users/login/ | jq -r .token)
+              export REPO_LIST=$(curl -s -H "Authorization: JWT ${TOKEN}" https://hub.docker.com/v2/repositories/${ORG}/?page_size=200 | jq -r '.results|.[]|.name')
+
+              for i in ${REPO_LIST}
+              do
+                echo -n "Deleting ${i}\n"
+                curl -X DELETE -s -H "Authorization: JWT ${TOKEN}" https://hub.docker.com/v2/repositories/${ORG}/${i}/
+              done
+
+- name: bosh-clean-up
   plan:
   - aggregate:
     - get: kibosh-bbl-pool
