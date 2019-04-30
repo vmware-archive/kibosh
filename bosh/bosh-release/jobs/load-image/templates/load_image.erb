@@ -27,11 +27,18 @@ while not match:
         sys.exit(1)
 EOF
 
-
+<% if p("registry.server", "").include? "docker." %>
+echo "Using a docker registry"
 docker login \
+    -u '<%= p("registry.username") %>' \
+    -p '<%= p("registry.password") %>'
+<% else %>
+docker login \
+echo "Using 3rd party registry"
     -u '<%= p("registry.username") %>' \
     -p '<%= p("registry.password") %>' \
     <%= p("registry.server") %>
+<% end %>
 
 /var/vcap/packages/loader/loader.linux \
     <%= p("chart_path", "/var/vcap/packages/kibosh-chart") %> \

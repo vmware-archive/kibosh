@@ -27,6 +27,13 @@ resources:
     username: cf-pe-bot
     password: {{github_token}}
 
+- name: cluster-config
+  type: gcs-resource
+  source:
+    bucket: kibosh
+    json_key: {{gcp_service_account_key}}
+    regexp: ci-config/cluster-config-new(?P<version>.*).sh
+
 - name: cf-cli
   type: bosh-io-release
   source:
@@ -169,6 +176,20 @@ resources:
   type: docker-image
   source:
     repository: cfplatformeng/spacebears
+
+- name: public-tiller-image
+  type: docker-image
+  source:
+    repository: gcr.io/kubernetes-helm/tiller
+    tag: v2.13.1
+
+- name: private-tiller-image
+  type: docker-image
+  source:
+    repository: bazaarfeedback1/tiller
+    tag: v2.13.1
+    username: {{deployment_registry_user}}
+    password: {{deployment_registry_pass}}
 
 - name: cf-deployment-concourse-tasks-docker
   type: docker-image
@@ -560,13 +581,100 @@ jobs:
           popd
     on_failure: *slack_on_failure
 
+- name: create-gke-cluster
+  plan:
+  - aggregate:
+    - get: version
+    - get: source-repo
+      trigger: true
+      passed: [unit-tests]
+  - task: create-gke-cluster
+    config:
+      platform: linux
+      inputs:
+      - name: source-repo
+      - name: version
+      outputs:
+      - name: output
+      image_resource:
+        type: docker-image
+        source:
+          repository: google/cloud-sdk
+          tag: "latest"
+      params:
+        SERVICE_ACCOUNT: {{gcp_service_account_key}}
+      run:
+        path: bash
+        args:
+        - -exc
+        - |
+          export VERSION=`cat version/version`
+          export CLUSTER_NAME=kibosh-ci-${VERSION//.}
+
+          echo $SERVICE_ACCOUNT > serviceaccount.key
+          gcloud auth activate-service-account --key-file serviceaccount.key
+          gcloud beta container --project "pgtm-gwestenberg" clusters create $CLUSTER_NAME --zone "us-central1-a" --username "admin" --cluster-version "1.11.8-gke.6" --machine-type "n1-standard-1" --image-type "COS" --disk-type "pd-standard" --disk-size "100" --scopes "https://www.googleapis.com/auth/devstorage.read_only","https://www.googleapis.com/auth/logging.write","https://www.googleapis.com/auth/monitoring","https://www.googleapis.com/auth/servicecontrol","https://www.googleapis.com/auth/service.management.readonly","https://www.googleapis.com/auth/trace.append" --preemptible --num-nodes "1" --enable-cloud-logging --enable-cloud-monitoring --no-enable-ip-alias --network "projects/pgtm-gwestenberg/global/networks/default" --subnetwork "projects/pgtm-gwestenberg/regions/us-central1/subnetworks/default" --addons HorizontalPodAutoscaling,HttpLoadBalancing --no-enable-autoupgrade --enable-autorepair
+
+          # Do parsing of output here to make easier input to deploy job
+          # we need 3 things
+          # deployment_cluster_ca_cert, deployment_k8s_cluster_server, deployment_cluster_token
+          # we need to remove ^^^ from kibosh-ci-creds
+          cat <<EOF | kubectl apply -f -
+          ---
+          apiVersion: v1
+          kind: ServiceAccount
+          metadata:
+            name: kibosh-admin
+            namespace: kube-system
+
+          ---
+          apiVersion: rbac.authorization.k8s.io/v1beta1
+          kind: ClusterRoleBinding
+          metadata:
+            name: kibosh-cluster-admin
+          roleRef:
+            apiGroup: rbac.authorization.k8s.io
+            kind: ClusterRole
+            name: cluster-admin
+          subjects:
+            - kind: ServiceAccount
+              name: kibosh-admin
+              namespace: kube-system
+          EOF
+
+          echo "export CLUSTER_NAME=${CLUSTER_NAME}" > cluster_config.sh
+          echo "export KUBE_SERVER=$(kubectl config view -o=jsonpath='{.clusters[0].cluster.server}')" >> cluster_config.sh
+          echo "export KUBE_SECRET=$(kubectl get secret -o=jsonpath='{.items[0].data.ca\.crt}')" >> cluster_config.sh
+          export SECRET_NAME=$(kubectl get serviceaccount kibosh-admin --namespace=kube-system -o jsonpath='{.secrets[0].name}')
+          echo "export KUBE_TOKEN=$(kubectl --namespace=kube-system get secret $SECRET_NAME -o jsonpath='{.data.token}' | base64 -d)" >> cluster_config.sh
+          mv cluster_config.sh output/cluster-config-new$VERSION.sh
+
+  - put: cluster-config
+    params:
+      file: output/cluster-config-*
+
+- name: pull-and-push-tiller
+  plan:
+  - aggregate:
+    - get: cluster-config
+      passed: [create-gke-cluster]
+      trigger: true
+    - get: public-tiller-image
+      params: {save: true}
+    - get: source-repo
+      passed: [create-gke-cluster]
+  - put: private-tiller-image
+    params: {load: public-tiller-image}
+
 - name: deploy
   plan:
   - aggregate:
     - get: kibosh-bbl-pool
     - get: cf-deployment-concourse-tasks-docker
+    - get: cluster-config
+      passed: [pull-and-push-tiller]
     - get: source-repo
-      passed: [upload-stemcell-and-release]
+      passed: [upload-stemcell-and-release, pull-and-push-tiller]
       trigger: true
     - get: kibosh-release
       passed: [upload-stemcell-and-release]
@@ -577,11 +685,13 @@ jobs:
       inputs:
       - name: kibosh-bbl-pool
       - name: source-repo
+      - name: cluster-config
       run:
         path: bash
         args:
         - -exc
         - |
+          source cluster-config/*.sh
           pushd kibosh-bbl-pool/bbl-state
           set +x
           bbl print-env > /tmp/env.sh
@@ -591,16 +701,16 @@ jobs:
 
           pushd source-repo
 
-          echo '
+          cat <<EOF > values.yml
           stemcell: bosh-google-kvm-ubuntu-trusty-go_agent
           kibosh-password: {{deployment_broker_password}}
-          k8s-cluster-ca-cert: {{deployment_cluster_ca_cert}}
-          k8s-cluster-server: {{deployment_k8s_cluster_server}}
-          k8s-cluster-token: {{deployment_cluster_token}}
+          k8s-cluster-ca-cert: $KUBE_SECRET
+          k8s-cluster-server: $KUBE_SERVER
+          k8s-cluster-token: $KUBE_TOKEN
           registry-server: {{deployment_registry_server}}
           registry-user: {{deployment_registry_user}}
           registry-pass: {{deployment_registry_pass}}
-          ' > values.yml
+          EOF
 
           yes | bosh -d kibosh deploy bosh/bosh-release/manifests/lite-manifest.yml --no-redact --vars-store=values.yml
           popd
@@ -712,7 +822,53 @@ jobs:
     input_mapping:
       bbl-state: kibosh-bbl-pool
 
-- name: clean-up
+- name: delete-gke-cluster-and-registry-images
+  plan:
+    - aggregate:
+        - get: source-repo
+          trigger: true
+          passed: [push-image-errand]
+        - get: cluster-config
+          passed: [create-gke-cluster]
+    - task: create-gke-cluster
+      config:
+        platform: linux
+        inputs:
+          - name: cluster-config
+        image_resource:
+          type: docker-image
+          source:
+            repository: google/cloud-sdk
+            tag: "latest"
+        params:
+          SERVICE_ACCOUNT: {{gcp_service_account_key}}
+        run:
+          path: bash
+          args:
+            - -exc
+            - |
+              apt-get install -y jq
+
+              source cluster-config/*.sh
+              echo $SERVICE_ACCOUNT > serviceaccount.key
+              gcloud auth activate-service-account --key-file serviceaccount.key
+              gcloud beta container clusters delete $CLUSTER_NAME --zone "us-central1-a" --quiet
+
+              # This will likely only work for Docker Hub
+              export USER={{deployment_registry_user}}
+              export PASS={{deployment_registry_pass}}
+              export ORG={{deployment_registry_user}}
+
+              export TOKEN=$(curl -s -H "Content-Type: application/json" -X POST -d '{"username": "'${USER}'", "password": "'${PASS}'"}' https://hub.docker.com/v2/users/login/ | jq -r .token)
+              export REPO_LIST=$(curl -s -H "Authorization: JWT ${TOKEN}" https://hub.docker.com/v2/repositories/${ORG}/?page_size=200 | jq -r '.results|.[]|.name')
+
+              for i in ${REPO_LIST}
+              do
+                echo -n "Deleting ${i}\n"
+                curl -X DELETE -s -H "Authorization: JWT ${TOKEN}" https://hub.docker.com/v2/repositories/${ORG}/${i}/
+              done
+
+- name: bosh-clean-up
   plan:
   - aggregate:
     - get: kibosh-bbl-pool

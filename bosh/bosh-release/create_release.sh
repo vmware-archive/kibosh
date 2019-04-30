@@ -30,6 +30,7 @@ bosh upload-release ${cf_cli_bosh_pkg_path}
 cp ../../kibosh.linux ./${TMPDIR}
 cp ../../loader.linux ./${TMPDIR}
 cp ../../bazaar.linux ./${TMPDIR}
+cp ../../bazaarcli.linux ./${TMPDIR}
 
 delete_all_and_deregister_path=./${TMPDIR}/delete_all_and_deregister.linux
 if [ -f "${delete_all_and_deregister_path}" ]; then
@@ -45,6 +46,7 @@ echo "Adding blobs"
 bosh add-blob ./${TMPDIR}/kibosh.linux kibosh.linux
 bosh add-blob ./${TMPDIR}/loader.linux loader.linux
 bosh add-blob ./${TMPDIR}/bazaar.linux bazaar.linux
+bosh add-blob ./${TMPDIR}/bazaarcli.linux bazaarcli.linux
 bosh add-blob ./${TMPDIR}/delete_all_and_deregister.linux delete_all_and_deregister.linux
 
 bosh create-release --name=kibosh --force
