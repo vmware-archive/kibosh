@@ -279,6 +279,18 @@
   version = "v1.0.0"
 
 [[projects]]
+  digest = "1:6765afb5f1d1b89a667a6c912769dfc8611997160c4ca8ad1799197613ec06a1"
+  name = "github.com/google/go-jsonnet"
+  packages = [
+    ".",
+    "ast",
+    "parser",
+  ]
+  pruneopts = "U"
+  revision = "493c45a403d25435774370ddfa6363906a65c23c"
+  version = "v0.12.1"
+
+[[projects]]
   digest = "1:8d4a577a9643f713c25a32151c0f26af7228b4b97a219b5ddb7fd38d16f6e673"
   name = "github.com/google/gofuzz"
   packages = ["."]
@@ -1153,6 +1165,7 @@
     "github.com/emicklei/go-restful",
     "github.com/ghodss/yaml",
     "github.com/go-openapi/spec",
+    "github.com/google/go-jsonnet",
     "github.com/gosuri/uitable",
     "github.com/gosuri/uitable/util/strutil",
     "github.com/kelseyhightower/envconfig",
