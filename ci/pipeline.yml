@@ -94,6 +94,20 @@ resources:
     json_key: {{gcp_service_account_key}}
     regexp: loader-(?P<version>.*).linux
 
+- name: template-tester-linux
+  type: gcs-resource
+  source:
+    bucket: kibosh
+    json_key: {{gcp_service_account_key}}
+    regexp: template-tester-(?P<version>.*).linux
+
+- name: template-tester-mac
+  type: gcs-resource
+  source:
+    bucket: kibosh
+    json_key: {{gcp_service_account_key}}
+    regexp: template-tester-(?P<version>.*).mac
+
 - name: bazaar-linux
   type: gcs-resource
   source:
@@ -216,7 +230,7 @@ slack_on_failure: &slack_on_failure
   params:
     icon_emoji: ":concourse-failed:"
     username: Concourse CI
-    channel: "#pe-kubism"
+    channel: "@mcholick"
     text: "Kibosh has a CI failure, see https://concourse.cfplatformeng.com/teams/main/pipelines/kibosh"
 
 jobs:
@@ -419,10 +433,7 @@ jobs:
           # make cleandep
           make bootstrap
           make test
-          make build
-          make build-loader
-          make build-bazaar
-          make build-bazaar-cli
+          make all
           popd
 
           export VERSION=`cat version/version`
@@ -433,6 +444,8 @@ jobs:
           cp $SRC/bazaar.linux output/bazaar-${VERSION}.linux
           cp $SRC/bazaarcli.mac output/bazaarcli-${VERSION}.mac
           cp $SRC/bazaarcli.linux output/bazaarcli-${VERSION}.linux
+          cp $SRC/template-tester.linux output/template-tester-${VERSION}.linux
+          cp $SRC/template-tester.mac output/template-tester-${VERSION}.mac
     on_failure: *slack_on_failure
   - put: kibosh-linux
     params:
@@ -452,6 +465,12 @@ jobs:
   - put: bazaarcli-mac
     params:
       file: output/bazaarcli-*.mac
+  - put: template-tester-linux
+    params:
+      file: output/template-tester-*.linux
+  - put: template-tester-mac
+    params:
+      file: output/template-tester-*.mac
   - put: version
     params:
       bump: patch
@@ -761,6 +780,8 @@ jobs:
     - get: kibosh-darwin
     - get: bazaarcli-linux
     - get: bazaarcli-mac
+    - get: template-tester-linux
+    - get: template-tester-mac
     - get: kibosh-release
       passed: [push-image-errand]
     - get: version
@@ -773,6 +794,8 @@ jobs:
       - name: kibosh-darwin
       - name: bazaarcli-linux
       - name: bazaarcli-mac
+      - name: template-tester-linux
+      - name: template-tester-mac
       - name: kibosh-release
       - name: version
       outputs:
@@ -795,6 +818,8 @@ jobs:
           mv bazaarcli-linux/bazaarcli-*.linux output/
           mv bazaarcli-mac/bazaarcli-*.mac output/
           mv kibosh-release/kibosh*.tgz output/
+          mv template-tester-linux/template-tester*.linux output/
+          mv template-tester-mac/template-tester*.mac output/
     on_failure: *slack_on_failure
   - put: release-repo
     params:
@@ -803,6 +828,7 @@ jobs:
       globs:
       - output/kibosh*.*
       - output/bazaarcli*.*
+      - output/template-tester*.*
 
 - name: delete-deployment
   plan:
