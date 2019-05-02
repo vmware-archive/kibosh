@@ -69,6 +69,7 @@ var _ = Describe("KubeConfig", func() {
 				},
 				HelmTLSConfig:   &config.HelmTLSConfig{},
 				TillerNamespace: "my-kibosh-namespace",
+				TillerSHA: "08336b922ae72d149af9f35357dffe0f659568b777ea9981753ff11dc9760b45",
 			}
 
 			installer = NewInstaller(conf, &cluster, &client, logger)
@@ -97,6 +98,7 @@ var _ = Describe("KubeConfig", func() {
 		})
 
 		It("should use private registry image for install when configured", func() {
+			conf.TillerSHA = ""
 			err := installer.Install()
 
 			Expect(err).To(BeNil())

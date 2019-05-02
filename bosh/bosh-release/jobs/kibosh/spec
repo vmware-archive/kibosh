@@ -21,6 +21,8 @@ properties:
   kibosh.helm_chart_dir:
     description: Location of the helm chart kibosh will deploy
     default: charts
+  kibosh.tiller_image_sha:
+    description: SHA256 of the container image named tiller if using a private registry
   kibosh.operator_dir:
     description: Location of the operator helm chart kibosh will deploy
   kibosh.key_value_store_dir:

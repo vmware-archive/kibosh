@@ -65,6 +65,7 @@ type Config struct {
 	HelmChartDir    string `envconfig:"HELM_CHART_DIR" default:"charts"`
 	OperatorDir     string `envconfig:"OPERATOR_DIR" default:"operators"`
 	TillerNamespace string `envconfig:"TILLER_NAMESPACE" default:"kube-system"`
+	TillerSHA       string `envconfig:"TILLER_IMAGE_SHA"`
 
 	ClusterCredentials *ClusterCredentials
 	RegistryConfig     *RegistryConfig
