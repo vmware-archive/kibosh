@@ -85,6 +85,7 @@ instance_groups:
       ca_data: ((k8s-cluster-ca-cert))
       server: ((k8s-cluster-server))
       token: ((k8s-cluster-token))
+      tiller_image_sha: d52b34a9f9aeec1cf74155ca51fcbb5d872a705914565c782be4531790a4ee0e
     registry:
       server: ((registry-server))
       username: ((registry-user))
