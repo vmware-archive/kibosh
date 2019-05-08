@@ -878,7 +878,7 @@ jobs:
               source cluster-config/*.sh
               echo $SERVICE_ACCOUNT > serviceaccount.key
               gcloud auth activate-service-account --key-file serviceaccount.key
-              gcloud beta container clusters delete $CLUSTER_NAME --zone "us-central1-a" --quiet
+              gcloud beta container --project "pgtm-gwestenberg" clusters delete $CLUSTER_NAME --zone "us-central1-a" --quiet
 
               # This will likely only work for Docker Hub
               export USER={{deployment_registry_user}}
