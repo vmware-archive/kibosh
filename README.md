@@ -47,7 +47,7 @@ For some in depth discussion, see this blog post:
 ## Configuration
 ### Changes required in Chart
 #### Plans (`cf marketplace`)  
-Kibosh requires that helm chart has additional file that describes plan in `plans.yaml` at root level
+Kibosh requires that helm chart has additional file that describes plan in `plans.yaml` at root level  
     ```yaml
     - name: "small"
       description: "default (small) plan for mysql"
@@ -55,13 +55,14 @@ Kibosh requires that helm chart has additional file that describes plan in `plan
     - name: "medium"
       description: "medium sized plan for mysql"
       file: "medium.yaml"
-    ```
-    *`file` is a filename that exists in the `plans` subdirectory of the chart.
-    * File names should consist of only lowercase letters, digits, `.`, or `-`.
-    * The standard `values.yaml` file in the helm chart sets the defaults.
-    * Each plan's yaml file is a set of values overriding the defaults present in `values.yaml`.  
-    Copy any key/value pairs to override from `values.yaml` into a new plan file and change their value.  
-    See kibosh-sample's [sample-charts](https://github.com/cf-platform-eng/kibosh-sample/tree/master/sample-charts) for a few examples.
+    ```  
+* `file` is a filename that exists in the `plans` subdirectory of the chart.
+* File names should consist of only lowercase letters, digits, `.`, or `-`.
+* The standard `values.yaml` file in the helm chart sets the defaults.
+* Each plan's yaml file is a set of values overriding the defaults present in `values.yaml`.  
+
+Copy any key/value pairs to override from `values.yaml` into a new plan file and change their value.  
+See kibosh-sample's [sample-charts](https://github.com/cf-platform-eng/kibosh-sample/tree/master/sample-charts) for a few examples.
 
 In order to successfully pull private images, we're imposing some requirements
 on the `values.yaml` file structure
