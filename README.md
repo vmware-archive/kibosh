@@ -48,6 +48,7 @@ For some in depth discussion, see this blog post:
 ### Changes required in Chart
 #### Plans (`cf marketplace`)  
 Kibosh requires that helm chart has additional file that describes plan in `plans.yaml` at root level  
+
     ```yaml
     - name: "small"
       description: "default (small) plan for mysql"
