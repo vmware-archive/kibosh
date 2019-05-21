@@ -231,7 +231,7 @@ slack_on_failure: &slack_on_failure
     icon_emoji: ":concourse-failed:"
     username: Concourse CI
     channel: "#pe-kubism"
-    text: "Kibosh has a CI failure, see https://concourse.cfplatformeng.com/teams/main/pipelines/kibosh"
+    text: "Kibosh has a CI failure, see https://hush-house.pivotal.io/teams/PE/pipelines/kibosh"
 
 jobs:
 - name: setup-infrastructure-lite
