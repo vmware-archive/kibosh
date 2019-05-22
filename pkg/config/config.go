@@ -134,6 +134,8 @@ func Parse() (*Config, error) {
 		}
 	}
 
+	c.cleanupConfig()
+
 	return c, nil
 }
 
@@ -174,4 +176,9 @@ func (t *HelmTLSConfig) validateHelmConfig() error {
 		}
 	}
 	return nil
+}
+
+func (c Config) cleanupConfig() {
+	c.RegistryConfig.Server = strings.TrimPrefix(c.RegistryConfig.Server, "https://")
+	c.RegistryConfig.Server = strings.TrimPrefix(c.RegistryConfig.Server, "http://")
 }

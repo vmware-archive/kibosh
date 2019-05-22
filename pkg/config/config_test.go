@@ -142,7 +142,7 @@ my cert data
 				Expect(err).To(BeNil())
 
 				Expect(c.RegistryConfig).NotTo(BeNil())
-				Expect(c.RegistryConfig.Server).To(Equal("https://127.0.0.1"))
+				Expect(c.RegistryConfig.Server).To(Equal("127.0.0.1"))
 				Expect(c.RegistryConfig.User).To(Equal("k8s"))
 				Expect(c.RegistryConfig.Pass).To(Equal("xyz789"))
 				Expect(c.RegistryConfig.Email).To(Equal("k8s@example.com"))
@@ -160,7 +160,7 @@ my cert data
 
 				Expect(unmarshalled).To(Equal(map[string]interface{}{
 					"auths": map[string]interface{}{
-						"https://127.0.0.1": map[string]interface{}{
+						"127.0.0.1": map[string]interface{}{
 							"username": "k8s",
 							"password": "xyz789",
 							"email":    "k8s@example.com",
@@ -249,6 +249,25 @@ my cert data
 				_, err := Parse()
 				Expect(err).NotTo(BeNil())
 			})
+
+			It("https for registry server should be cleaned", func() {
+				os.Setenv("REG_SERVER", "https://minio.com")
+
+				c, err := Parse()
+				Expect(err).To(BeNil())
+
+				Expect(c.RegistryConfig.Server).To(Equal("minio.com"))
+			})
+
+			It("http for registry server should be cleaned", func() {
+				os.Setenv("REG_SERVER", "http://minio.com")
+
+				c, err := Parse()
+				Expect(err).To(BeNil())
+
+				Expect(c.RegistryConfig.Server).To(Equal("minio.com"))
+			})
+
 		})
 	})
 })
