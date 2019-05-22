@@ -43,13 +43,16 @@ var _ = Describe("Save charts", func() {
 		_, err = file.Write([]byte("some random content stuff"))
 		Expect(err).To(BeNil())
 
+		var files = []string{file.Name()}
+
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			r.ParseMultipartForm(4096)
+			err := r.ParseMultipartForm(4096)
+			Expect(err).To(BeNil())
 			testRequest = r
 		})
 		testServer = httptest.NewServer(handler)
 
-		req, err := httphelpers.CreateFormRequest(testServer.URL, "my_file", file.Name())
+		req, err := httphelpers.CreateFormRequest(testServer.URL, "my_file", files)
 		Expect(err).To(BeNil())
 
 		res, err := http.DefaultClient.Do(req)
@@ -68,7 +71,7 @@ var _ = Describe("Save charts", func() {
 	})
 
 	It("returns error on non-existant file", func() {
-		_, err := httphelpers.CreateFormRequest(testServer.URL, "my_file", "")
+		_, err := httphelpers.CreateFormRequest(testServer.URL, "my_file", []string{""})
 		Expect(err).NotTo(BeNil())
 	})
 })

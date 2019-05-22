@@ -189,27 +189,54 @@ func getUrlPart(position int, r *http.Request) (string, error) {
 }
 
 func (api *api) saveChartToRepository(r *http.Request) error {
-	r.ParseMultipartForm(1000000)
-	file, handler, err := r.FormFile("chart")
+	err := r.ParseMultipartForm(1000000)
 	if err != nil {
-		api.logger.WithError(err).Error("SaveChart: Couldn't read request POST form data")
+		api.logger.WithError(err).Error("SaveChart: Couldn't parse the multipart form request")
 		return err
 	}
-	defer file.Close()
-	chartPath, err := ioutil.TempDir("", "chart-")
-	f, err := os.OpenFile(filepath.Join(chartPath, handler.Filename), os.O_WRONLY|os.O_CREATE, 0666)
-	if err != nil {
-		api.logger.WithError(err).Error("SaveChart: Couldn't write on disk ")
-		return err
-	}
-	defer f.Close()
-	buffer := make([]byte, 1000000)
-	io.CopyBuffer(f, file, buffer)
 
-	err = api.repo.SaveChart(filepath.Join(chartPath, handler.Filename))
-	if err != nil {
-		api.logger.WithError(err).Error("SaveChart: Couldn't save the chart")
-		return err
+	formdata := r.MultipartForm
+
+	files := formdata.File["chart"]
+	//file, handler, err := r.FormFile("chart")
+	for i := range files {
+		file, err := files[i].Open()
+		if err != nil {
+			api.logger.WithError(err).Error("SaveChart: Couldn't read request POST form data")
+			return err
+		}
+
+		chartPath, err := ioutil.TempDir("", "chart-")
+		f, err := os.OpenFile(filepath.Join(chartPath, files[i].Filename), os.O_WRONLY|os.O_CREATE, 0666)
+
+		if err != nil {
+			api.logger.WithError(err).Error("SaveChart: Couldn't write on disk ")
+			return err
+		}
+
+		buffer := make([]byte, 1000000)
+		_, err = io.CopyBuffer(f, file, buffer)
+		if err != nil {
+			api.logger.WithError(err).Error("SaveChart: Couldn't copy file to buffer")
+			return err
+		}
+
+		err = api.repo.SaveChart(filepath.Join(chartPath, files[i].Filename))
+		if err != nil {
+			api.logger.WithError(err).Error("SaveChart: Couldn't save the chart")
+			return err
+		}
+
+		err = file.Close()
+		if err != nil {
+			api.logger.WithError(err).Error("error closing source file")
+			return err
+		}
+		err = f.Close()
+		if err != nil {
+			api.logger.WithError(err).Error("error closing target file")
+			return err
+		}
 	}
 	return nil
 }
@@ -239,5 +266,8 @@ func (api *api) triggerKiboshReload() error {
 
 func (api *api) ServerError(code int, message string, w http.ResponseWriter) {
 	w.WriteHeader(code)
-	w.Write([]byte(message))
+	_, err := w.Write([]byte(message))
+	if err != nil {
+		api.logger.WithError(err).Error("error writing server error response")
+	}
 }

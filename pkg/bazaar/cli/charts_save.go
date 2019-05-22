@@ -29,7 +29,7 @@ import (
 
 type chartsSaveCmd struct {
 	baseBazaarCmd
-	path string
+	paths []string
 }
 
 func NewChartsSaveCmd(out io.Writer) *cobra.Command {
@@ -46,7 +46,7 @@ func NewChartsSaveCmd(out io.Writer) *cobra.Command {
 			if len(args) != 1 {
 				return errors.New("missing tar file")
 			}
-			cs.path = args[0]
+			cs.paths = args
 			return cs.run()
 		},
 	}
@@ -58,7 +58,7 @@ func NewChartsSaveCmd(out io.Writer) *cobra.Command {
 
 func (cs *chartsSaveCmd) run() error {
 	url := cs.target + "/charts"
-	req, err := httphelpers.CreateFormRequest(url, "chart", cs.path)
+	req, err := httphelpers.CreateFormRequest(url, "chart", cs.paths)
 	if err != nil {
 		return err
 	}
@@ -86,7 +86,10 @@ func (cs *chartsSaveCmd) run() error {
 		return err
 	}
 
-	cs.out.Write([]byte(fmt.Sprintf("Message from server: %s\n", responseJSON.Message)))
+	_, err = cs.out.Write([]byte(fmt.Sprintf("Message from server: %s\n", responseJSON.Message)))
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
