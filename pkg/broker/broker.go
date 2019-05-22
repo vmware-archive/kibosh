@@ -17,6 +17,8 @@ package broker
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/base32"
 	"encoding/json"
 	"fmt"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
@@ -194,11 +196,12 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 				"planID":           details.PlanID,
 				"organizationGUID": details.OrganizationGUID,
 				"spaceGUID":        details.SpaceGUID,
+				"instanceID":       instanceID,
 			},
 		},
 	}
 
-	_, err = myHelmClient.InstallChart(broker.config.RegistryConfig, namespace, chart, planName, installValues)
+	_, err = myHelmClient.InstallChart(broker.config.RegistryConfig, namespace, broker.getReleaseName(instanceID), chart, planName, installValues)
 	if err != nil {
 		return brokerapi.ProvisionedServiceSpec{}, err
 	}
@@ -224,7 +227,7 @@ func (broker *PksServiceBroker) Deprovision(ctx context.Context, instanceID stri
 	helmClient := broker.helmClientFactory.HelmClient(cluster)
 
 	go func() {
-		_, err = helmClient.DeleteRelease(broker.getNamespace(instanceID))
+		_, err = helmClient.DeleteRelease(broker.getReleaseName(instanceID))
 		if err != nil {
 			broker.logger.Error(
 				"Delete Release failed for planID=", planID, " serviceID=", serviceID, " instanceID=", instanceID, " ", err,
@@ -371,7 +374,7 @@ func (broker *PksServiceBroker) Update(ctx context.Context, instanceID string, d
 
 	helmClient := broker.helmClientFactory.HelmClient(cluster)
 
-	_, err = helmClient.UpdateChart(chart, broker.getNamespace(instanceID), planName, updateValues)
+	_, err = helmClient.UpdateChart(chart, broker.getReleaseName(instanceID), planName, updateValues)
 	if err != nil {
 		broker.logger.Debug(fmt.Sprintf("Update failed on update release= %v", err))
 		return brokerapi.UpdateServiceSpec{}, err
@@ -396,7 +399,7 @@ func (broker *PksServiceBroker) LastOperation(ctx context.Context, instanceID st
 
 	helmClient := broker.helmClientFactory.HelmClient(cluster)
 
-	response, err := helmClient.ReleaseStatus(broker.getNamespace(instanceID))
+	response, err := helmClient.ReleaseStatus(broker.getReleaseName(instanceID))
 	if err != nil {
 		//This err potentially should result in 410 / ok response, in the case where the release is no-found
 		//Will require some changes if we want to support release purging or other flows
@@ -421,7 +424,6 @@ func (broker *PksServiceBroker) LastOperation(ctx context.Context, instanceID st
 		}
 	} else if operationData == "deprovision" {
 		switch code {
-
 		case hapi_release.Status_DELETED:
 			brokerStatus = brokerapi.Succeeded
 			description = "gone"
@@ -544,6 +546,12 @@ func (broker *PksServiceBroker) podIsJob(pod api_v1.Pod) bool {
 
 func (broker *PksServiceBroker) getNamespace(instanceID string) string {
 	return "kibosh-" + instanceID
+}
+
+func (broker *PksServiceBroker) getReleaseName(instanceID string) string {
+	hashed := md5.Sum([]byte(instanceID))
+	encoded := base32.StdEncoding.EncodeToString(hashed[:])
+	return fmt.Sprintf("k-%s", strings.ToLower(string(encoded[0:8])))
 }
 
 func (broker *PksServiceBroker) getServiceName(chart *my_helm.MyChart) string {

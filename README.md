@@ -7,9 +7,12 @@ When deployed with a Helm chart and added to the marketplace,
 * `cf create-service` calls to Kibosh will create the collection of Kubernetes resources described by the chart.
 * `cf bind-service` calls to Kibosh will expose back any services and secrets created by the chart
 
-Overriding/Setting values as defined in values.yaml via 'cf create-service' or 'cf update-service'.  The format of the json string is a nested format.  Also refer to the cf cli for an example of a valid JSON object.
+### Overriding/Setting values as defined in values.yaml via 'cf create-service' or 'cf update-service'.  
 
-Example for setting the mysqlUser on `cf create-service` for the MySQL chart
+The format of the json string is a nested format.  
+Also refer to the cf cli for an example of a valid JSON object.
+
+**Example:** Setting the mysqlUser on `cf create-service` for the MySQL chart
 
 values.yaml
 
@@ -21,7 +24,7 @@ values.yaml
 
 `cf create-service mysql medium mysql-kibosh-service -c '{"mysqlUser":"admin"}'`
 
-Example for setting the resources.requests.memory on `cf update-service` for the MySQL chart
+**Example:** Setting the resources.requests.memory on `cf update-service` for the MySQL chart
 
 values.yaml
 
@@ -43,33 +46,36 @@ For some in depth discussion, see this blog post:
 
 ## Configuration
 ### Changes required in Chart
-* Plans (cf marketplace)
-    Kibosh requires that helm chart has additional file that describes plan in `plans.yaml` at root level
-    ```yaml
-    - name: "small"
-      description: "default (small) plan for mysql"
-      file: "small.yaml"
-    - name: "medium"
-      description: "medium sized plan for mysql"
-      file: "medium.yaml"
-    ```
-    `file` is a filename that exists in the `plans` subdirectory of the chart.
-    File names should consist of only lowercase letters, digits, `.`, or `-`.
-    The standard `values.yaml` file in the helm chart sets the defaults.
-    Each plan's yaml file is a set of values overriding the defaults present in `values.yaml`.
-    Copy any key/value pairs to override from `values.yaml` into a new plan file and change their value.
-  See kibosh-sample's [sample-charts](https://github.com/cf-platform-eng/kibosh-sample/tree/master/sample-charts) for a few examples.
+#### Plans (`cf marketplace`)  
+Kibosh requires that helm chart has additional file that describes plan in `plans.yaml` at root level
+
+```yaml
+- name: "small"
+description: "default (small) plan for mysql"
+file: "small.yaml"
+- name: "medium"
+description: "medium sized plan for mysql"
+file: "medium.yaml"
+```
+
+* `file` is a filename that exists in the `plans` subdirectory of the chart.
+* File names should consist of only lowercase letters, digits, `.`, or `-`.
+* The standard `values.yaml` file in the helm chart sets the defaults.
+* Each plan's yaml file is a set of values overriding the defaults present in `values.yaml`.  
+
+Copy any key/value pairs to override from `values.yaml` into a new plan file and change their value.  
+See kibosh-sample's [sample-charts](https://github.com/cf-platform-eng/kibosh-sample/tree/master/sample-charts) for a few examples.
 
 In order to successfully pull private images, we're imposing some requirements
 on the `values.yaml` file structure
 
-* Single image charts should use this structure:
+* **Single-image** charts should use this structure:
     ```yaml
     ---
     image: "my-image"
     imageTag: "5.7.14"
     ```
-* Multi-image charts shoud use this structure:
+* **Multi-image** charts shoud use this structure:
     ```yaml
     ---
     images:
@@ -81,7 +87,7 @@ on the `values.yaml` file structure
         imageTag: "1.2.3"
     ```
 
-### Plan Specific Clusters
+### Plan-Specific Clusters
 _This feature is experimental and the syntax will likely change in the future_
 
 By default, Kibosh will create all deployments in the same cluster. It's also possible for each plan to 
@@ -119,17 +125,17 @@ users:
       token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
 ```
 
-#### Bind Templates
+### Bind Templates
 
 Developers and libraries often have specific assumptions around how the bind
 environment variable should be structured. For example,
 [Spring Cloud Connectors](https://cloud.spring.io/spring-cloud-connectors/) will
 automatically support a service if the 
-[right structures is present](https://cloud.spring.io/spring-cloud-connectors/spring-cloud-cloud-foundry-connector.html#_mysql).
+[right structure is present](https://cloud.spring.io/spring-cloud-connectors/spring-cloud-cloud-foundry-connector.html#_mysql).
 
 Chart authors can transform what the Kibosh broker returns by writing a
 [Jsonnet](https://jsonnet.org) template and putting it in the `bind.yaml` file
-in the root of the Chart. For example, the `bind.yaml` following will transform bind
+in the root of the Chart. For example, the `bind.yaml` following will transform the bind
 response into a readily consumable structure:
 
 ```yaml
@@ -149,14 +155,14 @@ The template is executed in an environment has top-level `services` and `secrets
 which are json marshalled versions of the services and secrets in the namespace
 generated for the service. 
 
-To test your bind template, use the template-tester binary from the [github release](https://github.com/cf-platform-eng/kibosh/releases/latest)
+To test your bind template, use the template-tester binary from the [github release.](https://github.com/cf-platform-eng/kibosh/releases/latest)
 It takes the namespace in which you have already deployed your helm chart and the file that has the Jsonnet template descrited above.
 
 ```bash
 template-tester mynamespaceid bind.yaml
 ```
 
-### Other Requirement
+### Other Requirements
 
 * When defining a `Service`, to expose this back to any applications that are bound,
   `type: LoadBalancer` is a current requirement.
@@ -198,7 +204,7 @@ See
 for example values.
 
 ## Dev
-#### Setup
+### Setup
 
 Install Go dependencies
 ```bash
@@ -209,11 +215,11 @@ go get -u github.com/golang/dep/cmd/dep
 go get -u github.com/gosuri/uitable
 ```
 
-#### Run
+### Run
 Run `make bootstrap` from a clean checkout to setup initial dependencies. This will restore
 the locked dependency set specified by `Gopkg.toml` (we're no longer checking in `vendor`).
 
-##### For a remote K8s Cluster
+#### For a remote K8s Cluster
 Copy `local_dev.sh.template` to `local_dev.sh` (which is in `.gitignore`) and 
 configure the values (`cluster.certificate-authority-data`, `cluster.server`, and `user.token`)
 for a working cluster. Then run:
@@ -222,7 +228,7 @@ for a working cluster. Then run:
 ./local_dev.sh
 ```
 
-##### For minikube
+#### For minikube
 Make sure minikube is running:
 
 ```bash
@@ -235,7 +241,7 @@ Use `local_dev_minikube` to set up all the secrets and start kibosh:
 local_dev_minikube.sh
 ```
 
-##### Securing tiller
+### Securing tiller
 In production, tiller **should be secured**. It's probably good practice to use secure tiller
 in your local environment as well (at least some of the time) to catch issues.
 
@@ -248,7 +254,7 @@ helm ls --all --tls-verify --tls-ca-cert docs/tiller-ssl/ca.cert.pem --tls-cert 
 
 See [Helm's tiller_ssl.md](https://github.com/helm/helm/blob/master/docs/tiller_ssl.md) for more details. 
 
-#### Charts
+### Charts
 The Kibosh code loads charts from the `HELM_CHART_DIR`, which defaults to `charts`.
 This directory can either be a single chart (with all the changes described in the
 configuration, eg `plans.yaml` and `./plans`), or, directory where each
@@ -272,7 +278,7 @@ charts
 
 We have modified [some example charts](https://github.com/cf-platform-eng/kibosh-sample/tree/master/sample-charts) from stable helm repository.
  
-#### Test
+### Test
 ```bash
 make test
 ```
@@ -282,7 +288,7 @@ To generate the test-doubles, after any interface change run:
 make generate
 ```
 
-### CI
+## CI
 * https://concourse.cfplatformeng.com/teams/main/pipelines/kibosh
 
 The pipeline is backed by a cluster in the shared GKE account. The default admin
@@ -316,7 +322,7 @@ kubectl get secrets --namespace=kube-system | grep "kibosh-concourse-ci"
 kubectl get secret --namespace=kube-system kibosh-concourse-ci-token-pfnqs -o yaml
 ```
 
-#### Dependency vendoring
+### Dependency vendoring
 
 To add a dependency:
 ```bash

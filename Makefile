@@ -79,6 +79,5 @@ ifndef HAS_BINDATA
 endif
 	dep ensure -v
 
-all: fmt test build-kibosh build-loader build-bazaar build-bazaar-cli  build-template-tester
+all: fmt test build-kibosh build-loader build-bazaar build-bazaar-cli build-template-tester
 quick: fmt test build-kibosh-mac build-loader-mac build-template-tester-mac
-

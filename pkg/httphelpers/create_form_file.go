@@ -17,16 +17,16 @@ package httphelpers
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"os"
-	"strings"
 )
 
-func CreateFormRequest(url string, fieldname string, filepath string) (*http.Request, error) {
-	body, boundary, err := CreateFormFile(fieldname, filepath)
+func CreateFormRequest(url string, fieldname string, filepaths []string) (*http.Request, error) {
+
+	body, boundary, err := CreateFormFile(fieldname, filepaths)
+
 	if err != nil {
 		return nil, err
 	}
@@ -36,39 +36,44 @@ func CreateFormRequest(url string, fieldname string, filepath string) (*http.Req
 		return nil, err
 	}
 
-	req.Header.Add("Content-Type", "multipart/form-data; boundary="+boundary)
+	req.Header.Add("Content-Type", boundary)
 
 	return req, nil
 
 }
 
-func CreateFormFile(fieldname string, path string) (io.Reader, string, error) {
-	chartFileInfo, err := os.Stat(path)
-	if err != nil {
-		return nil, "", err
-	}
+func CreateFormFile(fieldname string, paths []string) (io.Reader, string, error) {
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile(fieldname, chartFileInfo.Name())
-	if err != nil {
-		return nil, "", err
+
+	for _, path := range paths {
+
+		chartFileInfo, err := os.Stat(path)
+		if err != nil {
+			return nil, "", err
+		}
+
+		part, err := writer.CreateFormFile(fieldname, chartFileInfo.Name())
+		if err != nil {
+			return nil, "", err
+		}
+
+		file, err := os.Open(path)
+		if err != nil {
+			return nil, "", err
+		}
+
+		_, err = io.CopyBuffer(part, file, make([]byte, 4096))
+		if err != nil {
+			return nil, "", err
+		}
+
 	}
 
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, "", err
-	}
+	//boundary := writer.Boundary()
+	//_, err := io.Copy(part, strings.NewReader(fmt.Sprintf("\r\n--%s--\r\n", boundary)))
+	writer.Close()
 
-	_, err = io.CopyBuffer(part, file, make([]byte, 4096))
-	if err != nil {
-		return nil, "", err
-	}
-	boundary := writer.Boundary()
-	_, err = io.Copy(part, strings.NewReader(fmt.Sprintf("\r\n--%s--\r\n", boundary)))
-	if err != nil {
-		return nil, "", err
-	}
-
-	return body, boundary, nil
+	return body, writer.FormDataContentType(), nil
 }

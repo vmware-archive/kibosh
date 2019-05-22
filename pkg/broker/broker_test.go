@@ -353,9 +353,10 @@ var _ = Describe("Broker", func() {
 				Expect(err).To(BeNil())
 
 				Expect(fakeHelmClient.InstallChartCallCount()).To(Equal(1))
-				_, namespace, chart, plan, opts := fakeHelmClient.InstallChartArgsForCall(0)
+				_, namespace, releaseName, chart, plan, opts := fakeHelmClient.InstallChartArgsForCall(0)
 				Expect(chart).To(Equal(spacebearsChart))
 				Expect(namespace.Name).To(Equal("kibosh-my-instance-guid"))
+				Expect(releaseName).To(Equal("k-5h5kntfw"))
 				Expect(plan).To(Equal("small"))
 				Expect(opts).To(BeNil())
 			})
@@ -379,7 +380,7 @@ var _ = Describe("Broker", func() {
 				Expect(err).To(BeNil())
 
 				Expect(fakeHelmClient.InstallChartCallCount()).To(Equal(1))
-				_, _, chart, _, _ := fakeHelmClient.InstallChartArgsForCall(0)
+				_, _, _, chart, _, _ := fakeHelmClient.InstallChartArgsForCall(0)
 				Expect(chart).To(Equal(mysqlChart))
 			})
 
@@ -396,9 +397,10 @@ var _ = Describe("Broker", func() {
 				Expect(err).To(BeNil())
 
 				Expect(fakeHelmClient.InstallChartCallCount()).To(Equal(1))
-				_, namespace, chart, plan, opts := fakeHelmClient.InstallChartArgsForCall(0)
+				_, namespace, releaseName, chart, plan, opts := fakeHelmClient.InstallChartArgsForCall(0)
 				Expect(chart).To(Equal(spacebearsChart))
 				Expect(namespace.Name).To(Equal("kibosh-my-instance-guid"))
+				Expect(releaseName).To(Equal("k-5h5kntfw"))
 				Expect(plan).To(Equal("small"))
 				Expect(strings.TrimSpace(string(opts))).To(Equal("foo: bar"))
 			})
@@ -434,7 +436,6 @@ var _ = Describe("Broker", func() {
 				Items: []api_v1.Pod{},
 			}
 			fakeCluster.ListPodsReturns(&podList, nil)
-
 		})
 
 		It("elevates error from helm", func() {
@@ -462,6 +463,9 @@ var _ = Describe("Broker", func() {
 			Expect(resp.Description).To(ContainSubstring("succeeded"))
 			Expect(resp.State).To(Equal(brokerapi.Succeeded))
 			Expect(fakeClusterFactory.DefaultClusterCallCount()).Should(Equal(1))
+
+			releaseName, _ := fakeHelmClient.ReleaseStatusArgsForCall(0)
+			Expect(releaseName).To(Equal("k-5h5kntfw"))
 		})
 
 		It("returns pending install", func() {
@@ -954,7 +958,7 @@ var _ = Describe("Broker", func() {
 			Eventually(func() string {
 				releaseName, _ := fakeHelmClient.DeleteReleaseArgsForCall(0)
 				return releaseName
-			}).Should(Equal("kibosh-my-instance-guid"))
+			}).Should(Equal("k-5h5kntfw"))
 
 			Consistently(func() int {
 				return fakeClusterFactory.GetClusterCallCount()
@@ -1036,7 +1040,7 @@ var _ = Describe("Broker", func() {
 
 			resp, err := broker.Update(nil, "my-instance-guid", details, true)
 
-			chart, namespaceName, plan, opts := fakeHelmClient.UpdateChartArgsForCall(0)
+			chart, releaseName, plan, opts := fakeHelmClient.UpdateChartArgsForCall(0)
 
 			Expect(err).To(BeNil())
 			Expect(resp.IsAsync).To(BeTrue())
@@ -1044,7 +1048,7 @@ var _ = Describe("Broker", func() {
 			Expect(fakeHelmClient.UpdateChartCallCount()).To(Equal(1))
 
 			Expect(chart).To(Equal(spacebearsChart))
-			Expect(namespaceName).To(Equal("kibosh-my-instance-guid"))
+			Expect(releaseName).To(Equal("k-5h5kntfw"))
 			Expect(plan).To(Equal("my-plan-id"))
 			Expect(strings.TrimSpace(string(opts))).To(Equal("foo: bar"))
 			Expect(fakeClusterFactory.DefaultClusterCallCount()).ShouldNot(Equal(0))
