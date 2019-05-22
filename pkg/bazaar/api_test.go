@@ -297,5 +297,7 @@ func createRequestWithFile() (*http.Request, error) {
 		return nil, err
 	}
 
-	return httphelpers.CreateFormRequest("/foo", "chart", payload.Name())
+	payloads := []string{payload.Name()}
+
+	return httphelpers.CreateFormRequest("/foo", "chart", payloads)
 }
