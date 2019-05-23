@@ -634,10 +634,6 @@ jobs:
           gcloud auth activate-service-account --key-file serviceaccount.key
           gcloud beta container --project "pgtm-gwestenberg" clusters create $CLUSTER_NAME --zone "us-central1-a" --username "admin" --cluster-version "1.11.8-gke.6" --machine-type "n1-standard-1" --image-type "COS" --disk-type "pd-standard" --disk-size "100" --scopes "https://www.googleapis.com/auth/devstorage.read_only","https://www.googleapis.com/auth/logging.write","https://www.googleapis.com/auth/monitoring","https://www.googleapis.com/auth/servicecontrol","https://www.googleapis.com/auth/service.management.readonly","https://www.googleapis.com/auth/trace.append" --preemptible --num-nodes "1" --enable-cloud-logging --enable-cloud-monitoring --no-enable-ip-alias --network "projects/pgtm-gwestenberg/global/networks/default" --subnetwork "projects/pgtm-gwestenberg/regions/us-central1/subnetworks/default" --addons HorizontalPodAutoscaling,HttpLoadBalancing --no-enable-autoupgrade --enable-autorepair
 
-          # Do parsing of output here to make easier input to deploy job
-          # we need 3 things
-          # deployment_cluster_ca_cert, deployment_k8s_cluster_server, deployment_cluster_token
-          # we need to remove ^^^ from kibosh-ci-creds
           cat <<EOF | kubectl apply -f -
           ---
           apiVersion: v1

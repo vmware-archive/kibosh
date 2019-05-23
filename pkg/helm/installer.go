@@ -80,6 +80,9 @@ func (i *installer) Install() error {
 		}
 
 		tillerImage = fmt.Sprintf("%s/tiller:%s", i.config.RegistryConfig.Server, TillerTag)
+		if i.config.TillerSHA != "" {
+			tillerImage = fmt.Sprintf("%s@sha256:%s", tillerImage, i.config.TillerSHA)
+		}
 	}
 
 	var err error
@@ -131,13 +134,13 @@ func (i *installer) isNewerVersion(existingImage string, newImage string) bool {
 	if len(existingVersionSplit) < 2 {
 		return true
 	}
-	existingVersion := existingVersionSplit[1]
+	existingVersion := strings.Split(existingVersionSplit[1], "@")[0]
 
 	newVersionSplit := strings.Split(newImage, ":")
 	if len(newVersionSplit) < 2 {
 		return true
 	}
-	newVersion := newVersionSplit[1]
+	newVersion := strings.Split(newVersionSplit[1], "@")[0]
 
 	return semver.MustParse(newVersion).GreaterThan(semver.MustParse(existingVersion))
 }

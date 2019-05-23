@@ -11,6 +11,7 @@ export SECURITY_USER_NAME=<%= p("kibosh.username", "admin") %>
 export SECURITY_USER_PASSWORD=<%= p("kibosh.password") %>
 export PORT=<%= p("kibosh.port", "8080") %>
 export TILLER_NAMESPACE=kibosh
+export TILLER_IMAGE_SHA=<% p("kibosh.tiller_image_sha") %>
 export HELM_CHART_DIR=<%= p("kibosh.helm_chart_dir", "charts") %>
 <% if p("kibosh.operator_dir", "") != "" %>
 export OPERATOR_DIR=<%= p("kibosh.operator_dir") %>
