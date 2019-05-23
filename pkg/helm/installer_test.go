@@ -69,7 +69,6 @@ var _ = Describe("KubeConfig", func() {
 				},
 				HelmTLSConfig:   &config.HelmTLSConfig{},
 				TillerNamespace: "my-kibosh-namespace",
-				TillerSHA: "08336b922ae72d149af9f35357dffe0f659568b777ea9981753ff11dc9760b45",
 			}
 
 			installer = NewInstaller(conf, &cluster, &client, logger)
@@ -98,7 +97,6 @@ var _ = Describe("KubeConfig", func() {
 		})
 
 		It("should use private registry image for install when configured", func() {
-			conf.TillerSHA = ""
 			err := installer.Install()
 
 			Expect(err).To(BeNil())
@@ -111,7 +109,52 @@ var _ = Describe("KubeConfig", func() {
 			Expect(opts.ImageSpec).To(Equal("registry.example.com/tiller:" + helmVersion))
 		})
 
-		It("upgrade required", func() {
+		It("upgrade required with SHA", func() {
+			conf.TillerSHA = "08336b922ae72d149af9f35357dffe0f659568b777ea9981753ff11dc9760b45"
+			client.InstallReturns(api_errors.NewAlreadyExists(schema.GroupResource{}, ""))
+			cluster.GetDeploymentReturns(
+				&v1_beta1.Deployment{
+					Spec: v1_beta1.DeploymentSpec{
+						Template: v1.PodTemplateSpec{
+							Spec: v1.PodSpec{
+								Containers: []v1.Container{
+									{Image: "gcr.io/kubernetes-helm/tiller:" + helmVersion},
+								}},
+						},
+					},
+				}, nil,
+			)
+
+			err := installer.Install()
+
+			Expect(err).To(BeNil())
+			Expect(client.InstallCallCount()).To(Equal(1))
+			Expect(client.UpgradeCallCount()).To(Equal(0))
+		})
+
+		It("upgrade required without SHA", func() {
+			client.InstallReturns(api_errors.NewAlreadyExists(schema.GroupResource{}, ""))
+			cluster.GetDeploymentReturns(
+				&v1_beta1.Deployment{
+					Spec: v1_beta1.DeploymentSpec{
+						Template: v1.PodTemplateSpec{
+							Spec: v1.PodSpec{
+								Containers: []v1.Container{
+									{Image: "gcr.io/kubernetes-helm/tiller:" + helmVersion},
+								}},
+						},
+					},
+				}, nil,
+			)
+
+			err := installer.Install()
+
+			Expect(err).To(BeNil())
+			Expect(client.InstallCallCount()).To(Equal(1))
+			Expect(client.UpgradeCallCount()).To(Equal(0))
+		})
+
+		It("upgrade required without tag fails", func() {
 			client.InstallReturns(api_errors.NewAlreadyExists(schema.GroupResource{}, ""))
 			cluster.GetDeploymentReturns(
 				&v1_beta1.Deployment{
