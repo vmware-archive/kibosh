@@ -17,6 +17,7 @@ package repository
 
 import (
 	"net/http"
+	"reflect"
 
 	"github.com/cf-platform-eng/kibosh/pkg/cf"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
@@ -49,7 +50,9 @@ func NewAPI(r Repository, c cf.Client, conf *config.Config, l *logrus.Logger) AP
 
 func (api *api) ReloadCharts() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if api.cfClient != nil {
+		//    if api.cfClient != nil {
+		v := reflect.ValueOf(api.cfClient).IsNil()
+		if !v {
 			err := api.refreshCloudFoundry()
 			if err != nil {
 				w.WriteHeader(500)
