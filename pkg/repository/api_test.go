@@ -128,8 +128,12 @@ var _ = Describe("Api", func() {
 			Expect(err).To(BeNil())
 
 			recorder := httptest.NewRecorder()
+			/* Trying to achieve same workflow that main.go would have if no CF Creds were provided. So I'm not passing nil directly into the of NewAPI()..
+			   In this scenario it turns out the if check for nil whithin api.ReloadCharts() does not work as expected.... */
 
-			api = repository.NewAPI(&repo, nil, conf, logger)
+			var cfAPIClient *cfclient.Client
+			// api = repository.NewAPI(&repo, nil, conf, logger)
+			api = repository.NewAPI(&repo, cfAPIClient, conf, logger)
 
 			apiHandler := api.ReloadCharts()
 			apiHandler.ServeHTTP(recorder, req)
