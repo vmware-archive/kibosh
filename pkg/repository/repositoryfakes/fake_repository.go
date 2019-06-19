@@ -47,6 +47,9 @@ type FakeRepository struct {
 	invocationsMutex sync.RWMutex
 }
 
+func (fake *FakeRepository) FlushCache() {
+	return
+}
 func (fake *FakeRepository) DeleteChart(arg1 string) error {
 	fake.deleteChartMutex.Lock()
 	ret, specificReturn := fake.deleteChartReturnsOnCall[len(fake.deleteChartArgsForCall)]
