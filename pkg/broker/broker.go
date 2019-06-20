@@ -73,6 +73,11 @@ func NewPksServiceBroker(
 	return broker
 }
 
+func (broker *PksServiceBroker) FlushRepoChartCache() {
+	broker.repo.FlushCache()
+	broker.logger.Info("Requested Repo Chart Cache Flush")
+
+}
 func (broker *PksServiceBroker) GetChartsMap() (map[string]*my_helm.MyChart, error) {
 	chartsMap := map[string]*my_helm.MyChart{}
 	charts, err := broker.repo.GetCharts()
