@@ -18,9 +18,9 @@ package broker_test
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	. "github.com/cf-platform-eng/kibosh/pkg/broker"
 	my_config "github.com/cf-platform-eng/kibosh/pkg/config"
+	"github.com/cf-platform-eng/kibosh/pkg/credstore/credstorefakes"
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/helm/helmfakes"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
@@ -61,6 +61,7 @@ var _ = Describe("Broker", func() {
 	var fakeInstaller helmfakes.FakeInstaller
 	var fakeInstallerFactory my_helm.InstallerFactory
 	var fakeRepo *repositoryfakes.FakeRepository
+	var fakeCredStore *credstorefakes.FakeCredStore
 
 	mysqlServiceID := uuid.NewSHA1(uuid.NameSpace_OID, []byte("mysql")).String()
 
@@ -144,11 +145,12 @@ var _ = Describe("Broker", func() {
 		}
 		fakeRepo = &repositoryfakes.FakeRepository{}
 		fakeRepo.GetChartsReturns(charts, nil)
+		fakeCredStore = &credstorefakes.FakeCredStore{}
 	})
 
 	Context("catalog", func() {
 		It("Provides a catalog with correct service", func() {
-			serviceBroker := NewPksServiceBroker(config, nil, nil, nil, nil, fakeRepo, nil, logger)
+			serviceBroker := NewPksServiceBroker(config, nil, nil, nil, nil, fakeRepo, nil, nil, logger)
 			serviceCatalog, err := serviceBroker.Services(nil)
 			Expect(err).To(BeNil())
 
@@ -176,7 +178,7 @@ var _ = Describe("Broker", func() {
 		})
 
 		It("Provides a catalog with correct plans", func() {
-			serviceBroker := NewPksServiceBroker(config, nil, nil, nil, nil, fakeRepo, nil, logger)
+			serviceBroker := NewPksServiceBroker(config, nil, nil, nil, nil, fakeRepo, nil, nil, logger)
 			serviceCatalog, err := serviceBroker.Services(nil)
 			Expect(err).To(BeNil())
 
@@ -222,7 +224,7 @@ var _ = Describe("Broker", func() {
 		It("Returns error when problem with catalog", func() {
 			fakeRepo.GetChartsReturns(nil, errors.New("issue with catalog"))
 
-			serviceBroker := NewPksServiceBroker(config, nil, nil, nil, nil, fakeRepo, nil, logger)
+			serviceBroker := NewPksServiceBroker(config, nil, nil, nil, nil, fakeRepo, nil, nil, logger)
 			_, err := serviceBroker.Services(nil)
 			Expect(err).NotTo(BeNil())
 			Expect(err.Error()).To(ContainSubstring("issue with catalog"))
@@ -238,7 +240,7 @@ var _ = Describe("Broker", func() {
 				ServiceID: spacebearsServiceGUID,
 			}
 
-			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, logger)
+			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, nil, logger)
 			Expect(fakeClusterFactory.DefaultClusterCallCount()).To(Equal(0))
 			Expect(fakeClusterFactory.GetClusterCallCount()).To(Equal(0))
 
@@ -301,7 +303,7 @@ var _ = Describe("Broker", func() {
 					PlanID:    spacebearsServiceGUID + "-small",
 				}
 
-				broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, logger)
+				broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, nil, logger)
 			})
 
 			It("uses cluster configured in plan to build helm client", func() {
@@ -331,7 +333,7 @@ var _ = Describe("Broker", func() {
 		Context("registry secrets", func() {
 			It("doesn't mess with secrets when not configured", func() {
 				config = &my_config.Config{RegistryConfig: &my_config.RegistryConfig{}, HelmTLSConfig: &my_config.HelmTLSConfig{}}
-				broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, logger)
+				broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, nil, logger)
 
 				_, err := broker.Provision(nil, "my-instance-guid", details, true)
 
@@ -411,7 +413,7 @@ var _ = Describe("Broker", func() {
 		var broker *PksServiceBroker
 
 		BeforeEach(func() {
-			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, logger)
+			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, nil, logger)
 
 			serviceList := api_v1.ServiceList{
 				Items: []api_v1.Service{
@@ -731,7 +733,7 @@ var _ = Describe("Broker", func() {
 
 			fakeClusterFactory.GetClusterFromK8sConfigReturns(&fakeCluster, nil)
 
-			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, logger)
+			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, nil, logger)
 
 			details := brokerapi.PollDetails{
 				OperationData: "provision",
@@ -754,7 +756,7 @@ var _ = Describe("Broker", func() {
 		var broker *PksServiceBroker
 
 		BeforeEach(func() {
-			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, logger)
+			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, nil, logger)
 		})
 
 		It("bind returns cluster secrets", func() {
@@ -788,7 +790,7 @@ var _ = Describe("Broker", func() {
 
 			fakeClusterFactory.GetClusterFromK8sConfigReturns(&fakeCluster, nil)
 
-			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, logger)
+			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, nil, logger)
 
 			binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{
 				ServiceID: spacebearsServiceGUID,
@@ -837,6 +839,7 @@ var _ = Describe("Broker", func() {
 				credsJson, err := json.Marshal(creds.(map[string]interface{}))
 				Expect(string(credsJson)).To(Equal(`{"hostname":"127.0.0.1"}`))
 			})
+
 			It("fails when no keys found in bind", func() {
 				mysqlChart.BindTemplate = `{hostname: $.services[0].status.loadBalancer.ingress[0].ip}`
 				secretsAndServices := map[string]interface{}{
@@ -858,13 +861,12 @@ var _ = Describe("Broker", func() {
 				}, false)
 
 				Expect(fakeCluster.GetSecretsAndServicesCallCount()).To(Equal(1))
-				print(fmt.Sprintf("%+v", binding))
 
 				Expect(binding).NotTo(BeNil())
 				Expect(err).NotTo(BeNil())
 				Expect(err.Error()).To(ContainSubstring("RUNTIME ERROR"))
-
 			})
+
 			It("fails with invalid bind template", func() {
 				mysqlChart.BindTemplate = `{{{$$$$`
 
@@ -879,6 +881,68 @@ var _ = Describe("Broker", func() {
 				Expect(err).NotTo(BeNil())
 				Expect(err.Error()).To(ContainSubstring("parsing"))
 
+			})
+		})
+
+		Context("credstore", func() {
+			BeforeEach(func() {
+				broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, fakeCredStore, nil, logger)
+			})
+
+			It("bind returns reference to k8s secrets and services", func() {
+				fakeCluster.GetSecretsAndServicesReturns(map[string]interface{}{
+					"secrets":  "password",
+					"services": "myservice",
+				}, nil)
+
+				binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{ServiceID: mysqlServiceID}, false)
+
+				Expect(err).To(BeNil())
+				Expect(binding).NotTo(BeNil())
+
+				creds := binding.Credentials
+				secrets := creds.(map[string]interface{})["credhub-ref"]
+				Expect(secrets).To(Equal("/c/kibosh/mysql/my-binding-id/secrets-and-services"))
+
+				Expect(fakeCredStore.PutCallCount()).To(Equal(1))
+				credentialName, credentials := fakeCredStore.PutArgsForCall(0)
+				Expect(credentialName).To(Equal("/c/kibosh/mysql/my-binding-id/secrets-and-services"))
+				Expect(credentials).To(Equal(map[string]interface{}{
+					"secrets":  "password",
+					"services": "myservice",
+				}))
+			})
+
+			It("grants read permission to the app to the cred it created", func() {
+				fakeCluster.GetSecretsAndServicesReturns(map[string]interface{}{
+					"secrets":  "password",
+					"services": "myservice",
+				}, nil)
+
+				_, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{
+					ServiceID: mysqlServiceID,
+					AppGUID:   "my-app-id",
+				}, false)
+
+				Expect(err).To(BeNil())
+
+				Expect(fakeCredStore.AddPermissionCallCount()).To(Equal(1))
+				path, actor, ops := fakeCredStore.AddPermissionArgsForCall(0)
+				Expect(path).To(Equal("/c/kibosh/mysql/my-binding-id/secrets-and-services"))
+				Expect(actor).To(Equal("mtls-app:my-app-id"))
+				Expect(ops).To(Equal([]string{"read"}))
+			})
+
+			It("bind fails to store credential", func() {
+				fakeCluster.GetSecretsAndServicesReturns(map[string]interface{}{
+					"secrets":  "password",
+					"services": "myservice",
+				}, nil)
+				fakeCredStore.PutReturns(nil, errors.New("fail"))
+
+				_, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{ServiceID: mysqlServiceID}, false)
+				Expect(err).NotTo(BeNil())
+				Expect(err.Error()).To(ContainSubstring("fail"))
 			})
 		})
 
@@ -931,7 +995,7 @@ var _ = Describe("Broker", func() {
 		var broker *PksServiceBroker
 
 		BeforeEach(func() {
-			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, logger)
+			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, nil, logger)
 		})
 
 		It("correctly calls deletion", func() {
@@ -988,7 +1052,7 @@ var _ = Describe("Broker", func() {
 
 			fakeClusterFactory.GetClusterFromK8sConfigReturns(&fakeCluster, nil)
 
-			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, logger)
+			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, nil, logger)
 
 			_, err := broker.Deprovision(nil, "my-instance-guid", details, true)
 
@@ -1018,7 +1082,7 @@ var _ = Describe("Broker", func() {
 		var broker *PksServiceBroker
 
 		BeforeEach(func() {
-			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, logger)
+			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, nil, logger)
 		})
 
 		It("requires async", func() {
@@ -1075,7 +1139,7 @@ var _ = Describe("Broker", func() {
 
 			fakeClusterFactory.GetClusterFromK8sConfigReturns(&fakeCluster, nil)
 
-			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, logger)
+			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, nil, logger)
 
 			_, err := broker.Update(nil, "my-instance-guid", details, true)
 
@@ -1091,12 +1155,48 @@ var _ = Describe("Broker", func() {
 	Context("unbind", func() {
 		var broker *PksServiceBroker
 
-		It("does not support async", func() {
-			broker = NewPksServiceBroker(config, nil, nil, nil, fakeInstallerFactory, fakeRepo, nil, logger)
-			response, err := broker.Unbind(nil, "my-instance-id", "my-binding-id", brokerapi.UnbindDetails{}, false)
+		It("happy path without credhub", func() {
+			broker = NewPksServiceBroker(config, nil, nil, nil, fakeInstallerFactory, fakeRepo, nil, nil, logger)
+			response, err := broker.Unbind(nil, "my-instance-id", "my-binding-id", brokerapi.UnbindDetails{
+				ServiceID: mysqlServiceID,
+			}, false)
 
 			Expect(err).To(BeNil())
 			Expect(response.IsAsync).To(BeFalse())
+		})
+
+		It("cleanups credhub", func() {
+			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, fakeCredStore, nil, logger)
+
+			_, err := broker.Unbind(nil, "my-instance-id", "my-binding-id", brokerapi.UnbindDetails{
+				ServiceID: mysqlServiceID,
+			}, false)
+			Expect(err).To(BeNil())
+
+			Expect(fakeCredStore.DeletePermissionCallCount()).To(Equal(1))
+			credentialName := fakeCredStore.DeletePermissionArgsForCall(0)
+			Expect(credentialName).To(Equal("/c/kibosh/mysql/my-binding-id/secrets-and-services"))
+
+			Expect(fakeCredStore.DeleteCallCount()).To(Equal(1))
+			credentialName = fakeCredStore.DeleteArgsForCall(0)
+			Expect(credentialName).To(Equal("/c/kibosh/mysql/my-binding-id/secrets-and-services"))
+
+		})
+
+		It("surfaces error failing to cleanup", func() {
+			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, fakeCredStore, nil, logger)
+
+			fakeCredStore.DeleteReturns(errors.New("the tubes are down"))
+
+			_, err := broker.Unbind(nil, "my-instance-id", "my-binding-id", brokerapi.UnbindDetails{
+				ServiceID: mysqlServiceID,
+			}, false)
+
+			Expect(err).NotTo(BeNil())
+			Expect(err.Error()).To(ContainSubstring("tubes"))
+
+			Expect(fakeCredStore.DeleteCallCount()).To(Equal(1))
+
 		})
 	})
 })

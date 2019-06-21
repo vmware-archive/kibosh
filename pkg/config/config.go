@@ -57,6 +57,14 @@ type HelmTLSConfig struct {
 	HelmTLSCertFile   string `envconfig:"HELM_CERT_FILE"`
 }
 
+type CredStoreConfig struct {
+	CredHubURL        string `envconfig:"CH_CRED_HUB_URL"`
+	UaaURL            string `envconfig:"CH_UAA_URL"`
+	UaaClientName     string `envconfig:"CH_UAA_CLIENT_NAME"`
+	UaaClientSecret   string `envconfig:"CH_UAA_CLIENT_SECRET"`
+	SkipSSLValidation bool   `envconfig:"CH_SKIP_SSL_VALIDATION"`
+}
+
 type Config struct {
 	AdminUsername string `envconfig:"SECURITY_USER_NAME" required:"true"`
 	AdminPassword string `envconfig:"SECURITY_USER_PASSWORD" required:"true"`
@@ -71,6 +79,7 @@ type Config struct {
 	RegistryConfig     *RegistryConfig
 	CFClientConfig     *CFClientConfig
 	HelmTLSConfig      *HelmTLSConfig
+	CredStoreConfig    *CredStoreConfig
 }
 
 func (r RegistryConfig) HasRegistryConfig() bool {
@@ -83,6 +92,10 @@ func (c CFClientConfig) HasCFClientConfig() bool {
 
 func (t *HelmTLSConfig) HasTillerTLS() bool {
 	return t.TLSCaCertFile != ""
+}
+
+func (c *CredStoreConfig) HasCredHubConfig() bool {
+	return c.CredHubURL != ""
 }
 
 func (r RegistryConfig) GetDockerConfigJson() ([]byte, error) {
@@ -113,6 +126,7 @@ func EmptyConfig() *Config {
 		RegistryConfig:     &RegistryConfig{},
 		CFClientConfig:     &CFClientConfig{},
 		HelmTLSConfig:      &HelmTLSConfig{},
+		CredStoreConfig:    &CredStoreConfig{},
 	}
 }
 
