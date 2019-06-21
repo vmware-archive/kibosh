@@ -3,15 +3,17 @@ package credstore
 import (
 	"code.cloudfoundry.org/credhub-cli/credhub"
 	"code.cloudfoundry.org/credhub-cli/credhub/auth"
+	"code.cloudfoundry.org/credhub-cli/credhub/permissions"
 	"github.com/sirupsen/logrus"
 )
 
 //go:generate counterfeiter ./ CredStore
 type CredStore interface {
-	//store the key/value, return the configured placeholder block?
 	Put(key string, credentials interface{}) (interface{}, error)
 	Get(key string) (interface{}, error)
 	Delete(key string) error
+	AddPermission(path string, actor string, ops []string) (*permissions.Permission, error)
+	DeletePermission(path string) error
 }
 
 type credhubStore struct {
@@ -45,4 +47,29 @@ func (c *credhubStore) Get(key string) (interface{}, error) {
 
 func (c *credhubStore) Delete(key string) error {
 	return c.credHubClient.Delete(key)
+}
+
+func (c *credhubStore) AddPermission(path string, actor string, ops []string) (*permissions.Permission, error) {
+	return c.credHubClient.AddPermission(path, actor, ops)
+}
+
+func (c *credhubStore) DeletePermission(path string) error {
+	allPermissions, err := c.credHubClient.GetPermissions(path)
+	if err != nil {
+		return err
+	}
+
+	for _, permission := range allPermissions {
+		p, err := c.credHubClient.GetPermissionByPathActor(path, permission.Actor)
+		if err != nil {
+			return err
+		}
+		_, err = c.credHubClient.DeletePermission(p.UUID)
+		if err != nil {
+			return err
+		}
+
+	}
+
+	return err
 }

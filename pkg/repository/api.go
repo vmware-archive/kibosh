@@ -16,13 +16,12 @@
 package repository
 
 import (
-	"net/http"
-
 	"github.com/cf-platform-eng/kibosh/pkg/cf"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"net/http"
 	"strings"
 )
 

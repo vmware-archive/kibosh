@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
+	"github.com/cf-platform-eng/kibosh/pkg/credstore"
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
 	"github.com/cf-platform-eng/kibosh/pkg/repository"
@@ -38,10 +39,12 @@ import (
 )
 
 const registrySecretName = "registry-secret"
+const credhubClientIdentifier = "kibosh"
 
 type PksServiceBroker struct {
 	config    *config.Config
 	repo      repository.Repository
+	credstore credstore.CredStore
 	operators []*my_helm.MyChart
 
 	clusterFactory                 k8s.ClusterFactory
@@ -55,11 +58,12 @@ type PksServiceBroker struct {
 func NewPksServiceBroker(
 	config *config.Config, clusterFactory k8s.ClusterFactory, helmClientFactory my_helm.HelmClientFactory,
 	serviceAccountInstallerFactory k8s.ServiceAccountInstallerFactory, helmInstallerFactory my_helm.InstallerFactory,
-	repo repository.Repository, operators []*my_helm.MyChart, logger *logrus.Logger,
+	repo repository.Repository, cs credstore.CredStore, operators []*my_helm.MyChart, logger *logrus.Logger,
 ) *PksServiceBroker {
 	broker := &PksServiceBroker{
 		config:    config,
 		repo:      repo,
+		credstore: cs,
 		operators: operators,
 
 		clusterFactory:                 clusterFactory,
@@ -261,15 +265,32 @@ func (broker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID 
 		return brokerapi.Binding{}, err
 	}
 
-	_, ok := chartsMap[serviceID]
+	chart, ok := chartsMap[serviceID]
 	if !ok {
 		return brokerapi.Binding{}, errors.New(fmt.Sprintf("service %s not found ", serviceID))
 	}
 
-	template := chartsMap[serviceID].BindTemplate
+	template := chart.BindTemplate
 	credentials, err := broker.getCredentials(cluster, instanceID, template)
 	if err != nil {
 		return brokerapi.Binding{}, err
+	}
+
+	if broker.credstore != nil {
+		credentialName := broker.getCredentialName(broker.getServiceName(chart), bindingID)
+
+		_, err := broker.credstore.Put(credentialName, credentials)
+		if err != nil {
+			return brokerapi.Binding{}, err
+		}
+		credentials = map[string]interface{}{
+			"credhub-ref": credentialName,
+		}
+
+		_, err = broker.credstore.AddPermission(credentialName, "mtls-app:"+details.AppGUID, []string{"read"})
+		if err != nil {
+			return brokerapi.Binding{}, err
+		}
 	}
 
 	return brokerapi.Binding{
@@ -331,6 +352,30 @@ func (broker *PksServiceBroker) GetBinding(ctx context.Context, instanceID, bind
 }
 
 func (broker *PksServiceBroker) Unbind(ctx context.Context, instanceID, bindingID string, details brokerapi.UnbindDetails, asyncAllowed bool) (brokerapi.UnbindSpec, error) {
+	chartsMap, err := broker.GetChartsMap()
+	if err != nil {
+		return brokerapi.UnbindSpec{}, err
+	}
+
+	chart, ok := chartsMap[details.ServiceID]
+	if !ok {
+		return brokerapi.UnbindSpec{}, errors.New(fmt.Sprintf("service %s not found ", details.ServiceID))
+	}
+
+	if broker.credstore != nil {
+		credentialName := broker.getCredentialName(broker.getServiceName(chart), bindingID)
+
+		err = broker.credstore.DeletePermission(credentialName)
+		if err != nil {
+			broker.logger.Error(fmt.Sprintf("fail to delete permissions on the key %s", credentialName), err)
+		}
+
+		err := broker.credstore.Delete(credentialName)
+		if err != nil {
+			return brokerapi.UnbindSpec{}, err
+		}
+	}
+
 	return brokerapi.UnbindSpec{
 		IsAsync: false,
 	}, nil
@@ -560,6 +605,10 @@ func (broker *PksServiceBroker) getServiceName(chart *my_helm.MyChart) string {
 
 func (broker *PksServiceBroker) getServiceID(chart *my_helm.MyChart) string {
 	return uuid.NewSHA1(uuid.NameSpace_OID, []byte(broker.getServiceName(chart))).String()
+}
+
+func (broker *PksServiceBroker) getCredentialName(serviceName, bindingID string) string {
+	return fmt.Sprintf("/c/%s/%s/%s/secrets-and-services", credhubClientIdentifier, serviceName, bindingID)
 }
 
 func (broker *PksServiceBroker) getRenderedTemplate(bindTemplate string, servicesAndSecrets map[string]interface{}) (string, error) {

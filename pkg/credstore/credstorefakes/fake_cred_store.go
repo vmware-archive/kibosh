@@ -4,10 +4,26 @@ package credstorefakes
 import (
 	"sync"
 
+	"code.cloudfoundry.org/credhub-cli/credhub/permissions"
 	"github.com/cf-platform-eng/kibosh/pkg/credstore"
 )
 
 type FakeCredStore struct {
+	AddPermissionStub        func(string, string, []string) (*permissions.Permission, error)
+	addPermissionMutex       sync.RWMutex
+	addPermissionArgsForCall []struct {
+		arg1 string
+		arg2 string
+		arg3 []string
+	}
+	addPermissionReturns struct {
+		result1 *permissions.Permission
+		result2 error
+	}
+	addPermissionReturnsOnCall map[int]struct {
+		result1 *permissions.Permission
+		result2 error
+	}
 	DeleteStub        func(string) error
 	deleteMutex       sync.RWMutex
 	deleteArgsForCall []struct {
@@ -17,6 +33,17 @@ type FakeCredStore struct {
 		result1 error
 	}
 	deleteReturnsOnCall map[int]struct {
+		result1 error
+	}
+	DeletePermissionStub        func(string) error
+	deletePermissionMutex       sync.RWMutex
+	deletePermissionArgsForCall []struct {
+		arg1 string
+	}
+	deletePermissionReturns struct {
+		result1 error
+	}
+	deletePermissionReturnsOnCall map[int]struct {
 		result1 error
 	}
 	GetStub        func(string) (interface{}, error)
@@ -48,6 +75,76 @@ type FakeCredStore struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeCredStore) AddPermission(arg1 string, arg2 string, arg3 []string) (*permissions.Permission, error) {
+	var arg3Copy []string
+	if arg3 != nil {
+		arg3Copy = make([]string, len(arg3))
+		copy(arg3Copy, arg3)
+	}
+	fake.addPermissionMutex.Lock()
+	ret, specificReturn := fake.addPermissionReturnsOnCall[len(fake.addPermissionArgsForCall)]
+	fake.addPermissionArgsForCall = append(fake.addPermissionArgsForCall, struct {
+		arg1 string
+		arg2 string
+		arg3 []string
+	}{arg1, arg2, arg3Copy})
+	fake.recordInvocation("AddPermission", []interface{}{arg1, arg2, arg3Copy})
+	fake.addPermissionMutex.Unlock()
+	if fake.AddPermissionStub != nil {
+		return fake.AddPermissionStub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.addPermissionReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeCredStore) AddPermissionCallCount() int {
+	fake.addPermissionMutex.RLock()
+	defer fake.addPermissionMutex.RUnlock()
+	return len(fake.addPermissionArgsForCall)
+}
+
+func (fake *FakeCredStore) AddPermissionCalls(stub func(string, string, []string) (*permissions.Permission, error)) {
+	fake.addPermissionMutex.Lock()
+	defer fake.addPermissionMutex.Unlock()
+	fake.AddPermissionStub = stub
+}
+
+func (fake *FakeCredStore) AddPermissionArgsForCall(i int) (string, string, []string) {
+	fake.addPermissionMutex.RLock()
+	defer fake.addPermissionMutex.RUnlock()
+	argsForCall := fake.addPermissionArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeCredStore) AddPermissionReturns(result1 *permissions.Permission, result2 error) {
+	fake.addPermissionMutex.Lock()
+	defer fake.addPermissionMutex.Unlock()
+	fake.AddPermissionStub = nil
+	fake.addPermissionReturns = struct {
+		result1 *permissions.Permission
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCredStore) AddPermissionReturnsOnCall(i int, result1 *permissions.Permission, result2 error) {
+	fake.addPermissionMutex.Lock()
+	defer fake.addPermissionMutex.Unlock()
+	fake.AddPermissionStub = nil
+	if fake.addPermissionReturnsOnCall == nil {
+		fake.addPermissionReturnsOnCall = make(map[int]struct {
+			result1 *permissions.Permission
+			result2 error
+		})
+	}
+	fake.addPermissionReturnsOnCall[i] = struct {
+		result1 *permissions.Permission
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeCredStore) Delete(arg1 string) error {
@@ -106,6 +203,66 @@ func (fake *FakeCredStore) DeleteReturnsOnCall(i int, result1 error) {
 		})
 	}
 	fake.deleteReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeCredStore) DeletePermission(arg1 string) error {
+	fake.deletePermissionMutex.Lock()
+	ret, specificReturn := fake.deletePermissionReturnsOnCall[len(fake.deletePermissionArgsForCall)]
+	fake.deletePermissionArgsForCall = append(fake.deletePermissionArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("DeletePermission", []interface{}{arg1})
+	fake.deletePermissionMutex.Unlock()
+	if fake.DeletePermissionStub != nil {
+		return fake.DeletePermissionStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.deletePermissionReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeCredStore) DeletePermissionCallCount() int {
+	fake.deletePermissionMutex.RLock()
+	defer fake.deletePermissionMutex.RUnlock()
+	return len(fake.deletePermissionArgsForCall)
+}
+
+func (fake *FakeCredStore) DeletePermissionCalls(stub func(string) error) {
+	fake.deletePermissionMutex.Lock()
+	defer fake.deletePermissionMutex.Unlock()
+	fake.DeletePermissionStub = stub
+}
+
+func (fake *FakeCredStore) DeletePermissionArgsForCall(i int) string {
+	fake.deletePermissionMutex.RLock()
+	defer fake.deletePermissionMutex.RUnlock()
+	argsForCall := fake.deletePermissionArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeCredStore) DeletePermissionReturns(result1 error) {
+	fake.deletePermissionMutex.Lock()
+	defer fake.deletePermissionMutex.Unlock()
+	fake.DeletePermissionStub = nil
+	fake.deletePermissionReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeCredStore) DeletePermissionReturnsOnCall(i int, result1 error) {
+	fake.deletePermissionMutex.Lock()
+	defer fake.deletePermissionMutex.Unlock()
+	fake.DeletePermissionStub = nil
+	if fake.deletePermissionReturnsOnCall == nil {
+		fake.deletePermissionReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.deletePermissionReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -240,8 +397,12 @@ func (fake *FakeCredStore) PutReturnsOnCall(i int, result1 interface{}, result2 
 func (fake *FakeCredStore) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.addPermissionMutex.RLock()
+	defer fake.addPermissionMutex.RUnlock()
 	fake.deleteMutex.RLock()
 	defer fake.deleteMutex.RUnlock()
+	fake.deletePermissionMutex.RLock()
+	defer fake.deletePermissionMutex.RUnlock()
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
 	fake.putMutex.RLock()
