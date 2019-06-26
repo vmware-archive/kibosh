@@ -47,7 +47,6 @@ var _ = Describe("Config", func() {
 		Expect(c.KiboshConfig.Server).To(Equal("mykibosh.com"))
 		Expect(c.KiboshConfig.User).To(Equal("kevin"))
 		Expect(c.KiboshConfig.Pass).To(Equal("monkey123"))
-
 	})
 
 })

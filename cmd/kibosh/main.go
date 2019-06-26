@@ -17,6 +17,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/cf-platform-eng/kibosh/pkg/credstore"
 	"net/http"
 	"os"
 
@@ -47,6 +48,18 @@ func main() {
 		kiboshLogger.Fatal("Unable to load charts", err)
 	}
 	kiboshLogger.Info(fmt.Sprintf("Brokering charts %s", charts))
+
+	var credStore credstore.CredStore
+	if conf.CredStoreConfig.HasCredHubConfig() {
+		credStore, err = credstore.NewCredhubStore(
+			conf.CredStoreConfig.CredHubURL, conf.CredStoreConfig.UaaURL,
+			conf.CredStoreConfig.UaaClientName, conf.CredStoreConfig.UaaClientSecret,
+			conf.CredStoreConfig.SkipSSLValidation, kiboshLogger,
+		)
+		if err != nil {
+			kiboshLogger.Fatal("Unable to create credhub client", err)
+		}
+	}
 
 	var cfAPIClient *cfclient.Client
 	if conf.CFClientConfig.HasCFClientConfig() {
@@ -80,7 +93,10 @@ func main() {
 		kiboshLogger.Fatal("Unable to prepare default cluster", err)
 	}
 
-	serviceBroker := broker.NewPksServiceBroker(conf, clusterFactory, helmClientFactory, serviceAccountInstallerFactory, helm.InstallerFactoryDefault, repo, operatorCharts, kiboshLogger)
+	serviceBroker := broker.NewPksServiceBroker(
+		conf, clusterFactory, helmClientFactory, serviceAccountInstallerFactory, helm.InstallerFactoryDefault,
+		repo, credStore, operatorCharts, kiboshLogger,
+	)
 	brokerCredentials := brokerapi.BrokerCredentials{
 		Username: conf.AdminUsername,
 		Password: conf.AdminPassword,
@@ -95,7 +111,12 @@ func main() {
 	repositoryAPI := repository.NewAPI(repo, cfAPIClient, conf, kiboshLogger)
 	authFilter := httphelpers.NewAuthFilter(conf.AdminUsername, conf.AdminPassword)
 	http.Handle("/reload_charts", authFilter.Filter(
-		repositoryAPI.ReloadCharts(),
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			serviceBroker.FlushRepoChartCache()
+			repositoryAPI.ReloadCharts()
+			kiboshLogger.Info("Reload Handler")
+
+		}),
 	))
 
 	kiboshLogger.Info(fmt.Sprintf("Listening on %v", conf.Port))
