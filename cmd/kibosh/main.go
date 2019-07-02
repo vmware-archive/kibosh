@@ -17,6 +17,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/cf-platform-eng/kibosh/pkg/cf"
 	"github.com/cf-platform-eng/kibosh/pkg/credstore"
 	"net/http"
 	"os"
@@ -61,7 +62,7 @@ func main() {
 		}
 	}
 
-	var cfAPIClient *cfclient.Client
+	var cfAPIClient cf.Client
 	if conf.CFClientConfig.HasCFClientConfig() {
 		cfAPIClient, err = cfclient.NewClient(&cfclient.Config{
 			ApiAddress:        conf.CFClientConfig.ApiAddress,
