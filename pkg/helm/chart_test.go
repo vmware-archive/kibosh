@@ -56,6 +56,7 @@ var _ = Describe("Broker", func() {
 
 		Expect(err).To(BeNil())
 		Expect(chart).NotTo(BeNil())
+		Expect(chart.ChartPath).To(Equal(chartPath))
 	})
 
 	It("should load chart with .yml extensions", func() {

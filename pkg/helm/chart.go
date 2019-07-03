@@ -44,6 +44,7 @@ type MyChart struct {
 	TransformedValues     []byte          `json:"transformedValues"`
 	BindTemplate          string          `json:"bindTemplate"`
 	Plans                 map[string]Plan `json:"plans"`
+	ChartPath             string          `json:"chartPath"`
 }
 
 type Bind struct {
@@ -148,6 +149,7 @@ func NewChart(chartPath string, privateRegistryServer string, log *logrus.Logger
 		}
 	}
 
+	myChart.ChartPath = chartPath
 	return myChart, nil
 }
 
