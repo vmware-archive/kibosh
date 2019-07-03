@@ -32,7 +32,7 @@ type Repository interface {
 	GetCharts() ([]*helm.MyChart, error)
 	SaveChart(path string) error
 	DeleteChart(name string) error
-	FlushCache()
+	ClearCache() error
 }
 
 type repository struct {
@@ -50,9 +50,10 @@ func NewRepository(chartPath string, privateRegistryServer string, logger *logru
 	}
 }
 
-func (r *repository) FlushCache() {
+func (r *repository) ClearCache() error {
 	r.chartsCache = nil
-	r.logger.Info("Flushed Cache for Broker Repository")
+	r.logger.Info("Cleared Cache for Broker Repository")
+	return nil
 }
 func (r *repository) GetCharts() ([]*helm.MyChart, error) {
 	if r.chartsCache == nil {

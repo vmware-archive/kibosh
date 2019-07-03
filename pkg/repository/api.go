@@ -43,11 +43,16 @@ func NewAPI(r Repository, c cf.Client, conf *config.Config, l *logrus.Logger) AP
 		conf:       conf,
 		logger:     l,
 	}
-
 }
 
 func (api *api) ReloadCharts() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		err := api.repository.ClearCache()
+		if err != nil {
+			w.WriteHeader(500)
+			w.Write([]byte(err.Error()))
+			return
+		}
 		if api.cfClient != nil {
 			err := api.refreshCloudFoundry()
 			if err != nil {

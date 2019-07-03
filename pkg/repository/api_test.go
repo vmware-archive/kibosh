@@ -34,14 +34,14 @@ import (
 var _ = Describe("Api", func() {
 	const spacebearsServiceGUID = "37b7acb6-6755-56fe-a17f-2307657023ef"
 
-	var repo repositoryfakes.FakeRepository
+	var fakeRepo repositoryfakes.FakeRepository
 	var cfClient cffakes.FakeClient
 	var conf *config.Config
 	var logger *logrus.Logger
 	var api repository.API
 
 	BeforeEach(func() {
-		repo = repositoryfakes.FakeRepository{}
+		fakeRepo = repositoryfakes.FakeRepository{}
 		cfClient = cffakes.FakeClient{}
 		conf = &config.Config{
 			AdminUsername: "bob_the_broker",
@@ -52,7 +52,21 @@ var _ = Describe("Api", func() {
 			},
 		}
 		logger = logrus.New()
-		api = repository.NewAPI(&repo, &cfClient, conf, logger)
+		api = repository.NewAPI(&fakeRepo, &cfClient, conf, logger)
+	})
+
+	It("clears cache", func() {
+		req, err := http.NewRequest("GET", "/reload_charts", nil)
+		Expect(err).To(BeNil())
+
+		recorder := httptest.NewRecorder()
+
+		apiHandler := api.ReloadCharts()
+		apiHandler.ServeHTTP(recorder, req)
+
+		Expect(recorder.Code).To(Equal(200))
+
+		Expect(fakeRepo.FlushCacheCallCount()).To(Equal(1))
 	})
 
 	Context("reload self in cf", func() {

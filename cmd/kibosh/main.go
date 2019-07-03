@@ -112,12 +112,7 @@ func main() {
 	repositoryAPI := repository.NewAPI(repo, cfAPIClient, conf, kiboshLogger)
 	authFilter := httphelpers.NewAuthFilter(conf.AdminUsername, conf.AdminPassword)
 	http.Handle("/reload_charts", authFilter.Filter(
-		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			serviceBroker.FlushRepoChartCache()
-			repositoryAPI.ReloadCharts()
-			kiboshLogger.Info("Reload Handler")
-
-		}),
+		repositoryAPI.ReloadCharts(),
 	))
 
 	kiboshLogger.Info(fmt.Sprintf("Listening on %v", conf.Port))

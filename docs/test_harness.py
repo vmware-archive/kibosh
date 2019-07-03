@@ -122,9 +122,22 @@ def de_provision_status():
         sys.exit(1)
 
 
-#catalog()
-#provision()
+def reload_charts():
+    url = host + "/reload_charts"
+    try:
+        print("Requesting url {}".format(url))
+        r = requests.get(url, auth=auth, headers=headers)
+        if r.status_code < 400:
+            print("Response status\n", r.status_code)
+    except requests.ConnectionError as e:
+        print(e, sys.stderr)
+        sys.exit(1)
+
+
+# catalog()
+# provision()
 # provision_status()
 # bind()
 # de_provision()
 de_provision_status()
+# reload_charts()
