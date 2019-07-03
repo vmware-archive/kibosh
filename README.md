@@ -162,6 +162,61 @@ It takes the namespace in which you have already deployed your helm chart and th
 template-tester mynamespaceid bind.yaml
 ```
 
+### CredHub Integration
+Kibosh can be configured to store binding credentials in [CredHub](https://docs.cloudfoundry.org/credhub/).
+
+The CF runtime CredHub does not expose an external url, so testing with CredHub can be done by
+* Running a proxy app on the platform
+* Pushing Kibosh as an app
+* Running Kibosh in a BOSH release
+
+To run a proxy, `cf push` the app located in [docs/credhub_proxy](docs/credhub_proxy). The proxy
+will then be available at `https://credhub-proxy.<cf apps domain>`. 
+
+Then add the following set of environment variables to configure the Kibosh process:
+```bash
+CH_CRED_HUB_URL: https://credhub-proxy.[apps-domain]
+CH_UAA_URL: https://uaa.[system-domain]
+CH_UAA_CLIENT_NAME: my-uaa-client
+CH_UAA_CLIENT_SECRET: my-uaa-secret
+CH_SKIP_SSL_VALIDATION: true
+```
+
+#### Setting up the Client
+Firstly, the client needs to created and given the correct scope via [uaac](https://github.com/cloudfoundry/cf-uaac)
+```bash
+uaac target uaa.[system-domain] --skip-ssl-validation
+uaac token client get admin
+
+uaac client add my-uaa-client \
+    --access_token_validity 1209600 \
+    --authorized_grant_types client_credentials,refresh_token \
+    -s my-uaa-secret \
+    --scope openid,oauth.approvals,credhub.read,credhub.write \
+    --authorities oauth.login,credhub.read,credhub.write
+```
+
+Secondly, get a token for the client "Credhub Admin Client Client Credentials" in Ops Manager.
+
+```bash
+uaac token client get credhub_admin_client
+# get the token by viewing the context
+uaac context
+```
+
+Finally, give our client access to modify creds in CredHub. This can be done via curl.
+```
+curl -k "https://credhub-proxy.[apps-domain]/api/v2/permissions" \
+  -X POST \
+  -d '{
+     "path": "/c/kibosh/*",
+     "actor": "uaa-client:my-uaa-client",
+     "operations": ["read", "write", "delete", "read_acl", "write_acl"]
+  }' \
+  -H "authorization: bearer [TOKEN]" \
+  -H 'content-type: application/json'
+```
+
 ### Other Requirements
 
 * When defining a `Service`, to expose this back to any applications that are bound,

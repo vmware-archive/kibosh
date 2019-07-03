@@ -26,7 +26,13 @@ export REG_PASS='{
   "type": "service_account",
   ...
 }'
-
 export REG_EMAIL='_json_key'
+
+# CH_* settings are optional, see the readme for how to configure
+# CH_CRED_HUB_URL: https://credhub.service.cf.internal:8844
+# CH_UAA_URL: https://uaa.service.cf.internal:8443
+# CH_UAA_CLIENT_NAME: uaa-client
+# CH_UAA_CLIENT_SECRET: pass
+# CH_SKIP_SSL_VALIDATION: true
 
 go run cmd/kibosh/main.go

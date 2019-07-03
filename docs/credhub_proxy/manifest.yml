@@ -1,0 +1,8 @@
+---
+applications:
+  - name: credhub-proxy
+    memory: 16M
+    instances: 1
+    buildpack: go_buildpack
+    env:
+      GOPACKAGENAME: main

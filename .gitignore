@@ -23,3 +23,5 @@ operators
 operators.bk
 local_dev.sh
 manifest.yml
+!docs/credhub_proxy/manifest.yml
+
