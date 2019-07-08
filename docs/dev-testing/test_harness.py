@@ -4,7 +4,7 @@ import sys
 
 host = "http://localhost:8090"
 username = "admin"
-password = "monkey123"
+password = "password"
 
 instance_id = "tuesday3"
 service_id = "c76ed0a4-9a04-5710-90c2-75e955697b08"
@@ -134,10 +134,10 @@ def reload_charts():
         sys.exit(1)
 
 
-# catalog()
+catalog()
 # provision()
 # provision_status()
 # bind()
 # de_provision()
-de_provision_status()
+# de_provision_status()
 # reload_charts()
