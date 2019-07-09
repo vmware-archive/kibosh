@@ -1,17 +1,14 @@
 import datetime
 import json
-import os
-import subprocess
 import time
 import unittest
-import uuid
 
 import requests.auth
 
 from test_broker_base import TestBrokerBase
 
 
-class TestProvision(TestBrokerBase, unittest.TestCase):
+class TestProvision(TestBrokerBase):
     def test_provision(self):
         url = self.host + "/v2/service_instances/{}?accepts_incomplete=true".format(self.instance_id)
         r = requests.put(url, auth=self.auth, headers=self.headers, data=json.dumps({
@@ -23,7 +20,7 @@ class TestProvision(TestBrokerBase, unittest.TestCase):
         start_time = datetime.datetime.now()
         diff = datetime.timedelta(seconds=0)
         state = "in progress"
-        while state == "in progress" and diff < datetime.timedelta(minutes = 2):
+        while state == "in progress" and diff < datetime.timedelta(minutes=2):
             print("provisioning in progress, state: {}...".format(state))
             time.sleep(5)
             url = self.host + "/v2/service_instances/{}/last_operation?operation=provision&service_id={}&plan_id={}".format(
@@ -39,7 +36,7 @@ class TestProvision(TestBrokerBase, unittest.TestCase):
             now_time = datetime.datetime.now()
             diff = now_time - start_time
 
-        self.assertGreater(datetime.timedelta(minutes = 2), diff, "timed out while waiting for service to report success")
+        self.assertGreater(datetime.timedelta(minutes=2), diff, "timed out while waiting for service to report success")
         self.assertEqual("succeeded", state)
 
         cmd = "kubectl get namespace kibosh-{} -o json".format(self.instance_id)
@@ -54,14 +51,3 @@ class TestProvision(TestBrokerBase, unittest.TestCase):
         json_body = self.run_command(cmd)
         self.assertEqual(1, len(json_body["items"]))
         self.assertEqual(1, len(json_body["items"][0]["status"]["loadBalancer"]["ingress"]))
-
-    def run_command(self, cmd):
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-        out, err = p.communicate()
-        if p.returncode != 0:
-            print()
-            print(cmd)
-            print(out.decode("utf8"))
-            print(err.decode("utf8"))
-        self.assertEqual(0, p.returncode)
-        return json.loads(out)

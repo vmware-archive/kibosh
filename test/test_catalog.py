@@ -1,13 +1,11 @@
 import json
-import os
-import unittest
 
 import requests.auth
 
 from test_broker_base import TestBrokerBase
 
 
-class TestCatalog(TestBrokerBase, unittest.TestCase):
+class TestCatalog(TestBrokerBase):
     def test_catalog(self):
         url = self.host + "/v2/catalog"
         r = requests.get(url, auth=self.auth, headers=self.headers)

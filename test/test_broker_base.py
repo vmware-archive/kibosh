@@ -1,10 +1,14 @@
+import json
 import os
-import uuid
+import subprocess
+import unittest
 
 import requests.auth
 
 
-class TestBrokerBase():
+class TestBrokerBase(unittest.TestCase):
+    instance_id = ""
+
     @classmethod
     def setUpClass(self):
         os.environ['BROKER_HOST'] = str("http://localhost:8090")
@@ -20,6 +24,16 @@ class TestBrokerBase():
             "X-Broker-API-Version": "2.14",
         }
 
-        self.instance_id = uuid.uuid4()
         self.service_id = "c76ed0a4-9a04-5710-90c2-75e955697b08"
         self.plan_id = self.service_id + "-small"
+
+    def run_command(self, cmd):
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        out, err = p.communicate()
+        if p.returncode != 0:
+            print()
+            print(cmd)
+            print(out.decode("utf8"))
+            print(err.decode("utf8"))
+        self.assertEqual(0, p.returncode)
+        return json.loads(out)
