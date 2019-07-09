@@ -2,6 +2,24 @@
 
 
 [[projects]]
+  digest = "1:04e2b4854145ab14958a79c3cf24372fb5384fa48b2b811d23cebbdea0b857e3"
+  name = "code.cloudfoundry.org/credhub-cli"
+  packages = [
+    "credhub",
+    "credhub/auth",
+    "credhub/auth/uaa",
+    "credhub/credentials",
+    "credhub/credentials/generate",
+    "credhub/credentials/values",
+    "credhub/permissions",
+    "credhub/server",
+    "errors",
+  ]
+  pruneopts = "U"
+  revision = "f00bc2f38515c473238b854a99fc2aba8666d6d2"
+  version = "2.5.2"
+
+[[projects]]
   branch = "master"
   digest = "1:392413e18e90fa1c0f27ba87fa5da33a1da668ca90b4fdd0c6f585eae68bf53e"
   name = "code.cloudfoundry.org/gofileutils"
@@ -104,6 +122,22 @@
   packages = ["."]
   pruneopts = "U"
   revision = "f136f9222381e2fea5099f62e4b751dcb660ff82"
+
+[[projects]]
+  branch = "master"
+  digest = "1:b9aa4288038198d87f3e6eb7e844a8840766d8be27e69fd78f5d81bbba089018"
+  name = "github.com/cloudfoundry/go-socks5"
+  packages = ["."]
+  pruneopts = "U"
+  revision = "54f73bdb8a8e85a6611d3d29ab9bbf98c2a060d7"
+
+[[projects]]
+  digest = "1:01f361bdfca7d4f72e98c7ebf1b9cee420b5aab912f6e326c7d2f1825ee869dd"
+  name = "github.com/cloudfoundry/socks5-proxy"
+  packages = ["."]
+  pruneopts = "U"
+  revision = "633b6fe4c3d8d72a4e7397a948027db02a8e2a96"
+  version = "v0.2.0"
 
 [[projects]]
   digest = "1:a9854984bc40330dde2125537b7f46d0a8d7860b3750de2e7cd0a6f904506212"
@@ -349,6 +383,14 @@
   revision = "3befbb6ad0cc97d4c25d851e9528915809e1a22f"
 
 [[projects]]
+  digest = "1:2f0c811248aeb64978037b357178b1593372439146bda860cb16f2c80785ea93"
+  name = "github.com/hashicorp/go-version"
+  packages = ["."]
+  pruneopts = "U"
+  revision = "ac23dc3fea5d1a983c43f6a0f6e2c13f0195d8bd"
+  version = "v1.2.0"
+
+[[projects]]
   digest = "1:85f8f8d390a03287a563e215ea6bd0610c858042731a8b42062435a0dcbc485f"
   name = "github.com/hashicorp/golang-lru"
   packages = [
@@ -544,13 +586,18 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:955ee00b014ab95c59cd9b7c04ca7ede18c4e3232dbaf36654b225476b9579eb"
+  digest = "1:b831aed2ae6e881d7ce9353f097f53fd9fe9a92eab4ab374efdc52133788b07a"
   name = "golang.org/x/crypto"
   packages = [
+    "curve25519",
     "ed25519",
     "ed25519/internal/edwards25519",
+    "internal/chacha20",
+    "internal/subtle",
     "pbkdf2",
+    "poly1305",
     "scrypt",
+    "ssh",
     "ssh/terminal",
   ]
   pruneopts = "U"
@@ -558,7 +605,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:768c61e067a4bab053ef9ff623d866fe0fc02bcc7ef5c6b8cb6e7932893372af"
+  digest = "1:01f6971518645cf79088ae030617e2fcd1a30146706356a46e35540900052199"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -567,7 +614,9 @@
     "http2",
     "http2/hpack",
     "idna",
+    "internal/socks",
     "internal/timeseries",
+    "proxy",
     "trace",
   ]
   pruneopts = "U"
@@ -587,9 +636,10 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:8c2ae5455d4bfe5b88aae3b54dc04ca37c151ee0a511be40b99417d9b10b1d66"
+  digest = "1:7fb483856694fbbdcd1c4f2a5a6bbb052d1b082091066f68815937c6780365d2"
   name = "golang.org/x/sys"
   packages = [
+    "cpu",
     "unix",
     "windows",
   ]
@@ -1159,6 +1209,9 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "code.cloudfoundry.org/credhub-cli/credhub",
+    "code.cloudfoundry.org/credhub-cli/credhub/auth",
+    "code.cloudfoundry.org/credhub-cli/credhub/permissions",
     "code.cloudfoundry.org/lager",
     "github.com/Masterminds/semver",
     "github.com/cloudfoundry-community/go-cfclient",

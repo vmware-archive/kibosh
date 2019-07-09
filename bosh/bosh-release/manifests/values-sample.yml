@@ -1,3 +1,5 @@
+kibosh-password: password
+
 k8s-cluster-ca-cert: |
   -----BEGIN CERTIFICATE-----
   put certificate here
