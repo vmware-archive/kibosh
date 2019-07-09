@@ -14,7 +14,7 @@ releases:
 
 stemcells:
   - alias: ((stemcell))
-    os: ubuntu-trusty
+    os: ubuntu-xenial
     version: latest
 
 update:

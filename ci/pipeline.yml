@@ -596,7 +596,7 @@ jobs:
           mv spacebears-image/image source-repo/bosh/example-chart-bosh-release/images/spacebears.tgz
 
           pushd source-repo/bosh/example-chart-bosh-release
-          ./deploy.sh
+          ./deploy.sh # todo: change me to include the source dir and chart from example-charts
           popd
     on_failure: *slack_on_failure
 
