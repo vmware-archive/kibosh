@@ -1,5 +1,4 @@
 import datetime
-import json
 import time
 
 import requests.auth
@@ -9,12 +8,15 @@ from test_broker_base import TestBrokerBase
 
 class TestProvision(TestBrokerBase):
     def test_provision(self):
-        url = self.host + "/v2/service_instances/{}?accepts_incomplete=true".format(self.instance_id)
-        r = requests.put(url, auth=self.auth, headers=self.headers, data=json.dumps({
+        path = "/v2/service_instances/{}?accepts_incomplete=true".format(self.instance_id)
+        body = {
             "service_id": self.service_id,
             "plan_id": self.plan_id,
-        }))
-        self.assertEqual(202, r.status_code)
+        }
+
+        create_response = self.call_broker(path, body, requests.put)
+        self.assertIn("operation", create_response)
+        self.assertEqual(create_response["operation"], "provision")
 
         start_time = datetime.datetime.now()
         diff = datetime.timedelta(seconds=0)
@@ -22,16 +24,11 @@ class TestProvision(TestBrokerBase):
         while state == "in progress" and diff < datetime.timedelta(minutes=2):
             print("provisioning in progress, state: {}...".format(state))
             time.sleep(5)
-            url = self.host + "/v2/service_instances/{}/last_operation?operation=provision&service_id={}&plan_id={}".format(
-                self.instance_id, self.service_id, self.plan_id
-            )
-            r = requests.get(url, auth=self.auth, headers=self.headers, data=json.dumps({
-                "service_id": self.service_id,
-                "plan_id": self.plan_id,
-            }))
-            self.assertEqual(200, r.status_code)
-            json_body = json.loads(r.content.decode())
-            state = json_body["state"]
+            path = "/v2/service_instances/{}/last_operation?operation=provision&service_id={}&plan_id={}".format(
+                self.instance_id, self.service_id, self.plan_id)
+            create_status = self.call_broker(path, {}, requests.get)
+
+            state = create_status["state"]
             now_time = datetime.datetime.now()
             diff = now_time - start_time
 
@@ -42,11 +39,10 @@ class TestProvision(TestBrokerBase):
         self.run_command(cmd)
 
         cmd = "kubectl get pods --namespace kibosh-{} -o json".format(self.instance_id)
-        json_body = self.run_command(cmd)
-        self.assertEqual(1, len(json_body["items"]))
-        print(json_body["items"][0]["status"]["conditions"])
+        get_pods_json = self.run_command(cmd)
+        self.assertEqual(1, len(get_pods_json["items"]))
 
         cmd = "kubectl get services --namespace kibosh-{} -o json".format(self.instance_id)
-        json_body = self.run_command(cmd)
-        self.assertEqual(1, len(json_body["items"]))
-        self.assertEqual(1, len(json_body["items"][0]["status"]["loadBalancer"]["ingress"]))
+        get_service_json = self.run_command(cmd)
+        self.assertEqual(1, len(get_service_json["items"]))
+        self.assertEqual(1, len(get_service_json["items"][0]["status"]["loadBalancer"]["ingress"]))

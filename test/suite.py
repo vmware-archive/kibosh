@@ -1,3 +1,5 @@
+import unittest
+
 from test_bind import *
 from test_catalog import *
 from test_provision import *
@@ -6,8 +8,8 @@ from test_provision import *
 def suite():
     s = unittest.TestSuite()
 
-    # instance_id = uuid.uuid4()
-    instance_id = "e58a07eb-4d34-4ac7-aa82-d186479a7780"
+    instance_id = uuid.uuid4()
+    # instance_id = "41ef848a-3486-4316-8912-1fbc290510f9"
 
     TestCatalog.instance_id = instance_id
     s.addTest(TestCatalog('test_catalog'))
@@ -17,11 +19,13 @@ def suite():
         test_provision.instance_id = instance_id
         s.addTest(test_provision)
 
-    TestBind.instance_id = instance_id
+    TestBindUnbind.instance_id = instance_id
+    # todo: manually adding test **will** bite us. Evaulate more.
     s.addTests([
-        TestBind('test_bind_response_credentials'),
-        TestBind('test_bind_template'),
-        TestBind('test_connection')
+        TestBindUnbind('test_bind_response_credentials'),
+        TestBindUnbind('test_bind_template'),
+        TestBindUnbind('test_connection'),
+        TestBindUnbind('test_unbind_response')
     ])
 
     return s

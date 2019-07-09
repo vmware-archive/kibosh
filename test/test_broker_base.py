@@ -38,9 +38,9 @@ class TestBrokerBase(unittest.TestCase):
         self.assertEqual(0, p.returncode)
         return json.loads(out)
 
-    def call_broker(self, path: str, body: dict):
+    def call_broker(self, path: str, body: dict, requests_method):
         url = self.host + path
-        r = requests.put(url, auth=self.auth, headers=self.headers, data=json.dumps(body))
+        r = requests_method(url, auth=self.auth, headers=self.headers, data=json.dumps(body))
         self.assertGreater(400, r.status_code)
 
         return json.loads(r.content.decode())

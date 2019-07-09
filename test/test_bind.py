@@ -1,11 +1,12 @@
 import uuid
 
 import mysql.connector
+import requests
 
 from test_broker_base import TestBrokerBase
 
 
-class TestBind(TestBrokerBase):
+class TestBindUnbind(TestBrokerBase):
     @classmethod
     def setUpClass(self):
         super().setUpClass()
@@ -16,7 +17,7 @@ class TestBind(TestBrokerBase):
         return self.call_broker(path, {
             "service_id": self.service_id,
             "plan_id": self.plan_id,
-        })
+        }, requests.put)
 
     def test_bind_response_credentials(self):
         json_body = self.call_bind()
@@ -47,3 +48,11 @@ class TestBind(TestBrokerBase):
             user=user, password=password, host=host, port=port
         )
         cnx.close()
+
+    def test_unbind_response(self):
+        path = "/v2/service_instances/{}/service_bindings/{}?service_id={}&plan_id={}".format(
+            self.instance_id, self.binding_id, self.service_id, self.plan_id,
+        )
+        delete_body = self.call_broker(path, {}, requests.delete)
+
+        self.assertEqual({}, delete_body)

@@ -7,11 +7,10 @@ from test_broker_base import TestBrokerBase
 
 class TestCatalog(TestBrokerBase):
     def test_catalog(self):
-        url = self.host + "/v2/catalog"
-        r = requests.get(url, auth=self.auth, headers=self.headers)
-        self.assertEqual(200, r.status_code)
-        json_body = json.loads(r.content.decode())
-        self.assertEqual(1, len(json_body["services"]))
-        self.assertEqual("c76ed0a4-9a04-5710-90c2-75e955697b08", json_body["services"][0]["id"])
-        self.assertEqual("mysql", json_body["services"][0]["name"])
-        self.assertEqual(2, len(json_body["services"][0]["plans"]))
+        path = "/v2/catalog"
+        catalog_json = self.call_broker(path, {}, requests.get)
+
+        self.assertEqual(1, len(catalog_json["services"]))
+        self.assertEqual("c76ed0a4-9a04-5710-90c2-75e955697b08", catalog_json["services"][0]["id"])
+        self.assertEqual("mysql", catalog_json["services"][0]["name"])
+        self.assertEqual(2, len(catalog_json["services"][0]["plans"]))
