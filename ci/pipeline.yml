@@ -19,7 +19,7 @@ resources:
 - name: source-repo
   type: git
   source:
-    branch: master
+    branch: integration-tests-166965960
     ignore_paths:
     - ci/*
     - README.md
@@ -230,7 +230,7 @@ slack_on_failure: &slack_on_failure
   params:
     icon_emoji: ":concourse-failed:"
     username: Concourse CI
-    channel: "#pe-kubism"
+    channel: "@ejohnson" #todo return back to channel
     text: "Kibosh has a CI failure, see https://hush-house.pivotal.io/teams/PE/pipelines/kibosh"
 
 jobs:
@@ -595,6 +595,7 @@ jobs:
           mkdir source-repo/bosh/example-chart-bosh-release/images
           mv spacebears-image/image source-repo/bosh/example-chart-bosh-release/images/spacebears.tgz
 
+          #todo this is wrong - pull kibosh-samples mysql and feed that in
           pushd source-repo/bosh/example-chart-bosh-release
           ./deploy.sh # todo: change me to include the source dir and chart from example-charts
           popd
@@ -753,6 +754,43 @@ jobs:
         args:
         - -exc
         - |
+          exit 1
+          pushd kibosh-bbl-pool/bbl-state
+          set +x
+          bbl print-env > /tmp/env.sh
+          source /tmp/env.sh
+          set -x
+          popd
+
+          pushd source-repo
+
+          yes | bosh -d kibosh run-errand loader
+          popd
+    on_failure: *slack_on_failure
+
+- name: integration-tests
+  plan:
+  - aggregate:
+    - get: kibosh-bbl-pool
+    - get: source-repo
+      passed: [push-image-errand]
+      trigger: true
+  - task: run-errand
+    image: cfplatformeng/kibosh-integration-image
+    config:
+      platform: linux
+      inputs:
+      - name: kibosh-bbl-pool
+      - name: source-repo
+      run:
+        path: bash
+        args:
+        - -exc
+        - |
+          # set environment variables from bosh release, vm's ip address...
+          # python execute test suite
+
+          exit 1
           pushd kibosh-bbl-pool/bbl-state
           set +x
           bbl print-env > /tmp/env.sh
