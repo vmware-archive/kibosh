@@ -1,7 +1,10 @@
+import os
+import sys
 import unittest
 
 from test_bind import *
 from test_catalog import *
+from test_deprovision import *
 from test_provision import *
 
 
@@ -9,18 +12,14 @@ def suite():
     s = unittest.TestSuite()
 
     instance_id = uuid.uuid4()
-    # instance_id = "41ef848a-3486-4316-8912-1fbc290510f9"
 
     TestCatalog.instance_id = instance_id
     s.addTest(TestCatalog('test_catalog'))
 
-    if False:
-        test_provision = TestProvision('test_provision')
-        test_provision.instance_id = instance_id
-        s.addTest(test_provision)
+    TestProvision.instance_id = instance_id
+    s.addTest(TestProvision('test_provision'))
 
     TestBindUnbind.instance_id = instance_id
-    # todo: manually adding test **will** bite us. Evaulate more.
     s.addTests([
         TestBindUnbind('test_bind_response_credentials'),
         TestBindUnbind('test_bind_template'),
@@ -28,9 +27,25 @@ def suite():
         TestBindUnbind('test_unbind_response')
     ])
 
+    TestDeprovision.instance_id = instance_id
+    s.addTest(TestDeprovision('test_deprovision'))
+
     return s
 
 
 if __name__ == '__main__':
-    runner = unittest.TextTestRunner()
-    runner.run(suite())
+    discovered_tests = unittest.defaultTestLoader.discover(os.path.dirname(os.path.abspath(__file__)))
+    discovered_tests.countTestCases()
+
+    s = suite()
+    runner = unittest.TextTestRunner(verbosity=2)
+    runner.run(s)
+
+    if s.countTestCases() != discovered_tests.countTestCases():
+        print(
+            "Number of test cases [{}] do not match discovered test cases [{}].".format(
+                s.countTestCases(), discovered_tests.countTestCases(),
+            ), file=sys.stderr
+        )
+        print("\tBe sure to add all tests explicitly to the suite in order", file=sys.stderr)
+        os.sys.exit(1)

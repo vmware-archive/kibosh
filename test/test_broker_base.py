@@ -11,18 +11,11 @@ class TestBrokerBase(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        os.environ['BROKER_HOST'] = str("http://localhost:8090")
-        os.environ['BROKER_USERNAME'] = str("admin")
-        os.environ['BROKER_PASSWORD'] = str("password")
-
-        self.host = os.environ['BROKER_HOST']
-        self.username = os.environ['BROKER_USERNAME']
-        self.password = os.environ['BROKER_PASSWORD']
+        self.host = os.getenv('BROKER_HOST', "http://localhost:8090")
+        self.username = os.getenv('BROKER_USERNAME', "admin")
+        self.password = os.getenv('BROKER_PASSWORD', "password")
 
         self.auth = requests.auth.HTTPBasicAuth(self.username, self.password)
-        self.headers = {
-            "X-Broker-API-Version": "2.14",
-        }
 
         self.service_id = "c76ed0a4-9a04-5710-90c2-75e955697b08"
         self.plan_id = self.service_id + "-small"
@@ -39,8 +32,12 @@ class TestBrokerBase(unittest.TestCase):
         return json.loads(out)
 
     def call_broker(self, path: str, body: dict, requests_method):
+        headers = {
+            "X-Broker-API-Version": "2.14",
+        }
+
         url = self.host + path
-        r = requests_method(url, auth=self.auth, headers=self.headers, data=json.dumps(body))
+        r = requests_method(url, auth=self.auth, headers=headers, data=json.dumps(body))
         self.assertGreater(400, r.status_code)
 
         return json.loads(r.content.decode())
