@@ -1,8 +1,6 @@
-import json
 import uuid
 
 import mysql.connector
-import requests
 
 from test_broker_base import TestBrokerBase
 
@@ -14,20 +12,15 @@ class TestBind(TestBrokerBase):
         self.binding_id = uuid.uuid4()
 
     def call_bind(self):
-        # TODO: HELPER FOR BROKER AUTH
-        url = self.host + "/v2/service_instances/{}/service_bindings/{}".format(self.instance_id, self.binding_id)
-        r = requests.put(url, auth=self.auth, headers=self.headers, data=json.dumps({
+        path = "/v2/service_instances/{}/service_bindings/{}".format(self.instance_id, self.binding_id)
+        return self.call_broker(path, {
             "service_id": self.service_id,
             "plan_id": self.plan_id,
-        }))
-        self.assertEqual(201, r.status_code)
-
-        return json.loads(r.content.decode())
+        })
 
     def test_bind_response_credentials(self):
         json_body = self.call_bind()
 
-        print(json.dumps(json_body, indent=2))
         self.assertIn("credentials", json_body)
 
     def test_bind_template(self):
@@ -53,5 +46,4 @@ class TestBind(TestBrokerBase):
         cnx = mysql.connector.connect(
             user=user, password=password, host=host, port=port
         )
-
         cnx.close()
