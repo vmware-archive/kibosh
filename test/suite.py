@@ -38,7 +38,7 @@ if __name__ == '__main__':
     discovered_tests.countTestCases()
 
     s = suite()
-    runner = unittest.TextTestRunner(verbosity=2)
+    runner = unittest.TextTestRunner(verbosity=2, failfast=True)
     runner.run(s)
 
     if s.countTestCases() != discovered_tests.countTestCases():

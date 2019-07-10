@@ -27,6 +27,16 @@ resources:
     username: cf-pe-bot
     password: {{github_token}}
 
+- name: kibosh-sample-repo
+  type: git
+  source:
+    branch: master
+    paths:
+    - sample-charts/mysql
+    uri: https://github.com/cf-platform-eng/kibosh-sample
+    username: cf-pe-bot
+    password: {{github_token}}
+
 - name: cluster-config
   type: gcs-resource
   source:
@@ -164,12 +174,10 @@ resources:
     tag_filter: v6.11
     uri: https://github.com/cloudfoundry/cf-deployment-concourse-tasks.git
 
-- name: lite-stemcell-fixed
+- name: lite-stemcell
   type: bosh-io-stemcell
   source:
-    name: bosh-google-kvm-ubuntu-trusty-go_agent
-    # 3586.18 (latest at time of this commit) is broken for gcp
-    version_family: '3586.16'
+    name: bosh-google-kvm-ubuntu-xenial-go_agent
 
 - name: kibosh-ci-state
   type: git
@@ -551,7 +559,7 @@ jobs:
   - aggregate:
     - put: kibosh-bbl-pool
       params: {acquire: true}
-    - get: lite-stemcell-fixed
+    - get: lite-stemcell
     - get: cf-deployment-concourse-tasks-docker
     - get: docker-bosh-release
     - get: cf-cli
@@ -563,23 +571,26 @@ jobs:
     - get: spacebears-image
       params:
         save: true
+    - get: kibosh-sample-repo
   - task: do-upload
     image: cf-deployment-concourse-tasks-docker
     config:
       platform: linux
       inputs:
       - name: kibosh-bbl-pool
-      - name: lite-stemcell-fixed
+      - name: lite-stemcell
       - name: docker-bosh-release
       - name: cf-cli
       - name: source-repo
       - name: kibosh-release
       - name: spacebears-image
+      - name: kibosh-sample-repo
       run:
         path: bash
         args:
         - -exc
         - |
+          export BUILD_DIR=$PWD
           pushd kibosh-bbl-pool/bbl-state
           set +x
           bbl print-env > /tmp/env.sh
@@ -589,7 +600,7 @@ jobs:
 
           bosh upload-release cf-cli/release.tgz
           bosh upload-release docker-bosh-release/docker-*.tgz
-          bosh upload-stemcell lite-stemcell-fixed/stemcell.tgz
+          bosh upload-stemcell lite-stemcell/stemcell.tgz
           bosh upload-release kibosh-release/kibosh-release*
 
           mkdir source-repo/bosh/example-chart-bosh-release/images
@@ -597,7 +608,7 @@ jobs:
 
           #todo this is wrong - pull kibosh-samples mysql and feed that in
           pushd source-repo/bosh/example-chart-bosh-release
-          ./deploy.sh # todo: change me to include the source dir and chart from example-charts
+          ./deploy.sh $BUILD_DIR/kibosh-sample-repo/sample-charts mysql
           popd
     on_failure: *slack_on_failure
 
@@ -718,7 +729,7 @@ jobs:
           pushd source-repo
 
           cat <<EOF > values.yml
-          stemcell: bosh-google-kvm-ubuntu-trusty-go_agent
+          stemcell: bosh-google-kvm-ubuntu-xenial-go_agent
           kibosh-password: {{deployment_broker_password}}
           k8s-cluster-ca-cert: $KUBE_SECRET
           k8s-cluster-server: $KUBE_SERVER
@@ -732,65 +743,72 @@ jobs:
           popd
     on_failure: *slack_on_failure
 
-- name: push-image-errand
-  plan:
-  - aggregate:
-    - get: kibosh-bbl-pool
-    - get: cf-deployment-concourse-tasks-docker
-    - get: source-repo
-      passed: [deploy]
-      trigger: true
-    - get: kibosh-release
-      passed: [deploy]
-  - task: run-errand
-    image: cf-deployment-concourse-tasks-docker
-    config:
-      platform: linux
-      inputs:
-      - name: kibosh-bbl-pool
-      - name: source-repo
-      run:
-        path: bash
-        args:
-        - -exc
-        - |
-          exit 1
-          pushd kibosh-bbl-pool/bbl-state
-          set +x
-          bbl print-env > /tmp/env.sh
-          source /tmp/env.sh
-          set -x
-          popd
-
-          pushd source-repo
-
-          yes | bosh -d kibosh run-errand loader
-          popd
-    on_failure: *slack_on_failure
+#- name: push-image-errand
+#  plan:
+#  - aggregate:
+#    - get: kibosh-bbl-pool
+#    - get: cf-deployment-concourse-tasks-docker
+#    - get: source-repo
+#      passed: [deploy]
+#      trigger: true
+#    - get: kibosh-release
+#      passed: [deploy]
+#  - task: run-errand
+#    image: cf-deployment-concourse-tasks-docker
+#    config:
+#      platform: linux
+#      inputs:
+#      - name: kibosh-bbl-pool
+#      - name: source-repo
+#      run:
+#        path: bash
+#        args:
+#        - -exc
+#        - |
+#          pushd kibosh-bbl-pool/bbl-state
+#          set +x
+#          bbl print-env > /tmp/env.sh
+#          source /tmp/env.sh
+#          set -x
+#          popd
+#
+#          pushd source-repo
+#
+#          yes | bosh -d kibosh run-errand loader
+#          popd
+#    on_failure: *slack_on_failure
 
 - name: integration-tests
   plan:
   - aggregate:
     - get: kibosh-bbl-pool
     - get: source-repo
-      passed: [push-image-errand]
+      passed: [deploy]
       trigger: true
-  - task: run-errand
-    image: cfplatformeng/kibosh-integration-image
+    - get: kibosh-release
+      passed: [deploy]
+    - get: cluster-config
+      passed: [deploy]
+  - task: do-integration-tests
     config:
       platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: cfplatformeng/kibosh-integration-image
+          tag: "latest"
+      params:
+        SERVICE_ACCOUNT: {{gcp_service_account_key}}
       inputs:
       - name: kibosh-bbl-pool
       - name: source-repo
+      - name: cluster-config
       run:
         path: bash
         args:
         - -exc
         - |
-          # set environment variables from bosh release, vm's ip address...
-          # python execute test suite
-
-          exit 1
+          source cluster-config/*.sh
           pushd kibosh-bbl-pool/bbl-state
           set +x
           bbl print-env > /tmp/env.sh
@@ -800,8 +818,22 @@ jobs:
 
           pushd source-repo
 
-          yes | bosh -d kibosh run-errand loader
-          popd
+          export VM_CID=$(bosh -d kibosh vms --json | jq .Tables[0].Rows[0].vm_cid -r)
+
+          echo $SERVICE_ACCOUNT > serviceaccount.key
+          gcloud auth activate-service-account --key-file serviceaccount.key
+
+          export PROJECT_ID=$(echo $SERVICE_ACCOUNT | jq .project_id -r)
+          export VM_IP=$(gcloud compute instances describe $VM_CID --zone us-central1-a --project $PROJECT_ID --format=json | jq .networkInterfaces[0].accessConfigs[0].natIP -r)
+          gcloud compute instances add-tags $VM_CID --tags="allow-http" --zone us-central1-a --project $PROJECT_ID
+          gcloud container clusters get-credentials $CLUSTER_NAME --zone us-central1-a --project $PROJECT_ID
+
+          export BROKER_USERNAME="admin"
+          export BROKER_PASSWORD={{deployment_broker_password}}
+          export BROKER_HOST="http://$VM_IP:8080"
+
+          pip3 install -r test/requirements.txt
+          python3 tests/suite.py
     on_failure: *slack_on_failure
 
 - name: publish-release
@@ -809,7 +841,7 @@ jobs:
   - aggregate:
     - get: source-repo
       trigger: true
-      passed: [push-image-errand]
+      passed: [integration-tests]
     - get: kibosh-linux
     - get: kibosh-darwin
     - get: bazaarcli-linux
@@ -817,7 +849,7 @@ jobs:
     - get: template-tester-linux
     - get: template-tester-mac
     - get: kibosh-release
-      passed: [push-image-errand]
+      passed: [integration-tests]
     - get: version
       passed: [build-boshrelease]
   - task: publish-release
@@ -870,9 +902,9 @@ jobs:
     - get: kibosh-bbl-pool
     - get: cf-deployment-concourse-tasks
     - get: kibosh-release
-      passed: [push-image-errand]
+      passed: [integration-tests]
     - get: source-repo
-      passed: [push-image-errand]
+      passed: [integration-tests]
       trigger: true
   - task: do-delete
     file: cf-deployment-concourse-tasks/bosh-delete-deployment/task.yml
@@ -887,7 +919,7 @@ jobs:
     - aggregate:
         - get: source-repo
           trigger: true
-          passed: [push-image-errand]
+          passed: [integration-tests]
         - get: cluster-config
           passed: [create-gke-cluster]
     - task: create-gke-cluster

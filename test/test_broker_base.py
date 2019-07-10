@@ -29,7 +29,7 @@ class TestBrokerBase(unittest.TestCase):
             print(out.decode("utf8"))
             print(err.decode("utf8"))
         self.assertEqual(0, p.returncode)
-        return json.loads(out)
+        return json.loads(out.decode("utf8"))
 
     def call_broker(self, path: str, body: dict, requests_method):
         headers = {
