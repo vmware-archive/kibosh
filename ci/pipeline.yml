@@ -604,8 +604,8 @@ jobs:
           bosh upload-stemcell lite-stemcell/stemcell.tgz
           bosh upload-release kibosh-release/kibosh-release*
 
-          mkdir source-repo/bosh/example-chart-bosh-release/images
-          mv mysql-image/image source-repo/bosh/example-chart-bosh-release/images/mysql.tgz
+          mkdir -p $BUILD_DIR/kibosh-sample-repo/sample-charts/images
+          mv mysql-image/image $BUILD_DIR/kibosh-sample-repo/sample-charts/images/mysql.tgz
 
           pushd source-repo/bosh/example-chart-bosh-release
           ./deploy.sh $BUILD_DIR/kibosh-sample-repo/sample-charts mysql
@@ -774,7 +774,7 @@ jobs:
 
           pushd source-repo
 
-          yes | bosh -d kibosh run-errand loader
+          yes | bosh -d kibosh run-errand loader --keep-alive
           popd
     on_failure: *slack_on_failure
 
@@ -835,6 +835,8 @@ jobs:
 
           pip3 install -r test/requirements.txt
           python3 tests/suite.py
+
+          exit 1
     on_failure: *slack_on_failure
 
 - name: publish-release

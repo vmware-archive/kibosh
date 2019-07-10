@@ -36,7 +36,7 @@ instance_groups:
     - name: docker
       release: docker
   properties:
-    chart_path: /var/vcap/packages/example-chart
+    chart_path: /var/vcap/packages/example-chart/mysql
     registry:
       server: ((registry-server))
       username: ((registry-user))
