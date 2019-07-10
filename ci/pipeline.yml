@@ -194,10 +194,11 @@ resources:
     pool: bbl
     private_key: {{github_state_repo_deploy_key}}
 
-- name: spacebears-image
+- name: mysql-image
   type: docker-image
   source:
-    repository: cfplatformeng/spacebears
+    repository: mysql
+    tag: 5.7
 
 - name: public-tiller-image
   type: docker-image
@@ -568,7 +569,7 @@ jobs:
       trigger: true
     - get: kibosh-release
       passed: [build-boshrelease]
-    - get: spacebears-image
+    - get: mysql-image
       params:
         save: true
     - get: kibosh-sample-repo
@@ -583,7 +584,7 @@ jobs:
       - name: cf-cli
       - name: source-repo
       - name: kibosh-release
-      - name: spacebears-image
+      - name: mysql-image
       - name: kibosh-sample-repo
       run:
         path: bash
@@ -604,9 +605,8 @@ jobs:
           bosh upload-release kibosh-release/kibosh-release*
 
           mkdir source-repo/bosh/example-chart-bosh-release/images
-          mv spacebears-image/image source-repo/bosh/example-chart-bosh-release/images/spacebears.tgz
+          mv mysql-image/image source-repo/bosh/example-chart-bosh-release/images/mysql.tgz
 
-          #todo this is wrong - pull kibosh-samples mysql and feed that in
           pushd source-repo/bosh/example-chart-bosh-release
           ./deploy.sh $BUILD_DIR/kibosh-sample-repo/sample-charts mysql
           popd
@@ -743,50 +743,50 @@ jobs:
           popd
     on_failure: *slack_on_failure
 
-#- name: push-image-errand
-#  plan:
-#  - aggregate:
-#    - get: kibosh-bbl-pool
-#    - get: cf-deployment-concourse-tasks-docker
-#    - get: source-repo
-#      passed: [deploy]
-#      trigger: true
-#    - get: kibosh-release
-#      passed: [deploy]
-#  - task: run-errand
-#    image: cf-deployment-concourse-tasks-docker
-#    config:
-#      platform: linux
-#      inputs:
-#      - name: kibosh-bbl-pool
-#      - name: source-repo
-#      run:
-#        path: bash
-#        args:
-#        - -exc
-#        - |
-#          pushd kibosh-bbl-pool/bbl-state
-#          set +x
-#          bbl print-env > /tmp/env.sh
-#          source /tmp/env.sh
-#          set -x
-#          popd
-#
-#          pushd source-repo
-#
-#          yes | bosh -d kibosh run-errand loader
-#          popd
-#    on_failure: *slack_on_failure
+- name: push-image-errand
+  plan:
+  - aggregate:
+    - get: kibosh-bbl-pool
+    - get: cf-deployment-concourse-tasks-docker
+    - get: source-repo
+      passed: [deploy]
+      trigger: true
+    - get: kibosh-release
+      passed: [deploy]
+  - task: run-errand
+    image: cf-deployment-concourse-tasks-docker
+    config:
+      platform: linux
+      inputs:
+      - name: kibosh-bbl-pool
+      - name: source-repo
+      run:
+        path: bash
+        args:
+        - -exc
+        - |
+          pushd kibosh-bbl-pool/bbl-state
+          set +x
+          bbl print-env > /tmp/env.sh
+          source /tmp/env.sh
+          set -x
+          popd
+
+          pushd source-repo
+
+          yes | bosh -d kibosh run-errand loader
+          popd
+    on_failure: *slack_on_failure
 
 - name: integration-tests
   plan:
   - aggregate:
     - get: kibosh-bbl-pool
     - get: source-repo
-      passed: [deploy]
+      passed: [push-image-errand]
       trigger: true
     - get: kibosh-release
-      passed: [deploy]
+      passed: [push-image-errand]
     - get: cluster-config
       passed: [deploy]
   - task: do-integration-tests
