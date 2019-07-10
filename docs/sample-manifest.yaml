@@ -1,0 +1,18 @@
+---
+applications:
+  - name: kibosh_broker
+    memory: 256M
+    instances: 1
+    buildpack: binary_buildpack
+    command: ./kibosh.linux
+    env:
+      SECURITY_USER_NAME:
+      SECURITY_USER_PASSWORD:
+      CA_DATA:
+      SERVER:
+      TOKEN:
+      CH_CRED_HUB_URL:
+      CH_UAA_URL:
+      CH_UAA_CLIENT_NAME:
+      CH_UAA_CLIENT_SECRET:
+      CH_SKIP_SSL_VALIDATION:

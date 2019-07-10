@@ -163,29 +163,26 @@ template-tester mynamespaceid bind.yaml
 ```
 
 ### CredHub Integration
-Kibosh can be configured to store binding credentials in [CredHub](https://docs.cloudfoundry.org/credhub/).
+*Note: In order to follow the steps for [Credhub](https://docs.cloudfoundry.org/credhub/) integration, you should have some familiarity with [UAA](https://docs.run.pivotal.io/concepts/architecture/uaa.html) and [UAAC](https://github.com/cloudfoundry/cf-uaac)*
 
-The CF runtime CredHub does not expose an external url, so testing with CredHub can be done by
-* Running a proxy app on the platform
-* Pushing Kibosh as an app
-* Running Kibosh in a BOSH release
+Kibosh can be configured to store binding credentials in [CredHub](https://docs.cloudfoundry.org/credhub/). 
+To do so, include the following environment variables in the Kibosh configuration.
 
-To run a proxy, `cf push` the app located in [docs/credhub_proxy](docs/credhub_proxy). The proxy
-will then be available at `https://credhub-proxy.<cf apps domain>`. 
-
-Then add the following set of environment variables to configure the Kibosh process:
-```bash
-CH_CRED_HUB_URL: https://credhub-proxy.[apps-domain]
-CH_UAA_URL: https://uaa.[system-domain]
-CH_UAA_CLIENT_NAME: my-uaa-client
-CH_UAA_CLIENT_SECRET: my-uaa-secret
+```
+CH_CRED_HUB_URL: https://[credhub-url]
+CH_UAA_URL: https://[credhub-uaa-url]
+CH_UAA_CLIENT_NAME: [my-uaa-client]
+CH_UAA_CLIENT_SECRET: [my-uaa-secret]
 CH_SKIP_SSL_VALIDATION: true
 ```
 
 #### Setting up the Client
-Firstly, the client needs to created and given the correct scope via [uaac](https://github.com/cloudfoundry/cf-uaac)
+Firstly, the Kibosh UAA client needs to created and given the correct scope in order to store credentials in Credhub. 
+Use the [uaac](https://github.com/cloudfoundry/cf-uaac) cli to do so. You must know the UAA URL and UAA admin client secret.
+
+If using the CF runtime credhub, the UAA URL is `uaa.[system-domain]`.
 ```bash
-uaac target uaa.[system-domain] --skip-ssl-validation
+uaac target https://[credhub-uaa-url] --skip-ssl-validation
 uaac token client get admin
 
 uaac client add my-uaa-client \
@@ -196,7 +193,8 @@ uaac client add my-uaa-client \
     --authorities oauth.login,credhub.read,credhub.write
 ```
 
-Secondly, get a token for the client "Credhub Admin Client Client Credentials" in Ops Manager.
+Secondly, you must get the token for the Credhub Admin client. You must know the Credhub admin client secret to do so. 
+If using PCF, you can find the Credhub admin client secret from "Credhub Admin Client Client Credentials" in Ops Manager.
 
 ```bash
 uaac token client get credhub_admin_client
@@ -204,18 +202,41 @@ uaac token client get credhub_admin_client
 uaac context
 ```
 
-Finally, give our client access to modify creds in CredHub. This can be done via curl.
+Finally, give our newly created client access to modify creds in CredHub. This can be done via curl.
 ```
-curl -k "https://credhub-proxy.[apps-domain]/api/v2/permissions" \
+curl -k "https://[credhub-url]/api/v2/permissions" \
   -X POST \
   -d '{
      "path": "/c/kibosh/*",
      "actor": "uaa-client:my-uaa-client",
      "operations": ["read", "write", "delete", "read_acl", "write_acl"]
   }' \
-  -H "authorization: bearer [TOKEN]" \
+  -H "authorization: bearer [CREDHUB-ADMIN-CLIENT-TOKEN]" \
   -H 'content-type: application/json'
 ```
+
+#### Testing with CF runtime Credhub
+
+The CF runtime CredHub does not expose an external url, so testing with CredHub can be done by
+* Running a proxy app on the platform to expose runtime Credhub url externally
+* Pushing Kibosh broker as an app OR Running Kibosh in a BOSH release
+
+To run a proxy, `cf push` the app located in [docs/credhub_proxy](docs/credhub_proxy). The proxy
+will then make credhub available at `https://credhub-proxy.<cf apps domain>`. 
+
+Then add the following set of environment variables to configure the Kibosh process:
+```bash
+CH_CRED_HUB_URL: https://credhub-proxy.[apps-domain]
+CH_UAA_URL: https://uaa.[system-domain]
+CH_UAA_CLIENT_NAME: my-uaa-client
+CH_UAA_CLIENT_SECRET: my-uaa-secret
+CH_SKIP_SSL_VALIDATION: true
+```
+
+To push the Kibosh broker as an app, use the [sample manifest](docs/sample-manifest.yaml) and run `cf push` from the Kibosh project root. 
+Then run `cf create-service-broker SERVICE_BROKER USERNAME PASSWORD URL` to register the broker with CF. 
+
+Once you provision and bind a service from Kibosh, running `cf env` agains the application should return a placeholder value to Credhub instead of the credentials in plain text. 
 
 ### Other Requirements
 
