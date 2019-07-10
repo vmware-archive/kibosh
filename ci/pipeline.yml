@@ -825,6 +825,7 @@ jobs:
 
           export PROJECT_ID=$(echo $SERVICE_ACCOUNT | jq .project_id -r)
           export VM_IP=$(gcloud compute instances describe $VM_CID --zone us-central1-a --project $PROJECT_ID --format=json | jq .networkInterfaces[0].accessConfigs[0].natIP -r)
+          echo "We are adding allow-http firewall tag to the bosh deployed vm, if the bbl environment is ever recreated, we need to manually recreate this firewall tag."
           gcloud compute instances add-tags $VM_CID --tags="allow-http" --zone us-central1-a --project $PROJECT_ID
           gcloud container clusters get-credentials $CLUSTER_NAME --zone us-central1-a --project $PROJECT_ID
 
