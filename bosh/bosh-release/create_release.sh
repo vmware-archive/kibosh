@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -e
+
 TMPDIR="tmp"
 mkdir -p $TMPDIR
 
@@ -37,7 +39,7 @@ if [ -f "${delete_all_and_deregister_path}" ]; then
     echo "delete_all_and_deregister.linux already exists, skipping download"
 else
     echo "delete_all_and_deregister.linux doesn't exists, downloading"
-    url=https://storage.googleapis.com/kibosh-public/delete_all_and_deregister.linux
+    url=https://storage.googleapis.com/kibosh-public/delete_all_and_deregister-v0.27.0.linux
     wget ${url} -O "${delete_all_and_deregister_path}"
 fi
 

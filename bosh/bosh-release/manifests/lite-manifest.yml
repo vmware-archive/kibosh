@@ -14,7 +14,7 @@ releases:
 
 stemcells:
   - alias: ((stemcell))
-    os: ubuntu-trusty
+    os: ubuntu-xenial
     version: latest
 
 update:
@@ -36,7 +36,7 @@ instance_groups:
     - name: docker
       release: docker
   properties:
-    chart_path: /var/vcap/packages/example-chart/example-chart
+    chart_path: /var/vcap/packages/example-chart/mysql
     registry:
       server: ((registry-server))
       username: ((registry-user))
@@ -80,7 +80,7 @@ instance_groups:
     kibosh:
       username: admin
       password: ((kibosh-password))
-      helm_chart_dir: /var/vcap/packages/example-chart/example-chart
+      helm_chart_dir: /var/vcap/packages/example-chart
       key_value_store_dir: /var/vcap/store/kibosh-key-value-store
       ca_data: ((k8s-cluster-ca-cert))
       server: ((k8s-cluster-server))

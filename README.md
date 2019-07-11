@@ -364,6 +364,8 @@ To generate the test-doubles, after any interface change run:
 make generate
 ```
 
+For manual testing, there is a [Python test harness](docs/dev-testing).
+
 ## CI
 * https://concourse.cfplatformeng.com/teams/main/pipelines/kibosh
 

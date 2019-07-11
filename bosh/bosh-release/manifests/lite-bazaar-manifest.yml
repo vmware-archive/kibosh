@@ -45,25 +45,6 @@ instance_groups:
   networks:
     - name: default
 
-
-- name: smoketest
-  instances: 1
-  azs: [z1]
-  lifecycle: errand
-  jobs:
-    - name: smoke-test
-      release: kibosh
-    - name: example-chart
-      release: example-chart
-    - name: docker
-      release: docker
-  properties:
-    chart_path: /var/vcap/packages/example-chart/example-chart
-  vm_type: default
-  stemcell: ((stemcell))
-  networks:
-    - name: default
-
 - name: kibosh_node
   instances: 1
   azs: [z1]

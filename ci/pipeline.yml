@@ -2,6 +2,7 @@
 vars:
 - &odb_version "v0.27.0"
 - &golang_version "1.12"
+- &mysql_integration_image_version "5.7.14"
 
 resource_types:
 - name: gcs-resource
@@ -24,6 +25,16 @@ resources:
     - ci/*
     - README.md
     uri: https://github.com/cf-platform-eng/kibosh
+    username: cf-pe-bot
+    password: {{github_token}}
+
+- name: kibosh-sample-repo
+  type: git
+  source:
+    branch: master
+    paths:
+    - sample-charts/mysql
+    uri: https://github.com/cf-platform-eng/kibosh-sample
     username: cf-pe-bot
     password: {{github_token}}
 
@@ -164,12 +175,10 @@ resources:
     tag_filter: v6.11
     uri: https://github.com/cloudfoundry/cf-deployment-concourse-tasks.git
 
-- name: lite-stemcell-fixed
+- name: lite-stemcell
   type: bosh-io-stemcell
   source:
-    name: bosh-google-kvm-ubuntu-trusty-go_agent
-    # 3586.18 (latest at time of this commit) is broken for gcp
-    version_family: '3586.16'
+    name: bosh-google-kvm-ubuntu-xenial-go_agent
 
 - name: kibosh-ci-state
   type: git
@@ -186,10 +195,11 @@ resources:
     pool: bbl
     private_key: {{github_state_repo_deploy_key}}
 
-- name: spacebears-image
+- name: mysql-image
   type: docker-image
   source:
-    repository: cfplatformeng/spacebears
+    repository: mysql
+    tag: *mysql_integration_image_version
 
 - name: public-tiller-image
   type: docker-image
@@ -551,7 +561,7 @@ jobs:
   - aggregate:
     - put: kibosh-bbl-pool
       params: {acquire: true}
-    - get: lite-stemcell-fixed
+    - get: lite-stemcell
     - get: cf-deployment-concourse-tasks-docker
     - get: docker-bosh-release
     - get: cf-cli
@@ -560,26 +570,35 @@ jobs:
       trigger: true
     - get: kibosh-release
       passed: [build-boshrelease]
-    - get: spacebears-image
+    - get: mysql-image
       params:
         save: true
+    - get: kibosh-sample-repo
   - task: do-upload
-    image: cf-deployment-concourse-tasks-docker
     config:
       platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: cfplatformeng/kibosh-integration-image
+          tag: "latest"
       inputs:
       - name: kibosh-bbl-pool
-      - name: lite-stemcell-fixed
+      - name: lite-stemcell
       - name: docker-bosh-release
       - name: cf-cli
       - name: source-repo
       - name: kibosh-release
-      - name: spacebears-image
+      - name: mysql-image
+      - name: kibosh-sample-repo
+      params:
+        IMAGE_DIR: mysql-image
       run:
         path: bash
         args:
         - -exc
         - |
+          export BUILD_DIR=$PWD
           pushd kibosh-bbl-pool/bbl-state
           set +x
           bbl print-env > /tmp/env.sh
@@ -589,14 +608,42 @@ jobs:
 
           bosh upload-release cf-cli/release.tgz
           bosh upload-release docker-bosh-release/docker-*.tgz
-          bosh upload-stemcell lite-stemcell-fixed/stemcell.tgz
+          bosh upload-stemcell lite-stemcell/stemcell.tgz
           bosh upload-release kibosh-release/kibosh-release*
 
-          mkdir source-repo/bosh/example-chart-bosh-release/images
-          mv spacebears-image/image source-repo/bosh/example-chart-bosh-release/images/spacebears.tgz
+          # see concourse bug https://github.com/concourse/docker-image-resource/issues/201
+          pushd ${IMAGE_DIR}
+          mkdir -p new-image out
+          pushd new-image
+          tar -xvf ../image
+          popd
+          cp new-image/manifest.json manifest.json.bk
+          echo '
+          import json
+          with open("repository") as repo_file:
+            repo = repo_file.read().strip()
+          with open("tag") as tag_file:
+            tag = tag_file.read().strip()
+          with open("new-image/manifest.json", "r+") as file:
+            manifest = json.load(file)
+            repo_tags = ["{}:{}".format(repo, tag)]
+            manifest[0]["RepoTags"] = repo_tags
+            new_manifest = json.dumps(manifest)
+            file.seek(0)
+            print("\n", new_manifest, "\n")
+            file.write(new_manifest)
+          ' > fix_manifest.py
+
+          python fix_manifest.py
+          export IMAGE_FILE_NAME=mysql-$(cat tag).tgz
+
+          mkdir -p $BUILD_DIR/kibosh-sample-repo/sample-charts/mysql/images
+          tar -cvf $BUILD_DIR/kibosh-sample-repo/sample-charts/mysql/images/${IMAGE_FILE_NAME} -C new-image $(ls new-image)
+          popd
 
           pushd source-repo/bosh/example-chart-bosh-release
-          ./deploy.sh
+          ./deploy.sh $BUILD_DIR/kibosh-sample-repo/sample-charts mysql
+
           popd
     on_failure: *slack_on_failure
 
@@ -717,7 +764,7 @@ jobs:
           pushd source-repo
 
           cat <<EOF > values.yml
-          stemcell: bosh-google-kvm-ubuntu-trusty-go_agent
+          stemcell: bosh-google-kvm-ubuntu-xenial-go_agent
           kibosh-password: {{deployment_broker_password}}
           k8s-cluster-ca-cert: $KUBE_SECRET
           k8s-cluster-server: $KUBE_SERVER
@@ -762,8 +809,67 @@ jobs:
 
           pushd source-repo
 
-          yes | bosh -d kibosh run-errand loader
+          yes | bosh -d kibosh run-errand loader --keep-alive
           popd
+    on_failure: *slack_on_failure
+
+- name: integration-tests
+  plan:
+  - aggregate:
+    - get: kibosh-bbl-pool
+    - get: source-repo
+      passed: [push-image-errand]
+      trigger: true
+    - get: kibosh-release
+      passed: [push-image-errand]
+    - get: cluster-config
+      passed: [deploy]
+  - task: do-integration-tests
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: cfplatformeng/kibosh-integration-image
+          tag: "latest"
+      params:
+        SERVICE_ACCOUNT: {{gcp_service_account_key}}
+      inputs:
+      - name: kibosh-bbl-pool
+      - name: source-repo
+      - name: cluster-config
+      run:
+        path: bash
+        args:
+        - -exc
+        - |
+          source cluster-config/*.sh
+          pushd kibosh-bbl-pool/bbl-state
+          set +x
+          bbl print-env > /tmp/env.sh
+          source /tmp/env.sh
+          set -x
+          popd
+
+          pushd source-repo
+
+          export VM_CID=$(bosh -d kibosh vms --json | jq .Tables[0].Rows[0].vm_cid -r)
+
+          echo $SERVICE_ACCOUNT > serviceaccount.key
+          gcloud auth activate-service-account --key-file serviceaccount.key
+
+          export PROJECT_ID=$(echo $SERVICE_ACCOUNT | jq .project_id -r)
+          export VM_IP=$(gcloud compute instances describe $VM_CID --zone us-central1-a --project $PROJECT_ID --format=json | jq .networkInterfaces[0].accessConfigs[0].natIP -r)
+          echo "We are adding allow-http firewall tag to the bosh deployed vm, if the bbl environment is ever recreated, we need to manually recreate this firewall tag."
+          gcloud compute instances add-tags $VM_CID --tags="allow-http" --zone us-central1-a --project $PROJECT_ID
+          gcloud container clusters get-credentials $CLUSTER_NAME --zone us-central1-a --project $PROJECT_ID
+
+          export BROKER_USERNAME="admin"
+          export BROKER_PASSWORD={{deployment_broker_password}}
+          export BROKER_HOST="http://$VM_IP:8080"
+
+          pip3 install -r test/requirements.txt
+          python3 test/suite.py
     on_failure: *slack_on_failure
 
 - name: publish-release
@@ -771,7 +877,7 @@ jobs:
   - aggregate:
     - get: source-repo
       trigger: true
-      passed: [push-image-errand]
+      passed: [integration-tests]
     - get: kibosh-linux
     - get: kibosh-darwin
     - get: bazaarcli-linux
@@ -779,7 +885,7 @@ jobs:
     - get: template-tester-linux
     - get: template-tester-mac
     - get: kibosh-release
-      passed: [push-image-errand]
+      passed: [integration-tests]
     - get: version
       passed: [build-boshrelease]
   - task: publish-release
@@ -832,9 +938,9 @@ jobs:
     - get: kibosh-bbl-pool
     - get: cf-deployment-concourse-tasks
     - get: kibosh-release
-      passed: [push-image-errand]
+      passed: [integration-tests]
     - get: source-repo
-      passed: [push-image-errand]
+      passed: [integration-tests]
       trigger: true
   - task: do-delete
     file: cf-deployment-concourse-tasks/bosh-delete-deployment/task.yml
@@ -849,7 +955,7 @@ jobs:
     - aggregate:
         - get: source-repo
           trigger: true
-          passed: [push-image-errand]
+          passed: [integration-tests]
         - get: cluster-config
           passed: [create-gke-cluster]
     - task: create-gke-cluster
