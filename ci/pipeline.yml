@@ -2,6 +2,7 @@
 vars:
 - &odb_version "v0.27.0"
 - &golang_version "1.12"
+- &mysql_integration_image_version "5.7.14"
 
 resource_types:
 - name: gcs-resource
@@ -198,7 +199,7 @@ resources:
   type: docker-image
   source:
     repository: mysql
-    tag: 5.7
+    tag: *mysql_integration_image_version
 
 - name: public-tiller-image
   type: docker-image
@@ -239,7 +240,7 @@ slack_on_failure: &slack_on_failure
   params:
     icon_emoji: ":concourse-failed:"
     username: Concourse CI
-    channel: "@ejohnson" #todo return back to channel
+    channel: "#pe-kubism"
     text: "Kibosh has a CI failure, see https://hush-house.pivotal.io/teams/PE/pipelines/kibosh"
 
 jobs:
@@ -574,9 +575,13 @@ jobs:
         save: true
     - get: kibosh-sample-repo
   - task: do-upload
-    image: cf-deployment-concourse-tasks-docker
     config:
       platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: cfplatformeng/kibosh-integration-image
+          tag: "latest"
       inputs:
       - name: kibosh-bbl-pool
       - name: lite-stemcell
@@ -586,6 +591,8 @@ jobs:
       - name: kibosh-release
       - name: mysql-image
       - name: kibosh-sample-repo
+      params:
+        IMAGE_DIR: mysql-image
       run:
         path: bash
         args:
@@ -604,11 +611,39 @@ jobs:
           bosh upload-stemcell lite-stemcell/stemcell.tgz
           bosh upload-release kibosh-release/kibosh-release*
 
-          mkdir -p $BUILD_DIR/kibosh-sample-repo/sample-charts/images
-          mv mysql-image/image $BUILD_DIR/kibosh-sample-repo/sample-charts/images/mysql.tgz
+          # see concourse bug https://github.com/concourse/docker-image-resource/issues/201
+          pushd ${IMAGE_DIR}
+          mkdir -p new-image out
+          pushd new-image
+          tar -xvf ../image
+          popd
+          cp new-image/manifest.json manifest.json.bk
+          echo '
+          import json
+          with open("repository") as repo_file:
+            repo = repo_file.read().strip()
+          with open("tag") as tag_file:
+            tag = tag_file.read().strip()
+          with open("new-image/manifest.json", "r+") as file:
+            manifest = json.load(file)
+            repo_tags = ["{}:{}".format(repo, tag)]
+            manifest[0]["RepoTags"] = repo_tags
+            new_manifest = json.dumps(manifest)
+            file.seek(0)
+            print("\n", new_manifest, "\n")
+            file.write(new_manifest)
+          ' > fix_manifest.py
+
+          python fix_manifest.py
+          export IMAGE_FILE_NAME=mysql-$(cat tag).tgz
+
+          mkdir -p $BUILD_DIR/kibosh-sample-repo/sample-charts/mysql/images
+          tar -cvf $BUILD_DIR/kibosh-sample-repo/sample-charts/mysql/images/${IMAGE_FILE_NAME} -C new-image $(ls new-image)
+          popd
 
           pushd source-repo/bosh/example-chart-bosh-release
           ./deploy.sh $BUILD_DIR/kibosh-sample-repo/sample-charts mysql
+
           popd
     on_failure: *slack_on_failure
 
@@ -834,9 +869,7 @@ jobs:
           export BROKER_HOST="http://$VM_IP:8080"
 
           pip3 install -r test/requirements.txt
-          python3 tests/suite.py
-
-          exit 1
+          python3 test/suite.py
     on_failure: *slack_on_failure
 
 - name: publish-release
