@@ -23,9 +23,18 @@ import (
 	"os"
 )
 
-func CreateFormRequest(url string, fieldname string, filepaths []string) (*http.Request, error) {
+type FlagValues struct {
+	Name  string
+	Value string
+}
 
-	body, boundary, err := CreateFormFile(fieldname, filepaths)
+func CreateFormRequest(url string, fieldname string, filepaths []string) (*http.Request, error) {
+	return CreateFormRequestFlags(url, fieldname, filepaths, []FlagValues{})
+}
+
+func CreateFormRequestFlags(url string, fieldname string, filepaths []string, flags []FlagValues) (*http.Request, error) {
+
+	body, boundary, err := CreateFormFile(fieldname, filepaths, flags)
 
 	if err != nil {
 		return nil, err
@@ -42,10 +51,18 @@ func CreateFormRequest(url string, fieldname string, filepaths []string) (*http.
 
 }
 
-func CreateFormFile(fieldname string, paths []string) (io.Reader, string, error) {
+func CreateFormFile(fieldname string, paths []string, flags []FlagValues) (io.Reader, string, error) {
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
+
+	for _, flag := range flags {
+		f, err := writer.CreateFormField(flag.Name)
+		if err != nil {
+			return nil, "", err
+		}
+		f.Write([]byte(flag.Value))
+	}
 
 	for _, path := range paths {
 
