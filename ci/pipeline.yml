@@ -20,7 +20,7 @@ resources:
 - name: source-repo
   type: git
   source:
-    branch: integration-tests-166965960
+    branch: master
     ignore_paths:
     - ci/*
     - README.md
