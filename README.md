@@ -163,7 +163,9 @@ template-tester mynamespaceid bind.yaml
 ```
 
 ### CredHub Integration
-*Note: In order to follow the steps for [Credhub](https://docs.cloudfoundry.org/credhub/) integration, you should have some familiarity with [UAA](https://docs.run.pivotal.io/concepts/architecture/uaa.html) and [UAAC](https://github.com/cloudfoundry/cf-uaac)*
+*Note: In order to follow the steps for [Credhub](https://docs.cloudfoundry.org/credhub/) integration, 
+you should have some familiarity with [UAA](https://docs.run.pivotal.io/concepts/architecture/uaa.html) 
+and [UAAC](https://github.com/cloudfoundry/cf-uaac)*
 
 Kibosh can be configured to store binding credentials in [CredHub](https://docs.cloudfoundry.org/credhub/). 
 To do so, include the following environment variables in the Kibosh configuration.
@@ -365,6 +367,15 @@ make generate
 ```
 
 For manual testing, there is a [Python test harness](docs/dev-testing).
+
+#### Integration Tests
+The integration testing suite is located in [test/suite.py](test/suite.py). The suite will
+sequentially run through the OSBAPI lifecycle and exit at the first failure (so as to leave things
+in a state for debugging). [test/broker_base.py](test/broker_base.py) processes environment
+variables to determine the broker to connect to, and defaults to https://localhost:80890.
+
+Prerequisites:
+* `kubectl` is available on the path and configured to talk to the same cluster that kibosh will provision to.
 
 ## CI
 * https://concourse.cfplatformeng.com/teams/main/pipelines/kibosh
