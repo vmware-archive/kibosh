@@ -372,10 +372,16 @@ For manual testing, there is a [Python test harness](docs/dev-testing).
 The integration testing suite is located in [test/suite.py](test/suite.py). The suite will
 sequentially run through the OSBAPI lifecycle and exit at the first failure (so as to leave things
 in a state for debugging). [test/broker_base.py](test/broker_base.py) processes environment
-variables to determine the broker to connect to, and defaults to https://localhost:80890.
+variables `$BROKER_HOST`, `$BROKER_USERNAME`, `$BROKER_PASSWORD` to determine the broker to connect to. 
+
 
 Prerequisites:
+* Install required python packages listed in [test/requirements.txt](test/requirements.txt)     
+    * i.e. `pip3 install -r test/requirements.txt`
+* Unpackaged (untarred) MySQL helm chart is in `/charts` directory at root of kibosh project
 * `kubectl` is available on the path and configured to talk to the same cluster that kibosh will provision to.
+
+Run with command: `python3 test/suite.py`
 
 ## CI
 * https://concourse.cfplatformeng.com/teams/main/pipelines/kibosh
