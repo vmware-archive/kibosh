@@ -20,9 +20,12 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"github.com/cf-platform-eng/kibosh/pkg/broker"
+	"github.com/pivotal-cf/brokerapi"
 	"io/ioutil"
 	"net"
 	"reflect"
+	"strings"
 
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
@@ -38,6 +41,7 @@ import (
 	"k8s.io/helm/pkg/kube"
 	"k8s.io/helm/pkg/proto/hapi/chart"
 	"k8s.io/helm/pkg/proto/hapi/release"
+	hapi_release "k8s.io/helm/pkg/proto/hapi/release"
 	rls "k8s.io/helm/pkg/proto/hapi/services"
 	"k8s.io/helm/pkg/timeconv"
 	"k8s.io/helm/pkg/tlsutil"
@@ -55,6 +59,7 @@ type myHelmClient struct {
 //go:generate counterfeiter ./ MyHelmClient
 type MyHelmClient interface {
 	helm.Interface
+	ReleaseReadiness(rlsName string)
 	Install(*helmstaller.Options) error
 	Upgrade(*helmstaller.Options) error
 	Uninstall(*helmstaller.Options) error
@@ -256,6 +261,48 @@ func (c myHelmClient) DeleteRelease(rlsName string, opts ...helm.DeleteOption) (
 	return client.DeleteRelease(rlsName, opts...)
 }
 
+func (c myHelmClient) ReleaseReadiness(rlsName string, instanceID string, cluster k8s.Cluster, opts ...helm.StatusOption) (*rls.GetReleaseStatusResponse, error) {
+	tunnel, client, err := c.open()
+	if err != nil {
+		return nil, err
+	}
+	defer tunnel.Close()
+
+	response, err := client.ReleaseStatus(rlsName, opts...)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if response.Info.Status.Code != hapi_release.Status_DEPLOYED {
+		return response, nil
+	}
+
+	servicesReady, err := c.servicesReady(instanceID, cluster)
+	if err != nil {
+		return nil, err
+	}
+	if !servicesReady {
+
+	}
+
+	message, podsReady, err := c.podsReady(instanceID, cluster)
+	if err != nil {
+		return brokerapi.LastOperation{}, err
+	}
+	if !podsReady {
+		return brokerapi.LastOperation{
+			State:       brokerapi.InProgress,
+			Description: message,
+		}, nil
+	}
+
+	return brokerapi.LastOperation{
+		State:       brokerStatus,
+		Description: description,
+	}, nil
+}
+
 func (c myHelmClient) ReleaseStatus(rlsName string, opts ...helm.StatusOption) (*rls.GetReleaseStatusResponse, error) {
 	tunnel, client, err := c.open()
 	if err != nil {
@@ -264,6 +311,59 @@ func (c myHelmClient) ReleaseStatus(rlsName string, opts ...helm.StatusOption) (
 	defer tunnel.Close()
 
 	return client.ReleaseStatus(rlsName, opts...)
+}
+
+func (c myHelmClient) servicesReady(instanceID string, cluster k8s.Cluster) (bool, error) {
+	services, err := cluster.ListServices(c.getNamespace(instanceID), meta_v1.ListOptions{})
+	if err != nil {
+		return false, err
+	}
+
+	servicesReady := true
+	for _, service := range services.Items {
+		if service.Spec.Type == "LoadBalancer" {
+			if len(service.Status.LoadBalancer.Ingress) < 1 {
+				servicesReady = false
+			}
+		}
+	}
+	return servicesReady, nil
+}
+
+func (c myHelmClient) podsReady(instanceID string, cluster k8s.Cluster) (string, bool, error) {
+	podList, err := cluster.ListPods(c.getNamespace(instanceID), meta_v1.ListOptions{})
+	if err != nil {
+		return "", false, err
+	}
+
+	podsReady := true
+	message := ""
+	for _, pod := range podList.Items {
+
+		if c.podIsJob(pod) {
+			if pod.Status.Phase != "Succeeded" {
+				podsReady = false
+				for _, condition := range pod.Status.Conditions {
+					if condition.Message != "" {
+						message = message + condition.Message + "\n"
+					}
+				}
+			}
+		} else {
+			if pod.Status.Phase != "Running" {
+				podsReady = false
+				for _, condition := range pod.Status.Conditions {
+					if condition.Message != "" {
+						message = message + condition.Message + "\n"
+					}
+				}
+			}
+		}
+	}
+
+	message = strings.TrimSpace(message)
+
+	return message, podsReady, nil
 }
 
 func (c myHelmClient) UpdateRelease(rlsName, chStr string, opts ...helm.UpdateOption) (*rls.UpdateReleaseResponse, error) {

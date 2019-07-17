@@ -532,59 +532,6 @@ func (broker *PksServiceBroker) LastOperation(ctx context.Context, instanceID st
 	}, nil
 }
 
-func (broker *PksServiceBroker) servicesReady(instanceID string, cluster k8s.Cluster) (bool, error) {
-	services, err := cluster.ListServices(broker.getNamespace(instanceID), meta_v1.ListOptions{})
-	if err != nil {
-		return false, err
-	}
-
-	servicesReady := true
-	for _, service := range services.Items {
-		if service.Spec.Type == "LoadBalancer" {
-			if len(service.Status.LoadBalancer.Ingress) < 1 {
-				servicesReady = false
-			}
-		}
-	}
-	return servicesReady, nil
-}
-
-func (broker *PksServiceBroker) podsReady(instanceID string, cluster k8s.Cluster) (string, bool, error) {
-	podList, err := cluster.ListPods(broker.getNamespace(instanceID), meta_v1.ListOptions{})
-	if err != nil {
-		return "", false, err
-	}
-
-	podsReady := true
-	message := ""
-	for _, pod := range podList.Items {
-
-		if broker.podIsJob(pod) {
-			if pod.Status.Phase != "Succeeded" {
-				podsReady = false
-				for _, condition := range pod.Status.Conditions {
-					if condition.Message != "" {
-						message = message + condition.Message + "\n"
-					}
-				}
-			}
-		} else {
-			if pod.Status.Phase != "Running" {
-				podsReady = false
-				for _, condition := range pod.Status.Conditions {
-					if condition.Message != "" {
-						message = message + condition.Message + "\n"
-					}
-				}
-			}
-		}
-	}
-
-	message = strings.TrimSpace(message)
-
-	return message, podsReady, nil
-}
-
 func (broker *PksServiceBroker) podIsJob(pod api_v1.Pod) bool {
 	for key := range pod.ObjectMeta.Labels {
 		if key == "job-name" {

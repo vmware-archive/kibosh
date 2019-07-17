@@ -696,7 +696,8 @@ var _ = Describe("Broker", func() {
 		})
 
 		It("bubbles up error on list service failure", func() {
-			fakeCluster.ListServicesReturns(&api_v1.ServiceList{}, errors.New("no services for you"))
+			errorMsg := "list services error"
+			fakeCluster.ListServicesReturns(&api_v1.ServiceList{}, errors.New(errorMsg))
 
 			fakeHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
 				Info: &hapi_release.Info{
@@ -708,7 +709,23 @@ var _ = Describe("Broker", func() {
 
 			_, err := broker.LastOperation(nil, "my-instance-guid", brokerapi.PollDetails{OperationData: "provision"})
 
-			Expect(err).NotTo(BeNil())
+			Expect(err.Error()).To(Equal(errorMsg))
+		})
+
+		FIt("no error returned when service list is empty", func() {
+			fakeCluster.ListServicesReturns(&api_v1.ServiceList{}, nil)
+
+			fakeHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
+				Info: &hapi_release.Info{
+					Status: &hapi_release.Status{
+						Code: hapi_release.Status_DEPLOYED,
+					},
+				},
+			}, nil)
+
+			_, err := broker.LastOperation(nil, "my-instance-guid", brokerapi.PollDetails{OperationData: "provision"})
+
+			Expect(err).To(BeNil())
 		})
 
 		It("targets the plan cluster when present", func() {
@@ -750,6 +767,35 @@ var _ = Describe("Broker", func() {
 			c := fakeClusterFactory.GetClusterFromK8sConfigArgsForCall(0)
 			Expect(c.CurrentContext).To(Equal("context2"))
 		})
+
+		//FIt("returns the status if Service.Spec.Type is not load balancer", func() {
+		//	serviceList := api_v1.ServiceList{
+		//		Items: []api_v1.Service{
+		//			{
+		//				ObjectMeta: meta_v1.ObjectMeta{Name: "kibosh-my-mysql-db-instance"},
+		//				Spec: api_v1.ServiceSpec{
+		//					Ports: []api_v1.ServicePort{},
+		//					Type:  "",
+		//				},
+		//			},
+		//		},
+		//	}
+		//	fakeCluster.ListServicesReturns(&serviceList, nil)
+		//
+		//	fakeHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
+		//		Info: &hapi_release.Info{
+		//			Status: &hapi_release.Status{
+		//				Code: hapi_release.Status_DEPLOYED,
+		//			},
+		//		},
+		//	}, nil)
+		//
+		//	result, err := broker.LastOperation(nil, "my-instance-guid", brokerapi.PollDetails{OperationData: "provision"})
+		//
+		//	Expect(err).To(BeNil())
+		//	Expect(result).NotTo(BeNil())
+		//
+		//})
 	})
 
 	Context("bind", func() {
