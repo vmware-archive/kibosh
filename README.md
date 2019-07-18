@@ -371,7 +371,7 @@ For manual testing, there is a [Python test harness](docs/dev-testing).
 #### Integration Tests
 The integration testing suite is located in [test/suite.py](test/suite.py). The suite will
 sequentially run through the OSBAPI lifecycle and exit at the first failure (so as to leave things
-in a state for debugging). [test/broker_base.py](test/broker_base.py) processes environment
+in a state for debugging). [test/test_broker_base.py](test/test_broker_base.py) processes environment
 variables `$BROKER_HOST`, `$BROKER_USERNAME`, `$BROKER_PASSWORD` to determine the broker to connect to. 
 
 

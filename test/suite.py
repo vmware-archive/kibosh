@@ -1,6 +1,7 @@
 import os
 import sys
 import unittest
+import uuid
 
 from test_bind import *
 from test_catalog import *
@@ -13,7 +14,6 @@ def suite():
 
     instance_id = uuid.uuid4()
 
-    TestCatalog.instance_id = instance_id
     s.addTest(TestCatalog('test_catalog'))
 
     TestProvision.instance_id = instance_id
