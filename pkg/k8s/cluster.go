@@ -18,6 +18,7 @@ package k8s
 import (
 	"errors"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
+	appsv1 "k8s.io/api/apps/v1"
 	api_v1 "k8s.io/api/core/v1"
 	v1_beta1 "k8s.io/api/extensions/v1beta1"
 	rbacv1beta1 "k8s.io/api/rbac/v1beta1"
@@ -29,6 +30,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	k8sAPI "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	deploymentutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 )
 
 //go:generate counterfeiter ./ Cluster
@@ -60,6 +62,8 @@ type ClusterDelegate interface {
 	ListSecrets(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.SecretList, error)
 	ListServices(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.ServiceList, error)
 	Patch(nameSpace string, name string, pt types.PatchType, data []byte, subresources ...string) (result *api_v1.ServiceAccount, err error)
+	ListPersistentVolumes(nameSpace string, listOptions meta_v1.ListOptions) ([]api_v1.PersistentVolumeClaim, error)
+	ListDeployments(nameSpace string, listOptions meta_v1.ListOptions) ([]Deployment, error)
 }
 
 type cluster struct {
@@ -71,6 +75,11 @@ type clusterDelegate struct {
 	client         kubernetes.Interface
 	internalClient internalclientset.Interface
 	k8sConfig      *rest.Config
+}
+
+type Deployment struct {
+	ReplicaSets *appsv1.ReplicaSet
+	Deployment  *appsv1.Deployment
 }
 
 func NewCluster(kuboConfig *config.ClusterCredentials) (Cluster, error) {
@@ -294,4 +303,35 @@ func (cluster *clusterDelegate) ListServices(nameSpace string, listOptions meta_
 
 func (cluster *clusterDelegate) Patch(nameSpace string, name string, pt types.PatchType, data []byte, subresources ...string) (result *api_v1.ServiceAccount, err error) {
 	return cluster.GetClient().CoreV1().ServiceAccounts(nameSpace).Patch(name, pt, data, subresources...)
+}
+
+func (cluster *clusterDelegate) ListPersistentVolumes(nameSpace string, listOptions meta_v1.ListOptions) ([]api_v1.PersistentVolumeClaim, error) {
+	list, err := cluster.GetClient().CoreV1().PersistentVolumeClaims(nameSpace).List(listOptions)
+	if err != nil {
+		return nil, err
+	}
+	return list.Items, nil
+}
+
+func (cluster *clusterDelegate) ListDeployments(nameSpace string, listOptions meta_v1.ListOptions) ([]Deployment, error) {
+	list, err := cluster.GetClient().AppsV1().Deployments(nameSpace).List(listOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	deployments := []Deployment{}
+
+	for _, item := range list.Items {
+		// Find RS associated with deployment
+		newReplicaSet, err := deploymentutil.GetNewReplicaSet(&item, cluster.GetClient().AppsV1())
+		if err != nil || newReplicaSet == nil {
+			return nil, err
+		}
+		newDeployment := Deployment{
+			newReplicaSet,
+			&item,
+		}
+		deployments = append(deployments, newDeployment)
+	}
+	return deployments, nil
 }

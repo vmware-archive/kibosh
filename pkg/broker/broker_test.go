@@ -450,7 +450,7 @@ var _ = Describe("Broker", func() {
 			Expect(err.Error()).To(ContainSubstring(errMessage))
 		})
 
-		It("returns success if deployed", func() {
+		FIt("returns success if deployed", func() {
 			fakeHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
 				Info: &hapi_release.Info{
 					Status: &hapi_release.Status{
@@ -712,7 +712,7 @@ var _ = Describe("Broker", func() {
 			Expect(err.Error()).To(Equal(errorMsg))
 		})
 
-		FIt("no error returned when service list is empty", func() {
+		It("no error returned when service list is empty", func() {
 			fakeCluster.ListServicesReturns(&api_v1.ServiceList{}, nil)
 
 			fakeHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{

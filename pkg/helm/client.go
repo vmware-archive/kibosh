@@ -20,13 +20,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"github.com/cf-platform-eng/kibosh/pkg/broker"
-	"github.com/pivotal-cf/brokerapi"
-	"io/ioutil"
-	"net"
-	"reflect"
-	"strings"
-
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
 	"github.com/ghodss/yaml"
@@ -34,7 +27,9 @@ import (
 	"github.com/gosuri/uitable/util/strutil"
 	"github.com/sirupsen/logrus"
 	"io"
+	"io/ioutil"
 	api_v1 "k8s.io/api/core/v1"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	helmstaller "k8s.io/helm/cmd/helm/installer"
 	"k8s.io/helm/pkg/helm"
 	"k8s.io/helm/pkg/helm/portforwarder"
@@ -45,7 +40,11 @@ import (
 	rls "k8s.io/helm/pkg/proto/hapi/services"
 	"k8s.io/helm/pkg/timeconv"
 	"k8s.io/helm/pkg/tlsutil"
+	deploymentutil "k8s.io/kubernetes/pkg/controller/deployment/util"
+	"net"
+	"reflect"
 	"regexp"
+	"strings"
 	"text/tabwriter"
 )
 
@@ -59,7 +58,7 @@ type myHelmClient struct {
 //go:generate counterfeiter ./ MyHelmClient
 type MyHelmClient interface {
 	helm.Interface
-	ReleaseReadiness(rlsName string)
+	ReleaseReadiness(rlsName string, instanceID string, cluster k8s.Cluster, opts ...helm.StatusOption) (*string, hapi_release.Status_Code, error)
 	Install(*helmstaller.Options) error
 	Upgrade(*helmstaller.Options) error
 	Uninstall(*helmstaller.Options) error
@@ -261,46 +260,73 @@ func (c myHelmClient) DeleteRelease(rlsName string, opts ...helm.DeleteOption) (
 	return client.DeleteRelease(rlsName, opts...)
 }
 
-func (c myHelmClient) ReleaseReadiness(rlsName string, instanceID string, cluster k8s.Cluster, opts ...helm.StatusOption) (*rls.GetReleaseStatusResponse, error) {
-	tunnel, client, err := c.open()
+func (c myHelmClient) ReleaseReadiness(rlsName string, instanceID string, cluster k8s.Cluster, opts ...helm.StatusOption) (*string, hapi_release.Status_Code, error) {
+	msg, servicesReady, err := c.servicesReady(instanceID, cluster)
 	if err != nil {
-		return nil, err
-	}
-	defer tunnel.Close()
-
-	response, err := client.ReleaseStatus(rlsName, opts...)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if response.Info.Status.Code != hapi_release.Status_DEPLOYED {
-		return response, nil
-	}
-
-	servicesReady, err := c.servicesReady(instanceID, cluster)
-	if err != nil {
-		return nil, err
+		return msg, hapi_release.Status_UNKNOWN, err
 	}
 	if !servicesReady {
-
+		return msg, hapi_release.Status_PENDING_INSTALL, nil
 	}
 
-	message, podsReady, err := c.podsReady(instanceID, cluster)
+	msg, podsReady, err := c.podsReady(instanceID, cluster)
 	if err != nil {
-		return brokerapi.LastOperation{}, err
+		return msg, hapi_release.Status_UNKNOWN, err
 	}
 	if !podsReady {
-		return brokerapi.LastOperation{
-			State:       brokerapi.InProgress,
-			Description: message,
-		}, nil
+		return msg, hapi_release.Status_PENDING_INSTALL, nil
 	}
 
-	return brokerapi.LastOperation{
-		State:       brokerStatus,
-		Description: description,
-	}, nil
+	msg, volReady, err := c.volumesReady(instanceID, cluster)
+	if err != nil {
+		return msg, hapi_release.Status_UNKNOWN, err
+	}
+	if !volReady {
+		return msg, hapi_release.Status_PENDING_INSTALL, nil
+	}
+
+	msg, deployReady, err := c.deploymentsReady(instanceID, cluster)
+	if err != nil {
+		return msg, hapi_release.Status_UNKNOWN, err
+	}
+
+	if !deployReady {
+		return msg, hapi_release.Status_PENDING_INSTALL, nil
+	}
+
+	return nil, hapi_release.Status_DEPLOYED, nil
+}
+
+func (c myHelmClient) volumesReady(instanceID string, cluster k8s.Cluster) (*string, bool, error) {
+	persistentVolumeClaimList, err := cluster.ListPersistentVolumes(c.getNamespace(instanceID), meta_v1.ListOptions{})
+	if err != nil {
+		return nil, false, err
+	}
+
+	for _, volumeClaim := range persistentVolumeClaimList {
+		if volumeClaim.Status.Phase != api_v1.ClaimBound {
+			var message *string
+			*message = fmt.Sprintf("PersistentVolumeClaim is not ready: %s/%s", volumeClaim.GetNamespace(), volumeClaim.GetName())
+			return message, false, err
+		}
+	}
+
+	return nil, true, err
+}
+
+func (c myHelmClient) deploymentsReady(instanceID string, cluster k8s.Cluster) (*string, bool, error) {
+	deployments, err := cluster.ListDeployments(c.getNamespace(instanceID), meta_v1.ListOptions{})
+	if err != nil {
+		return nil, false, err
+	}
+	for _, deployment := range deployments {
+		if !(deployment.ReplicaSets.Status.ReadyReplicas >= *deployment.Deployment.Spec.Replicas-deploymentutil.MaxUnavailable(*deployment.Deployment)) {
+			var message *string
+			*message = fmt.Sprintf("Deployment is not ready: %s/%s", deployment.Deployment.GetNamespace(), deployment.Deployment.GetName())
+			return message, false, nil
+		}
+	}
+	return nil, true, nil
 }
 
 func (c myHelmClient) ReleaseStatus(rlsName string, opts ...helm.StatusOption) (*rls.GetReleaseStatusResponse, error) {
@@ -313,10 +339,10 @@ func (c myHelmClient) ReleaseStatus(rlsName string, opts ...helm.StatusOption) (
 	return client.ReleaseStatus(rlsName, opts...)
 }
 
-func (c myHelmClient) servicesReady(instanceID string, cluster k8s.Cluster) (bool, error) {
+func (c myHelmClient) servicesReady(instanceID string, cluster k8s.Cluster) (*string, bool, error) {
 	services, err := cluster.ListServices(c.getNamespace(instanceID), meta_v1.ListOptions{})
 	if err != nil {
-		return false, err
+		return nil, false, err
 	}
 
 	servicesReady := true
@@ -327,17 +353,21 @@ func (c myHelmClient) servicesReady(instanceID string, cluster k8s.Cluster) (boo
 			}
 		}
 	}
-	return servicesReady, nil
+	var message *string
+	if !servicesReady {
+		*message = "service deployment load balancer in progress"
+	}
+	return message, servicesReady, nil
 }
 
-func (c myHelmClient) podsReady(instanceID string, cluster k8s.Cluster) (string, bool, error) {
+func (c myHelmClient) podsReady(instanceID string, cluster k8s.Cluster) (*string, bool, error) {
 	podList, err := cluster.ListPods(c.getNamespace(instanceID), meta_v1.ListOptions{})
 	if err != nil {
-		return "", false, err
+		return nil, false, err
 	}
 
 	podsReady := true
-	message := ""
+	var message *string
 	for _, pod := range podList.Items {
 
 		if c.podIsJob(pod) {
@@ -345,7 +375,7 @@ func (c myHelmClient) podsReady(instanceID string, cluster k8s.Cluster) (string,
 				podsReady = false
 				for _, condition := range pod.Status.Conditions {
 					if condition.Message != "" {
-						message = message + condition.Message + "\n"
+						*message = *message + condition.Message + "\n"
 					}
 				}
 			}
@@ -354,16 +384,29 @@ func (c myHelmClient) podsReady(instanceID string, cluster k8s.Cluster) (string,
 				podsReady = false
 				for _, condition := range pod.Status.Conditions {
 					if condition.Message != "" {
-						message = message + condition.Message + "\n"
+						*message = *message + condition.Message + "\n"
 					}
 				}
 			}
 		}
 	}
 
-	message = strings.TrimSpace(message)
+	*message = strings.TrimSpace(*message)
 
 	return message, podsReady, nil
+}
+
+func (c myHelmClient) podIsJob(pod api_v1.Pod) bool {
+	for key := range pod.ObjectMeta.Labels {
+		if key == "job-name" {
+			return true
+		}
+	}
+	return false
+}
+
+func (c myHelmClient) getNamespace(instanceID string) string {
+	return "kibosh-" + instanceID
 }
 
 func (c myHelmClient) UpdateRelease(rlsName, chStr string, opts ...helm.UpdateOption) (*rls.UpdateReleaseResponse, error) {

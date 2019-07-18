@@ -504,41 +504,24 @@ func (broker *PksServiceBroker) LastOperation(ctx context.Context, instanceID st
 		}, nil
 	}
 
-	servicesReady, err := broker.servicesReady(instanceID, cluster)
-	if err != nil {
+	message, code, err := helmClient.ReleaseReadiness(broker.getReleaseName(instanceID), instanceID, cluster)
+	if err != nil || code == hapi_release.Status_UNKNOWN {
 		return brokerapi.LastOperation{}, err
 	}
-	if !servicesReady {
+	if message == nil {
+		message = &description
+	}
+	if code == hapi_release.Status_PENDING_INSTALL {
 		return brokerapi.LastOperation{
 			State:       brokerapi.InProgress,
-			Description: "service deployment load balancer in progress",
-		}, nil
-	}
-
-	message, podsReady, err := broker.podsReady(instanceID, cluster)
-	if err != nil {
-		return brokerapi.LastOperation{}, err
-	}
-	if !podsReady {
-		return brokerapi.LastOperation{
-			State:       brokerapi.InProgress,
-			Description: message,
+			Description: *message,
 		}, nil
 	}
 
 	return brokerapi.LastOperation{
-		State:       brokerStatus,
-		Description: description,
+		State:       brokerapi.Succeeded,
+		Description: *message,
 	}, nil
-}
-
-func (broker *PksServiceBroker) podIsJob(pod api_v1.Pod) bool {
-	for key := range pod.ObjectMeta.Labels {
-		if key == "job-name" {
-			return true
-		}
-	}
-	return false
 }
 
 func (broker *PksServiceBroker) getNamespace(instanceID string) string {
