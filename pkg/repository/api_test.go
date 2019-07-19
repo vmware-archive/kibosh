@@ -66,7 +66,7 @@ var _ = Describe("Api", func() {
 
 		Expect(recorder.Code).To(Equal(200))
 
-		Expect(fakeRepo.FlushCacheCallCount()).To(Equal(1))
+		Expect(fakeRepo.ClearCacheCallCount()).To(Equal(1))
 	})
 
 	Context("reload self in cf", func() {

@@ -9,6 +9,16 @@ import (
 )
 
 type FakeRepository struct {
+	ClearCacheStub        func() error
+	clearCacheMutex       sync.RWMutex
+	clearCacheArgsForCall []struct {
+	}
+	clearCacheReturns struct {
+		result1 error
+	}
+	clearCacheReturnsOnCall map[int]struct {
+		result1 error
+	}
 	DeleteChartStub        func(string) error
 	deleteChartMutex       sync.RWMutex
 	deleteChartArgsForCall []struct {
@@ -18,16 +28,6 @@ type FakeRepository struct {
 		result1 error
 	}
 	deleteChartReturnsOnCall map[int]struct {
-		result1 error
-	}
-	FlushCacheStub        func() error
-	flushCacheMutex       sync.RWMutex
-	flushCacheArgsForCall []struct {
-	}
-	flushCacheReturns struct {
-		result1 error
-	}
-	flushCacheReturnsOnCall map[int]struct {
 		result1 error
 	}
 	GetChartsStub        func() ([]*helm.MyChart, error)
@@ -55,6 +55,58 @@ type FakeRepository struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeRepository) ClearCache() error {
+	fake.clearCacheMutex.Lock()
+	ret, specificReturn := fake.clearCacheReturnsOnCall[len(fake.clearCacheArgsForCall)]
+	fake.clearCacheArgsForCall = append(fake.clearCacheArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ClearCache", []interface{}{})
+	fake.clearCacheMutex.Unlock()
+	if fake.ClearCacheStub != nil {
+		return fake.ClearCacheStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.clearCacheReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeRepository) ClearCacheCallCount() int {
+	fake.clearCacheMutex.RLock()
+	defer fake.clearCacheMutex.RUnlock()
+	return len(fake.clearCacheArgsForCall)
+}
+
+func (fake *FakeRepository) ClearCacheCalls(stub func() error) {
+	fake.clearCacheMutex.Lock()
+	defer fake.clearCacheMutex.Unlock()
+	fake.ClearCacheStub = stub
+}
+
+func (fake *FakeRepository) ClearCacheReturns(result1 error) {
+	fake.clearCacheMutex.Lock()
+	defer fake.clearCacheMutex.Unlock()
+	fake.ClearCacheStub = nil
+	fake.clearCacheReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeRepository) ClearCacheReturnsOnCall(i int, result1 error) {
+	fake.clearCacheMutex.Lock()
+	defer fake.clearCacheMutex.Unlock()
+	fake.ClearCacheStub = nil
+	if fake.clearCacheReturnsOnCall == nil {
+		fake.clearCacheReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.clearCacheReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeRepository) DeleteChart(arg1 string) error {
@@ -113,58 +165,6 @@ func (fake *FakeRepository) DeleteChartReturnsOnCall(i int, result1 error) {
 		})
 	}
 	fake.deleteChartReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeRepository) ClearCache() error {
-	fake.flushCacheMutex.Lock()
-	ret, specificReturn := fake.flushCacheReturnsOnCall[len(fake.flushCacheArgsForCall)]
-	fake.flushCacheArgsForCall = append(fake.flushCacheArgsForCall, struct {
-	}{})
-	fake.recordInvocation("ClearCache", []interface{}{})
-	fake.flushCacheMutex.Unlock()
-	if fake.FlushCacheStub != nil {
-		return fake.FlushCacheStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.flushCacheReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeRepository) FlushCacheCallCount() int {
-	fake.flushCacheMutex.RLock()
-	defer fake.flushCacheMutex.RUnlock()
-	return len(fake.flushCacheArgsForCall)
-}
-
-func (fake *FakeRepository) FlushCacheCalls(stub func() error) {
-	fake.flushCacheMutex.Lock()
-	defer fake.flushCacheMutex.Unlock()
-	fake.FlushCacheStub = stub
-}
-
-func (fake *FakeRepository) FlushCacheReturns(result1 error) {
-	fake.flushCacheMutex.Lock()
-	defer fake.flushCacheMutex.Unlock()
-	fake.FlushCacheStub = nil
-	fake.flushCacheReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeRepository) FlushCacheReturnsOnCall(i int, result1 error) {
-	fake.flushCacheMutex.Lock()
-	defer fake.flushCacheMutex.Unlock()
-	fake.FlushCacheStub = nil
-	if fake.flushCacheReturnsOnCall == nil {
-		fake.flushCacheReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.flushCacheReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -287,10 +287,10 @@ func (fake *FakeRepository) SaveChartReturnsOnCall(i int, result1 error) {
 func (fake *FakeRepository) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.clearCacheMutex.RLock()
+	defer fake.clearCacheMutex.RUnlock()
 	fake.deleteChartMutex.RLock()
 	defer fake.deleteChartMutex.RUnlock()
-	fake.flushCacheMutex.RLock()
-	defer fake.flushCacheMutex.RUnlock()
 	fake.getChartsMutex.RLock()
 	defer fake.getChartsMutex.RUnlock()
 	fake.saveChartMutex.RLock()

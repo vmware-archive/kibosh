@@ -1,4 +1,4 @@
-default: all
+go default: all
 
 GO_PACKAGES = $$(go list ./... ./cmd/loader | grep -v vendor)
 GO_FILES = $$(find . -name "*.go" | grep -v vendor | uniq)
