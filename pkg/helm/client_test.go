@@ -196,51 +196,6 @@ foo: bar
 			Expect(*message).To(ContainSubstring(errMsg))
 		})
 
-		It("considers a pod status of Completed as meaning the pod succeeded", func() {
-			serviceList := serviceTemplate(true)
-			fakeCluster.ListServicesReturns(&serviceList, nil)
-
-			podList := podTemplate("Succeeded")
-			fakeCluster.ListPodsReturns(&podList, nil)
-
-			volumeClaimList := PVCTemplate("Bound")
-			fakeCluster.ListPersistentVolumesReturns(&volumeClaimList, nil)
-
-			deploymentsList := deploymentTemplate(true)
-			fakeCluster.ListDeploymentsReturns(&deploymentsList, nil)
-
-			message, statusCode, err := myHelmClient.ReleaseReadiness("myRelease", "myInstance", fakeCluster)
-
-			Expect(err).To(BeNil())
-			Expect(statusCode).To(Equal(hapi_release.Status_DEPLOYED))
-			Expect(message).To(BeNil())
-		})
-
-		It("returns error when unable to list pods", func() {
-			serviceList := serviceTemplate(true)
-			fakeCluster.ListServicesReturns(&serviceList, nil)
-
-			fakeCluster.ListPodsReturns(nil, errors.New("nope"))
-
-			message, statusCode, err := myHelmClient.ReleaseReadiness("myRelease", "myInstance", fakeCluster)
-			Expect(err).NotTo(BeNil())
-			Expect(err.Error()).To(Equal("nope"))
-			Expect(message).To(BeNil())
-			Expect(statusCode).To(Equal(hapi_release.Status_UNKNOWN))
-		})
-
-		It("bubbles up error on list service failure", func() {
-			errorMsg := "list services error"
-			fakeCluster.ListServicesReturns(&api_v1.ServiceList{}, errors.New(errorMsg))
-
-			message, statusCode, err := myHelmClient.ReleaseReadiness("myRelease", "myInstance", fakeCluster)
-
-			Expect(err).ToNot(BeNil())
-			Expect(err.Error()).To(Equal(errorMsg))
-			Expect(statusCode).To(Equal(hapi_release.Status_UNKNOWN))
-			Expect(message).To(BeNil())
-		})
-
 		It("wait until volume claims are bound", func() {
 			serviceList := serviceTemplate(true)
 			fakeCluster.ListServicesReturns(&serviceList, nil)
@@ -259,46 +214,7 @@ foo: bar
 			Expect(*message).To(ContainSubstring("PersistentVolumeClaim is not ready:"))
 		})
 
-		It("volume claims are bound", func() {
-			serviceList := serviceTemplate(true)
-			fakeCluster.ListServicesReturns(&serviceList, nil)
-
-			podList := podTemplate("Succeeded")
-			fakeCluster.ListPodsReturns(&podList, nil)
-
-			volumeClaimList := PVCTemplate("Bound")
-			fakeCluster.ListPersistentVolumesReturns(&volumeClaimList, nil)
-
-			deploymentsList := deploymentTemplate(true)
-			fakeCluster.ListDeploymentsReturns(&deploymentsList, nil)
-
-			message, statusCode, err := myHelmClient.ReleaseReadiness("myRelease", "myInstance", fakeCluster)
-
-			Expect(err).To(BeNil())
-			Expect(statusCode).To(Equal(hapi_release.Status_DEPLOYED))
-			Expect(message).To(BeNil())
-		})
-
-		It("returns error when unable to list volumeClaim", func() {
-			serviceList := serviceTemplate(true)
-			fakeCluster.ListServicesReturns(&serviceList, nil)
-
-			podList := podTemplate("Succeeded")
-			fakeCluster.ListPodsReturns(&podList, nil)
-
-			volumeClaimList := PVCTemplate("Available")
-			errMessage := "bad volume list"
-			fakeCluster.ListPersistentVolumesReturns(&volumeClaimList, errors.New(errMessage))
-
-			message, statusCode, err := myHelmClient.ReleaseReadiness("myRelease", "myInstance", fakeCluster)
-
-			Expect(err).ToNot(BeNil())
-			Expect(statusCode).To(Equal(hapi_release.Status_UNKNOWN))
-			Expect(message).To(BeNil())
-			Expect(err.Error()).To(ContainSubstring(errMessage))
-		})
-
-		It("wait for deployments to be ready", func() {
+		It("wait until deployments are ready", func() {
 			serviceList := serviceTemplate(true)
 			fakeCluster.ListServicesReturns(&serviceList, nil)
 
@@ -319,7 +235,47 @@ foo: bar
 			Expect(*message).To(ContainSubstring("Deployment is not ready:"))
 		})
 
-		It("Deployments are ready", func() {
+		It("considers a pod status of Completed as meaning the pod succeeded", func() {
+			serviceList := serviceTemplate(true)
+			fakeCluster.ListServicesReturns(&serviceList, nil)
+
+			podList := podTemplate("Succeeded")
+			fakeCluster.ListPodsReturns(&podList, nil)
+
+			volumeClaimList := PVCTemplate("Bound")
+			fakeCluster.ListPersistentVolumesReturns(&volumeClaimList, nil)
+
+			deploymentsList := deploymentTemplate(true)
+			fakeCluster.ListDeploymentsReturns(&deploymentsList, nil)
+
+			message, statusCode, err := myHelmClient.ReleaseReadiness("myRelease", "myInstance", fakeCluster)
+
+			Expect(err).To(BeNil())
+			Expect(statusCode).To(Equal(hapi_release.Status_DEPLOYED))
+			Expect(message).To(BeNil())
+		})
+
+		It("Considers a volume claims in phase bound as succeeded ", func() {
+			serviceList := serviceTemplate(true)
+			fakeCluster.ListServicesReturns(&serviceList, nil)
+
+			podList := podTemplate("Succeeded")
+			fakeCluster.ListPodsReturns(&podList, nil)
+
+			volumeClaimList := PVCTemplate("Bound")
+			fakeCluster.ListPersistentVolumesReturns(&volumeClaimList, nil)
+
+			deploymentsList := deploymentTemplate(true)
+			fakeCluster.ListDeploymentsReturns(&deploymentsList, nil)
+
+			message, statusCode, err := myHelmClient.ReleaseReadiness("myRelease", "myInstance", fakeCluster)
+
+			Expect(err).To(BeNil())
+			Expect(statusCode).To(Equal(hapi_release.Status_DEPLOYED))
+			Expect(message).To(BeNil())
+		})
+
+		It("Consider a Deployment as ready if it meets maxUnavailable setting", func() {
 			serviceList := serviceTemplate(true)
 			fakeCluster.ListServicesReturns(&serviceList, nil)
 
@@ -339,7 +295,51 @@ foo: bar
 			Expect(message).To(BeNil())
 		})
 
-		It("ListDeployment returns error", func() {
+		It("returns an error when unable to list services", func() {
+			errorMsg := "list services error"
+			fakeCluster.ListServicesReturns(&api_v1.ServiceList{}, errors.New(errorMsg))
+
+			message, statusCode, err := myHelmClient.ReleaseReadiness("myRelease", "myInstance", fakeCluster)
+
+			Expect(err).ToNot(BeNil())
+			Expect(err.Error()).To(Equal(errorMsg))
+			Expect(statusCode).To(Equal(hapi_release.Status_UNKNOWN))
+			Expect(message).To(BeNil())
+		})
+
+		It("returns error when unable to list pods", func() {
+			serviceList := serviceTemplate(true)
+			fakeCluster.ListServicesReturns(&serviceList, nil)
+
+			fakeCluster.ListPodsReturns(nil, errors.New("nope"))
+
+			message, statusCode, err := myHelmClient.ReleaseReadiness("myRelease", "myInstance", fakeCluster)
+			Expect(err).NotTo(BeNil())
+			Expect(err.Error()).To(Equal("nope"))
+			Expect(message).To(BeNil())
+			Expect(statusCode).To(Equal(hapi_release.Status_UNKNOWN))
+		})
+
+		It("returns error when unable to list persistent volume claims", func() {
+			serviceList := serviceTemplate(true)
+			fakeCluster.ListServicesReturns(&serviceList, nil)
+
+			podList := podTemplate("Succeeded")
+			fakeCluster.ListPodsReturns(&podList, nil)
+
+			volumeClaimList := PVCTemplate("Available")
+			errMessage := "bad volume list"
+			fakeCluster.ListPersistentVolumesReturns(&volumeClaimList, errors.New(errMessage))
+
+			message, statusCode, err := myHelmClient.ReleaseReadiness("myRelease", "myInstance", fakeCluster)
+
+			Expect(err).ToNot(BeNil())
+			Expect(statusCode).To(Equal(hapi_release.Status_UNKNOWN))
+			Expect(message).To(BeNil())
+			Expect(err.Error()).To(ContainSubstring(errMessage))
+		})
+
+		It("returns error when unable to list deployments", func() {
 			serviceList := serviceTemplate(true)
 			fakeCluster.ListServicesReturns(&serviceList, nil)
 
@@ -360,6 +360,7 @@ foo: bar
 			Expect(statusCode).To(Equal(hapi_release.Status_UNKNOWN))
 			Expect(message).To(BeNil())
 		})
+
 	})
 })
 
