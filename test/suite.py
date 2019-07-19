@@ -39,7 +39,9 @@ if __name__ == '__main__':
 
     s = suite()
     runner = unittest.TextTestRunner(verbosity=2, failfast=True)
-    runner.run(s)
+    ran = runner.run(s)
+    if not ran.wasSuccessful():
+        os.sys.exit(1)
 
     if s.countTestCases() != discovered_tests.countTestCases():
         print(
