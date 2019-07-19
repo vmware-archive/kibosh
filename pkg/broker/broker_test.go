@@ -450,7 +450,7 @@ var _ = Describe("Broker", func() {
 			Expect(err.Error()).To(ContainSubstring(errMessage))
 		})
 
-		FIt("returns success if deployed", func() {
+		It("returns success if deployed", func() {
 			fakeHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
 				Info: &hapi_release.Info{
 					Status: &hapi_release.Status{
@@ -458,6 +458,8 @@ var _ = Describe("Broker", func() {
 					},
 				},
 			}, nil)
+
+			fakeHelmClient.ReleaseReadinessReturns(nil, hapi_release.Status_DEPLOYED, nil)
 
 			resp, err := broker.LastOperation(nil, "my-instance-guid", brokerapi.PollDetails{OperationData: "provision"})
 
@@ -494,6 +496,8 @@ var _ = Describe("Broker", func() {
 					},
 				},
 			}, nil)
+
+			fakeHelmClient.ReleaseReadinessReturns(nil, hapi_release.Status_DEPLOYED, nil)
 
 			resp, err := broker.LastOperation(nil, "my-instance-guid", brokerapi.PollDetails{OperationData: "update"})
 
@@ -578,138 +582,6 @@ var _ = Describe("Broker", func() {
 			Expect(err).To(BeNil())
 			Expect(resp.Description).To(ContainSubstring("failed"))
 			Expect(resp.State).To(Equal(brokerapi.Failed))
-		})
-
-		It("waits until load balancer servers have ingress", func() {
-			serviceList := api_v1.ServiceList{
-				Items: []api_v1.Service{
-					{
-						ObjectMeta: meta_v1.ObjectMeta{Name: "kibosh-my-mysql-db-instance"},
-						Spec: api_v1.ServiceSpec{
-							Ports: []api_v1.ServicePort{},
-							Type:  "LoadBalancer",
-						},
-						Status: api_v1.ServiceStatus{},
-					},
-				},
-			}
-			fakeCluster.ListServicesReturns(&serviceList, nil)
-
-			fakeHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
-				Info: &hapi_release.Info{
-					Status: &hapi_release.Status{
-						Code: hapi_release.Status_DEPLOYED,
-					},
-				},
-			}, nil)
-
-			resp, err := broker.LastOperation(nil, "my-instance-guid", brokerapi.PollDetails{OperationData: "provision"})
-
-			Expect(err).To(BeNil())
-			Expect(resp.Description).To(ContainSubstring("progress"))
-			Expect(resp.State).To(Equal(brokerapi.InProgress))
-		})
-
-		It("waits until pods are running", func() {
-			fakeHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
-				Info: &hapi_release.Info{
-					Status: &hapi_release.Status{
-						Code: hapi_release.Status_DEPLOYED,
-					},
-				},
-			}, nil)
-
-			podList := api_v1.PodList{
-				Items: []api_v1.Pod{
-					{
-						ObjectMeta: meta_v1.ObjectMeta{Name: "pod1"},
-						Spec:       api_v1.PodSpec{},
-						Status: api_v1.PodStatus{
-							Phase: "Pending",
-							Conditions: []api_v1.PodCondition{
-								{
-									Status:  "False",
-									Type:    "PodScheduled",
-									Reason:  "Unschedulable",
-									Message: "0/1 nodes are available: 1 Insufficient memory",
-								},
-							},
-						},
-					},
-				},
-			}
-			fakeCluster.ListPodsReturns(&podList, nil)
-
-			resp, err := broker.LastOperation(nil, "my-instance-guid", brokerapi.PollDetails{OperationData: "provision"})
-
-			Expect(err).To(BeNil())
-			Expect(resp.State).To(Equal(brokerapi.InProgress))
-			Expect(resp.Description).To(ContainSubstring("0/1 nodes are available: 1 Insufficient memory"))
-		})
-
-		It("considers a pod status of Completed as meaning the pod succeeded", func() {
-			fakeHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
-				Info: &hapi_release.Info{
-					Status: &hapi_release.Status{
-						Code: hapi_release.Status_DEPLOYED,
-					},
-				},
-			}, nil)
-
-			podList := api_v1.PodList{
-				Items: []api_v1.Pod{
-					{
-						ObjectMeta: meta_v1.ObjectMeta{
-							Name: "pod1",
-							Labels: map[string]string{
-								"job-name": "test",
-							},
-						},
-						Spec: api_v1.PodSpec{},
-						Status: api_v1.PodStatus{
-							Phase: "Succeeded",
-						},
-					},
-				},
-			}
-			fakeCluster.ListPodsReturns(&podList, nil)
-
-			resp, err := broker.LastOperation(nil, "my-instance-guid", brokerapi.PollDetails{OperationData: "provision"})
-
-			Expect(err).To(BeNil())
-			Expect(resp.State).To(Equal(brokerapi.Succeeded))
-		})
-
-		It("returns error when unable to list pods", func() {
-			fakeHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
-				Info: &hapi_release.Info{
-					Status: &hapi_release.Status{
-						Code: hapi_release.Status_DEPLOYED,
-					},
-				},
-			}, nil)
-
-			fakeCluster.ListPodsReturns(nil, errors.New("nope"))
-
-			_, err := broker.LastOperation(nil, "my-instance-guid", brokerapi.PollDetails{OperationData: "provision"})
-			Expect(err).NotTo(BeNil())
-		})
-
-		It("bubbles up error on list service failure", func() {
-			errorMsg := "list services error"
-			fakeCluster.ListServicesReturns(&api_v1.ServiceList{}, errors.New(errorMsg))
-
-			fakeHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
-				Info: &hapi_release.Info{
-					Status: &hapi_release.Status{
-						Code: hapi_release.Status_DEPLOYED,
-					},
-				},
-			}, nil)
-
-			_, err := broker.LastOperation(nil, "my-instance-guid", brokerapi.PollDetails{OperationData: "provision"})
-
-			Expect(err.Error()).To(Equal(errorMsg))
 		})
 
 		It("no error returned when service list is empty", func() {

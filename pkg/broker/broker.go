@@ -504,18 +504,23 @@ func (broker *PksServiceBroker) LastOperation(ctx context.Context, instanceID st
 		}, nil
 	}
 
-	message, code, err := helmClient.ReleaseReadiness(broker.getReleaseName(instanceID), instanceID, cluster)
-	if err != nil || code == hapi_release.Status_UNKNOWN {
-		return brokerapi.LastOperation{}, err
-	}
-	if message == nil {
+	var message *string
+	if operationData != "deprovision" {
+		message, code, err = helmClient.ReleaseReadiness(broker.getReleaseName(instanceID), instanceID, cluster)
+		if err != nil || code == hapi_release.Status_UNKNOWN {
+			return brokerapi.LastOperation{}, err
+		}
+		if message == nil {
+			message = &description
+		}
+		if code == hapi_release.Status_PENDING_INSTALL {
+			return brokerapi.LastOperation{
+				State:       brokerapi.InProgress,
+				Description: *message,
+			}, nil
+		}
+	} else {
 		message = &description
-	}
-	if code == hapi_release.Status_PENDING_INSTALL {
-		return brokerapi.LastOperation{
-			State:       brokerapi.InProgress,
-			Description: *message,
-		}, nil
 	}
 
 	return brokerapi.LastOperation{

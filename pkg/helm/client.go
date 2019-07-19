@@ -353,11 +353,11 @@ func (c myHelmClient) servicesReady(instanceID string, cluster k8s.Cluster) (*st
 			}
 		}
 	}
-	var message *string
+	var message string
 	if !servicesReady {
-		*message = "service deployment load balancer in progress"
+		message = "service deployment load balancer in progress"
 	}
-	return message, servicesReady, nil
+	return &message, servicesReady, nil
 }
 
 func (c myHelmClient) podsReady(instanceID string, cluster k8s.Cluster) (*string, bool, error) {
@@ -367,7 +367,7 @@ func (c myHelmClient) podsReady(instanceID string, cluster k8s.Cluster) (*string
 	}
 
 	podsReady := true
-	var message *string
+	var message string
 	for _, pod := range podList.Items {
 
 		if c.podIsJob(pod) {
@@ -375,7 +375,7 @@ func (c myHelmClient) podsReady(instanceID string, cluster k8s.Cluster) (*string
 				podsReady = false
 				for _, condition := range pod.Status.Conditions {
 					if condition.Message != "" {
-						*message = *message + condition.Message + "\n"
+						message = message + condition.Message + "\n"
 					}
 				}
 			}
@@ -384,16 +384,16 @@ func (c myHelmClient) podsReady(instanceID string, cluster k8s.Cluster) (*string
 				podsReady = false
 				for _, condition := range pod.Status.Conditions {
 					if condition.Message != "" {
-						*message = *message + condition.Message + "\n"
+						message = message + condition.Message + "\n"
 					}
 				}
 			}
 		}
 	}
 
-	*message = strings.TrimSpace(*message)
+	message = strings.TrimSpace(message)
 
-	return message, podsReady, nil
+	return &message, podsReady, nil
 }
 
 func (c myHelmClient) podIsJob(pod api_v1.Pod) bool {
