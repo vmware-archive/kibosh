@@ -62,8 +62,8 @@ type ClusterDelegate interface {
 	ListSecrets(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.SecretList, error)
 	ListServices(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.ServiceList, error)
 	Patch(nameSpace string, name string, pt types.PatchType, data []byte, subresources ...string) (result *api_v1.ServiceAccount, err error)
-	ListPersistentVolumes(nameSpace string, listOptions meta_v1.ListOptions) ([]api_v1.PersistentVolumeClaim, error)
-	ListDeployments(nameSpace string, listOptions meta_v1.ListOptions) ([]Deployment, error)
+	ListPersistentVolumes(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.PersistentVolumeClaimList, error)
+	ListDeployments(nameSpace string, listOptions meta_v1.ListOptions) (*DeploymentList, error)
 }
 
 type cluster struct {
@@ -80,6 +80,10 @@ type clusterDelegate struct {
 type Deployment struct {
 	ReplicaSets *appsv1.ReplicaSet
 	Deployment  *appsv1.Deployment
+}
+
+type DeploymentList struct {
+	Items []Deployment
 }
 
 func NewCluster(kuboConfig *config.ClusterCredentials) (Cluster, error) {
@@ -305,21 +309,21 @@ func (cluster *clusterDelegate) Patch(nameSpace string, name string, pt types.Pa
 	return cluster.GetClient().CoreV1().ServiceAccounts(nameSpace).Patch(name, pt, data, subresources...)
 }
 
-func (cluster *clusterDelegate) ListPersistentVolumes(nameSpace string, listOptions meta_v1.ListOptions) ([]api_v1.PersistentVolumeClaim, error) {
+func (cluster *clusterDelegate) ListPersistentVolumes(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.PersistentVolumeClaimList, error) {
 	list, err := cluster.GetClient().CoreV1().PersistentVolumeClaims(nameSpace).List(listOptions)
 	if err != nil {
 		return nil, err
 	}
-	return list.Items, nil
+	return list, nil
 }
 
-func (cluster *clusterDelegate) ListDeployments(nameSpace string, listOptions meta_v1.ListOptions) ([]Deployment, error) {
+func (cluster *clusterDelegate) ListDeployments(nameSpace string, listOptions meta_v1.ListOptions) (*DeploymentList, error) {
 	list, err := cluster.GetClient().AppsV1().Deployments(nameSpace).List(listOptions)
 	if err != nil {
 		return nil, err
 	}
 
-	deployments := []Deployment{}
+	deployments := DeploymentList{}
 
 	for _, item := range list.Items {
 		// Find RS associated with deployment
@@ -331,7 +335,7 @@ func (cluster *clusterDelegate) ListDeployments(nameSpace string, listOptions me
 			newReplicaSet,
 			&item,
 		}
-		deployments = append(deployments, newDeployment)
+		deployments.Items = append(deployments.Items, newDeployment)
 	}
-	return deployments, nil
+	return &deployments, nil
 }

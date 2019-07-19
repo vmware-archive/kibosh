@@ -17,15 +17,17 @@ package helm_test
 
 import (
 	"errors"
+	"github.com/cf-platform-eng/kibosh/pkg/k8s"
+	"github.com/ghodss/yaml"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"io/ioutil"
+	appsv1 "k8s.io/api/apps/v1"
 	api_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	hapi_release "k8s.io/helm/pkg/proto/hapi/release"
 	"os"
-
-	"github.com/ghodss/yaml"
 
 	. "github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s/k8sfakes"
@@ -162,18 +164,7 @@ foo: bar
 	Context("Readiness checks", func() {
 
 		It("waits until load balancer servers have ingress", func() {
-			serviceList := api_v1.ServiceList{
-				Items: []api_v1.Service{
-					{
-						ObjectMeta: meta_v1.ObjectMeta{Name: "kibosh-my-mysql-db-instance"},
-						Spec: api_v1.ServiceSpec{
-							Ports: []api_v1.ServicePort{},
-							Type:  "LoadBalancer",
-						},
-						Status: api_v1.ServiceStatus{},
-					},
-				},
-			}
+			serviceList := serviceTemplate(false)
 			fakeCluster.ListServicesReturns(&serviceList, nil)
 
 			message, statusCode, err := myHelmClient.ReleaseReadiness("myRelease", "myInstance", fakeCluster)
@@ -184,92 +175,39 @@ foo: bar
 		})
 
 		It("waits until pods are running", func() {
-			serviceList := api_v1.ServiceList{
-				Items: []api_v1.Service{
-					{
-						ObjectMeta: meta_v1.ObjectMeta{Name: "kibosh-my-mysql-db-instance"},
-						Spec: api_v1.ServiceSpec{
-							Ports: []api_v1.ServicePort{},
-							Type:  "LoadBalancer",
-						},
-						Status: api_v1.ServiceStatus{
-							LoadBalancer: api_v1.LoadBalancerStatus{
-								Ingress: []api_v1.LoadBalancerIngress{
-									{IP: "127.0.0.1"},
-								},
-							},
-						},
-					},
-				},
-			}
+			serviceList := serviceTemplate(true)
 			fakeCluster.ListServicesReturns(&serviceList, nil)
 
-			podList := api_v1.PodList{
-				Items: []api_v1.Pod{
-					{
-						ObjectMeta: meta_v1.ObjectMeta{Name: "pod1"},
-						Spec:       api_v1.PodSpec{},
-						Status: api_v1.PodStatus{
-							Phase: "Pending",
-							Conditions: []api_v1.PodCondition{
-								{
-									Status:  "False",
-									Type:    "PodScheduled",
-									Reason:  "Unschedulable",
-									Message: "0/1 nodes are available: 1 Insufficient memory",
-								},
-							},
-						},
-					},
+			podList := podTemplate("Pending")
+
+			errMsg := "0/1 nodes are available: 1 Insufficient memory"
+			condition := []api_v1.PodCondition{
+				{
+					Message: errMsg,
 				},
 			}
+			podList.Items[0].Status.Conditions = condition
 			fakeCluster.ListPodsReturns(&podList, nil)
 
 			message, statusCode, err := myHelmClient.ReleaseReadiness("myRelease", "myInstance", fakeCluster)
 
 			Expect(err).To(BeNil())
 			Expect(statusCode).To(Equal(hapi_release.Status_PENDING_INSTALL))
-			Expect(*message).To(ContainSubstring("0/1 nodes are available: 1 Insufficient memory"))
+			Expect(*message).To(ContainSubstring(errMsg))
 		})
 
 		It("considers a pod status of Completed as meaning the pod succeeded", func() {
-			serviceList := api_v1.ServiceList{
-				Items: []api_v1.Service{
-					{
-						ObjectMeta: meta_v1.ObjectMeta{Name: "kibosh-my-mysql-db-instance"},
-						Spec: api_v1.ServiceSpec{
-							Ports: []api_v1.ServicePort{},
-							Type:  "LoadBalancer",
-						},
-						Status: api_v1.ServiceStatus{
-							LoadBalancer: api_v1.LoadBalancerStatus{
-								Ingress: []api_v1.LoadBalancerIngress{
-									{IP: "127.0.0.1"},
-								},
-							},
-						},
-					},
-				},
-			}
+			serviceList := serviceTemplate(true)
 			fakeCluster.ListServicesReturns(&serviceList, nil)
 
-			podList := api_v1.PodList{
-				Items: []api_v1.Pod{
-					{
-						ObjectMeta: meta_v1.ObjectMeta{
-							Name: "pod1",
-							Labels: map[string]string{
-								"job-name": "test",
-							},
-						},
-						Spec: api_v1.PodSpec{},
-						Status: api_v1.PodStatus{
-							Phase: "Succeeded",
-						},
-					},
-				},
-			}
+			podList := podTemplate("Succeeded")
 			fakeCluster.ListPodsReturns(&podList, nil)
+
+			volumeClaimList := PVCTemplate("Bound")
+			fakeCluster.ListPersistentVolumesReturns(&volumeClaimList, nil)
+
+			deploymentsList := deploymentTemplate(true)
+			fakeCluster.ListDeploymentsReturns(&deploymentsList, nil)
 
 			message, statusCode, err := myHelmClient.ReleaseReadiness("myRelease", "myInstance", fakeCluster)
 
@@ -279,24 +217,7 @@ foo: bar
 		})
 
 		It("returns error when unable to list pods", func() {
-			serviceList := api_v1.ServiceList{
-				Items: []api_v1.Service{
-					{
-						ObjectMeta: meta_v1.ObjectMeta{Name: "kibosh-my-mysql-db-instance"},
-						Spec: api_v1.ServiceSpec{
-							Ports: []api_v1.ServicePort{},
-							Type:  "LoadBalancer",
-						},
-						Status: api_v1.ServiceStatus{
-							LoadBalancer: api_v1.LoadBalancerStatus{
-								Ingress: []api_v1.LoadBalancerIngress{
-									{IP: "127.0.0.1"},
-								},
-							},
-						},
-					},
-				},
-			}
+			serviceList := serviceTemplate(true)
 			fakeCluster.ListServicesReturns(&serviceList, nil)
 
 			fakeCluster.ListPodsReturns(nil, errors.New("nope"))
@@ -319,5 +240,237 @@ foo: bar
 			Expect(statusCode).To(Equal(hapi_release.Status_UNKNOWN))
 			Expect(message).To(BeNil())
 		})
+
+		It("wait until volume claims are bound", func() {
+			serviceList := serviceTemplate(true)
+			fakeCluster.ListServicesReturns(&serviceList, nil)
+
+			podList := podTemplate("Succeeded")
+			fakeCluster.ListPodsReturns(&podList, nil)
+
+			volumeClaimList := PVCTemplate("Available")
+
+			fakeCluster.ListPersistentVolumesReturns(&volumeClaimList, nil)
+
+			message, statusCode, err := myHelmClient.ReleaseReadiness("myRelease", "myInstance", fakeCluster)
+
+			Expect(err).To(BeNil())
+			Expect(statusCode).To(Equal(hapi_release.Status_PENDING_INSTALL))
+			Expect(*message).To(ContainSubstring("PersistentVolumeClaim is not ready:"))
+		})
+
+		It("volume claims are bound", func() {
+			serviceList := serviceTemplate(true)
+			fakeCluster.ListServicesReturns(&serviceList, nil)
+
+			podList := podTemplate("Succeeded")
+			fakeCluster.ListPodsReturns(&podList, nil)
+
+			volumeClaimList := PVCTemplate("Bound")
+			fakeCluster.ListPersistentVolumesReturns(&volumeClaimList, nil)
+
+			deploymentsList := deploymentTemplate(true)
+			fakeCluster.ListDeploymentsReturns(&deploymentsList, nil)
+
+			message, statusCode, err := myHelmClient.ReleaseReadiness("myRelease", "myInstance", fakeCluster)
+
+			Expect(err).To(BeNil())
+			Expect(statusCode).To(Equal(hapi_release.Status_DEPLOYED))
+			Expect(message).To(BeNil())
+		})
+
+		It("returns error when unable to list volumeClaim", func() {
+			serviceList := serviceTemplate(true)
+			fakeCluster.ListServicesReturns(&serviceList, nil)
+
+			podList := podTemplate("Succeeded")
+			fakeCluster.ListPodsReturns(&podList, nil)
+
+			volumeClaimList := PVCTemplate("Available")
+			errMessage := "bad volume list"
+			fakeCluster.ListPersistentVolumesReturns(&volumeClaimList, errors.New(errMessage))
+
+			message, statusCode, err := myHelmClient.ReleaseReadiness("myRelease", "myInstance", fakeCluster)
+
+			Expect(err).ToNot(BeNil())
+			Expect(statusCode).To(Equal(hapi_release.Status_UNKNOWN))
+			Expect(message).To(BeNil())
+			Expect(err.Error()).To(ContainSubstring(errMessage))
+		})
+
+		It("wait for deployments to be ready", func() {
+			serviceList := serviceTemplate(true)
+			fakeCluster.ListServicesReturns(&serviceList, nil)
+
+			podList := podTemplate("Succeeded")
+			fakeCluster.ListPodsReturns(&podList, nil)
+
+			volumeClaimList := PVCTemplate("Bound")
+			fakeCluster.ListPersistentVolumesReturns(&volumeClaimList, nil)
+
+			deploymentsList := deploymentTemplate(false)
+
+			fakeCluster.ListDeploymentsReturns(&deploymentsList, nil)
+
+			message, statusCode, err := myHelmClient.ReleaseReadiness("myRelease", "myInstance", fakeCluster)
+
+			Expect(err).To(BeNil())
+			Expect(statusCode).To(Equal(hapi_release.Status_PENDING_INSTALL))
+			Expect(*message).To(ContainSubstring("Deployment is not ready:"))
+		})
+
+		It("Deployments are ready", func() {
+			serviceList := serviceTemplate(true)
+			fakeCluster.ListServicesReturns(&serviceList, nil)
+
+			podList := podTemplate("Succeeded")
+			fakeCluster.ListPodsReturns(&podList, nil)
+
+			volumeClaimList := PVCTemplate("Bound")
+			fakeCluster.ListPersistentVolumesReturns(&volumeClaimList, nil)
+			deploymentsList := deploymentTemplate(true)
+
+			fakeCluster.ListDeploymentsReturns(&deploymentsList, nil)
+
+			message, statusCode, err := myHelmClient.ReleaseReadiness("myRelease", "myInstance", fakeCluster)
+
+			Expect(err).To(BeNil())
+			Expect(statusCode).To(Equal(hapi_release.Status_DEPLOYED))
+			Expect(message).To(BeNil())
+		})
+
+		It("ListDeployment returns error", func() {
+			serviceList := serviceTemplate(true)
+			fakeCluster.ListServicesReturns(&serviceList, nil)
+
+			podList := podTemplate("Succeeded")
+			fakeCluster.ListPodsReturns(&podList, nil)
+
+			volumeClaimList := PVCTemplate("Bound")
+			fakeCluster.ListPersistentVolumesReturns(&volumeClaimList, nil)
+
+			errMessage := "deployment list error"
+
+			fakeCluster.ListDeploymentsReturns(nil, errors.New(errMessage))
+
+			message, statusCode, err := myHelmClient.ReleaseReadiness("myRelease", "myInstance", fakeCluster)
+
+			Expect(err).ToNot(BeNil())
+			Expect(err.Error()).To(Equal(errMessage))
+			Expect(statusCode).To(Equal(hapi_release.Status_UNKNOWN))
+			Expect(message).To(BeNil())
+		})
 	})
 })
+
+func deploymentTemplate(readyStatus bool) k8s.DeploymentList {
+	readyReplicas := int32(1)
+	if readyStatus {
+		readyReplicas = 3
+	}
+	unavailableMax := intstr.FromInt(1)
+	replicaCount := int32(3)
+
+	return k8s.DeploymentList{
+		Items: []k8s.Deployment{
+			{
+				ReplicaSets: &appsv1.ReplicaSet{
+					ObjectMeta: meta_v1.ObjectMeta{
+						Name: "replicaset1",
+						Labels: map[string]string{
+							"job-name": "test",
+						},
+					},
+					Spec: appsv1.ReplicaSetSpec{},
+					Status: appsv1.ReplicaSetStatus{
+						ReadyReplicas: readyReplicas,
+					},
+				},
+				Deployment: &appsv1.Deployment{
+					ObjectMeta: meta_v1.ObjectMeta{
+						Name: "deployment1",
+						Labels: map[string]string{
+							"job-name": "test",
+						},
+					},
+					Spec: appsv1.DeploymentSpec{
+						Strategy: appsv1.DeploymentStrategy{
+							RollingUpdate: &appsv1.RollingUpdateDeployment{
+								MaxUnavailable: &unavailableMax,
+							},
+						},
+						Replicas: &replicaCount,
+					},
+					Status: appsv1.DeploymentStatus{},
+				},
+			},
+		},
+	}
+}
+
+func serviceTemplate(ready bool) api_v1.ServiceList {
+	var ingress []api_v1.LoadBalancerIngress
+
+	if ready {
+		ipAddress := api_v1.LoadBalancerIngress{
+			IP: "127.0.0.1",
+		}
+		ingress = append(ingress, ipAddress)
+	}
+	return api_v1.ServiceList{
+		Items: []api_v1.Service{
+			{
+				ObjectMeta: meta_v1.ObjectMeta{Name: "kibosh-my-mysql-db-instance"},
+				Spec: api_v1.ServiceSpec{
+					Ports: []api_v1.ServicePort{},
+					Type:  "LoadBalancer",
+				},
+				Status: api_v1.ServiceStatus{
+					LoadBalancer: api_v1.LoadBalancerStatus{
+						Ingress: ingress,
+					},
+				},
+			},
+		},
+	}
+}
+
+func podTemplate(phase api_v1.PodPhase) api_v1.PodList {
+
+	return api_v1.PodList{
+		Items: []api_v1.Pod{
+			{
+				ObjectMeta: meta_v1.ObjectMeta{
+					Name: "pod1",
+					Labels: map[string]string{
+						"job-name": "test",
+					},
+				},
+				Spec: api_v1.PodSpec{},
+				Status: api_v1.PodStatus{
+					Phase: phase,
+				},
+			},
+		},
+	}
+}
+
+func PVCTemplate(phase api_v1.PersistentVolumeClaimPhase) api_v1.PersistentVolumeClaimList {
+
+	return api_v1.PersistentVolumeClaimList{
+		Items: []api_v1.PersistentVolumeClaim{
+			{
+				ObjectMeta: meta_v1.ObjectMeta{
+					Name: "volumeClaim1",
+					Labels: map[string]string{
+						"job-name": "test",
+					},
+				},
+				Spec: api_v1.PersistentVolumeClaimSpec{},
+				Status: api_v1.PersistentVolumeClaimStatus{
+					Phase: phase,
+				},
+			},
+		},
+	}
+}

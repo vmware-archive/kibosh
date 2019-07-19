@@ -303,11 +303,11 @@ func (c myHelmClient) volumesReady(instanceID string, cluster k8s.Cluster) (*str
 		return nil, false, err
 	}
 
-	for _, volumeClaim := range persistentVolumeClaimList {
+	for _, volumeClaim := range persistentVolumeClaimList.Items {
 		if volumeClaim.Status.Phase != api_v1.ClaimBound {
-			var message *string
-			*message = fmt.Sprintf("PersistentVolumeClaim is not ready: %s/%s", volumeClaim.GetNamespace(), volumeClaim.GetName())
-			return message, false, err
+			var message string
+			message = fmt.Sprintf("PersistentVolumeClaim is not ready: %s/%s", volumeClaim.GetNamespace(), volumeClaim.GetName())
+			return &message, false, err
 		}
 	}
 
@@ -319,11 +319,11 @@ func (c myHelmClient) deploymentsReady(instanceID string, cluster k8s.Cluster) (
 	if err != nil {
 		return nil, false, err
 	}
-	for _, deployment := range deployments {
-		if !(deployment.ReplicaSets.Status.ReadyReplicas >= *deployment.Deployment.Spec.Replicas-deploymentutil.MaxUnavailable(*deployment.Deployment)) {
-			var message *string
-			*message = fmt.Sprintf("Deployment is not ready: %s/%s", deployment.Deployment.GetNamespace(), deployment.Deployment.GetName())
-			return message, false, nil
+	for _, deployment := range deployments.Items {
+		if deployment.ReplicaSets.Status.ReadyReplicas < *deployment.Deployment.Spec.Replicas-deploymentutil.MaxUnavailable(*deployment.Deployment) {
+			var message string
+			message = fmt.Sprintf("Deployment is not ready: %s/%s", deployment.Deployment.GetNamespace(), deployment.Deployment.GetName())
+			return &message, false, nil
 		}
 	}
 	return nil, true, nil
