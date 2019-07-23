@@ -206,7 +206,7 @@ func (c myHelmClient) InstallReleaseFromChart(myChart *chart.Chart, namespace st
 }
 
 func (c myHelmClient) InstallChart(registryConfig *config.RegistryConfig, namespace api_v1.Namespace, releaseName string, chart *MyChart, planName string, installValues []byte) (*rls.InstallReleaseResponse, error) {
-	_, err := c.cluster.CreateNamespace(&namespace)
+	_, err := c.cluster.CreateNamespaceIfNotExists(&namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -219,14 +219,18 @@ func (c myHelmClient) InstallChart(registryConfig *config.RegistryConfig, namesp
 			return nil, err
 		}
 	}
-
-	overrideValues, err := c.MergeValueBytes(chart.TransformedValues, chart.Plans[planName].Values)
-	if err != nil {
-		return nil, err
-	}
-	mergedValues, _ := c.MergeValueBytes(overrideValues, installValues)
-	if err != nil {
-		return nil, err
+	var mergedValues []byte
+	if planName != "" {
+		overrideValues, err := c.MergeValueBytes(chart.TransformedValues, chart.Plans[planName].Values)
+		if err != nil {
+			return nil, err
+		}
+		mergedValues, err = c.MergeValueBytes(overrideValues, installValues)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		mergedValues = installValues
 	}
 
 	return c.InstallReleaseFromChart(chart.Chart, namespaceName, helm.ReleaseName(releaseName), helm.ValueOverrides(mergedValues))
