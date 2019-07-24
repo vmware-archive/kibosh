@@ -459,7 +459,7 @@ var _ = Describe("Broker", func() {
 				},
 			}, nil)
 
-			fakeHelmClient.ReleaseReadinessReturns(nil, hapi_release.Status_DEPLOYED, nil)
+			fakeHelmClient.ResourceReadinessReturns(nil, hapi_release.Status_DEPLOYED, nil)
 
 			resp, err := broker.LastOperation(nil, "my-instance-guid", brokerapi.PollDetails{OperationData: "provision"})
 
@@ -497,7 +497,7 @@ var _ = Describe("Broker", func() {
 				},
 			}, nil)
 
-			fakeHelmClient.ReleaseReadinessReturns(nil, hapi_release.Status_DEPLOYED, nil)
+			fakeHelmClient.ResourceReadinessReturns(nil, hapi_release.Status_DEPLOYED, nil)
 
 			resp, err := broker.LastOperation(nil, "my-instance-guid", brokerapi.PollDetails{OperationData: "update"})
 

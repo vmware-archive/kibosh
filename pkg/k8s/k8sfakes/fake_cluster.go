@@ -2,30 +2,30 @@
 package k8sfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	k8s "github.com/cf-platform-eng/kibosh/pkg/k8s"
+	"github.com/cf-platform-eng/kibosh/pkg/k8s"
 	v1 "k8s.io/api/core/v1"
-	v1beta1 "k8s.io/api/extensions/v1beta1"
-	v1beta1a "k8s.io/api/rbac/v1beta1"
+	v1beta1a "k8s.io/api/extensions/v1beta1"
+	"k8s.io/api/rbac/v1beta1"
 	v1a "k8s.io/apimachinery/pkg/apis/meta/v1"
-	types "k8s.io/apimachinery/pkg/types"
-	kubernetes "k8s.io/client-go/kubernetes"
-	rest "k8s.io/client-go/rest"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 type FakeCluster struct {
-	CreateClusterRoleBindingStub        func(*v1beta1a.ClusterRoleBinding) (*v1beta1a.ClusterRoleBinding, error)
+	CreateClusterRoleBindingStub        func(*v1beta1.ClusterRoleBinding) (*v1beta1.ClusterRoleBinding, error)
 	createClusterRoleBindingMutex       sync.RWMutex
 	createClusterRoleBindingArgsForCall []struct {
-		arg1 *v1beta1a.ClusterRoleBinding
+		arg1 *v1beta1.ClusterRoleBinding
 	}
 	createClusterRoleBindingReturns struct {
-		result1 *v1beta1a.ClusterRoleBinding
+		result1 *v1beta1.ClusterRoleBinding
 		result2 error
 	}
 	createClusterRoleBindingReturnsOnCall map[int]struct {
-		result1 *v1beta1a.ClusterRoleBinding
+		result1 *v1beta1.ClusterRoleBinding
 		result2 error
 	}
 	CreateNamespaceStub        func(*v1.Namespace) (*v1.Namespace, error)
@@ -114,7 +114,7 @@ type FakeCluster struct {
 	getClientConfigReturnsOnCall map[int]struct {
 		result1 *rest.Config
 	}
-	GetDeploymentStub        func(string, string, v1a.GetOptions) (*v1beta1.Deployment, error)
+	GetDeploymentStub        func(string, string, v1a.GetOptions) (*v1beta1a.Deployment, error)
 	getDeploymentMutex       sync.RWMutex
 	getDeploymentArgsForCall []struct {
 		arg1 string
@@ -122,11 +122,11 @@ type FakeCluster struct {
 		arg3 v1a.GetOptions
 	}
 	getDeploymentReturns struct {
-		result1 *v1beta1.Deployment
+		result1 *v1beta1a.Deployment
 		result2 error
 	}
 	getDeploymentReturnsOnCall map[int]struct {
-		result1 *v1beta1.Deployment
+		result1 *v1beta1a.Deployment
 		result2 error
 	}
 	GetNamespaceStub        func(string, *v1a.GetOptions) (*v1.Namespace, error)
@@ -171,17 +171,17 @@ type FakeCluster struct {
 		result1 map[string]interface{}
 		result2 error
 	}
-	ListClusterRoleBindingsStub        func(v1a.ListOptions) (*v1beta1a.ClusterRoleBindingList, error)
+	ListClusterRoleBindingsStub        func(v1a.ListOptions) (*v1beta1.ClusterRoleBindingList, error)
 	listClusterRoleBindingsMutex       sync.RWMutex
 	listClusterRoleBindingsArgsForCall []struct {
 		arg1 v1a.ListOptions
 	}
 	listClusterRoleBindingsReturns struct {
-		result1 *v1beta1a.ClusterRoleBindingList
+		result1 *v1beta1.ClusterRoleBindingList
 		result2 error
 	}
 	listClusterRoleBindingsReturnsOnCall map[int]struct {
-		result1 *v1beta1a.ClusterRoleBindingList
+		result1 *v1beta1.ClusterRoleBindingList
 		result2 error
 	}
 	ListDeploymentsStub        func(string, v1a.ListOptions) (*k8s.DeploymentList, error)
@@ -316,11 +316,11 @@ type FakeCluster struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeCluster) CreateClusterRoleBinding(arg1 *v1beta1a.ClusterRoleBinding) (*v1beta1a.ClusterRoleBinding, error) {
+func (fake *FakeCluster) CreateClusterRoleBinding(arg1 *v1beta1.ClusterRoleBinding) (*v1beta1.ClusterRoleBinding, error) {
 	fake.createClusterRoleBindingMutex.Lock()
 	ret, specificReturn := fake.createClusterRoleBindingReturnsOnCall[len(fake.createClusterRoleBindingArgsForCall)]
 	fake.createClusterRoleBindingArgsForCall = append(fake.createClusterRoleBindingArgsForCall, struct {
-		arg1 *v1beta1a.ClusterRoleBinding
+		arg1 *v1beta1.ClusterRoleBinding
 	}{arg1})
 	fake.recordInvocation("CreateClusterRoleBinding", []interface{}{arg1})
 	fake.createClusterRoleBindingMutex.Unlock()
@@ -340,41 +340,41 @@ func (fake *FakeCluster) CreateClusterRoleBindingCallCount() int {
 	return len(fake.createClusterRoleBindingArgsForCall)
 }
 
-func (fake *FakeCluster) CreateClusterRoleBindingCalls(stub func(*v1beta1a.ClusterRoleBinding) (*v1beta1a.ClusterRoleBinding, error)) {
+func (fake *FakeCluster) CreateClusterRoleBindingCalls(stub func(*v1beta1.ClusterRoleBinding) (*v1beta1.ClusterRoleBinding, error)) {
 	fake.createClusterRoleBindingMutex.Lock()
 	defer fake.createClusterRoleBindingMutex.Unlock()
 	fake.CreateClusterRoleBindingStub = stub
 }
 
-func (fake *FakeCluster) CreateClusterRoleBindingArgsForCall(i int) *v1beta1a.ClusterRoleBinding {
+func (fake *FakeCluster) CreateClusterRoleBindingArgsForCall(i int) *v1beta1.ClusterRoleBinding {
 	fake.createClusterRoleBindingMutex.RLock()
 	defer fake.createClusterRoleBindingMutex.RUnlock()
 	argsForCall := fake.createClusterRoleBindingArgsForCall[i]
 	return argsForCall.arg1
 }
 
-func (fake *FakeCluster) CreateClusterRoleBindingReturns(result1 *v1beta1a.ClusterRoleBinding, result2 error) {
+func (fake *FakeCluster) CreateClusterRoleBindingReturns(result1 *v1beta1.ClusterRoleBinding, result2 error) {
 	fake.createClusterRoleBindingMutex.Lock()
 	defer fake.createClusterRoleBindingMutex.Unlock()
 	fake.CreateClusterRoleBindingStub = nil
 	fake.createClusterRoleBindingReturns = struct {
-		result1 *v1beta1a.ClusterRoleBinding
+		result1 *v1beta1.ClusterRoleBinding
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCluster) CreateClusterRoleBindingReturnsOnCall(i int, result1 *v1beta1a.ClusterRoleBinding, result2 error) {
+func (fake *FakeCluster) CreateClusterRoleBindingReturnsOnCall(i int, result1 *v1beta1.ClusterRoleBinding, result2 error) {
 	fake.createClusterRoleBindingMutex.Lock()
 	defer fake.createClusterRoleBindingMutex.Unlock()
 	fake.CreateClusterRoleBindingStub = nil
 	if fake.createClusterRoleBindingReturnsOnCall == nil {
 		fake.createClusterRoleBindingReturnsOnCall = make(map[int]struct {
-			result1 *v1beta1a.ClusterRoleBinding
+			result1 *v1beta1.ClusterRoleBinding
 			result2 error
 		})
 	}
 	fake.createClusterRoleBindingReturnsOnCall[i] = struct {
-		result1 *v1beta1a.ClusterRoleBinding
+		result1 *v1beta1.ClusterRoleBinding
 		result2 error
 	}{result1, result2}
 }
@@ -798,7 +798,7 @@ func (fake *FakeCluster) GetClientConfigReturnsOnCall(i int, result1 *rest.Confi
 	}{result1}
 }
 
-func (fake *FakeCluster) GetDeployment(arg1 string, arg2 string, arg3 v1a.GetOptions) (*v1beta1.Deployment, error) {
+func (fake *FakeCluster) GetDeployment(arg1 string, arg2 string, arg3 v1a.GetOptions) (*v1beta1a.Deployment, error) {
 	fake.getDeploymentMutex.Lock()
 	ret, specificReturn := fake.getDeploymentReturnsOnCall[len(fake.getDeploymentArgsForCall)]
 	fake.getDeploymentArgsForCall = append(fake.getDeploymentArgsForCall, struct {
@@ -824,7 +824,7 @@ func (fake *FakeCluster) GetDeploymentCallCount() int {
 	return len(fake.getDeploymentArgsForCall)
 }
 
-func (fake *FakeCluster) GetDeploymentCalls(stub func(string, string, v1a.GetOptions) (*v1beta1.Deployment, error)) {
+func (fake *FakeCluster) GetDeploymentCalls(stub func(string, string, v1a.GetOptions) (*v1beta1a.Deployment, error)) {
 	fake.getDeploymentMutex.Lock()
 	defer fake.getDeploymentMutex.Unlock()
 	fake.GetDeploymentStub = stub
@@ -837,28 +837,28 @@ func (fake *FakeCluster) GetDeploymentArgsForCall(i int) (string, string, v1a.Ge
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
-func (fake *FakeCluster) GetDeploymentReturns(result1 *v1beta1.Deployment, result2 error) {
+func (fake *FakeCluster) GetDeploymentReturns(result1 *v1beta1a.Deployment, result2 error) {
 	fake.getDeploymentMutex.Lock()
 	defer fake.getDeploymentMutex.Unlock()
 	fake.GetDeploymentStub = nil
 	fake.getDeploymentReturns = struct {
-		result1 *v1beta1.Deployment
+		result1 *v1beta1a.Deployment
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCluster) GetDeploymentReturnsOnCall(i int, result1 *v1beta1.Deployment, result2 error) {
+func (fake *FakeCluster) GetDeploymentReturnsOnCall(i int, result1 *v1beta1a.Deployment, result2 error) {
 	fake.getDeploymentMutex.Lock()
 	defer fake.getDeploymentMutex.Unlock()
 	fake.GetDeploymentStub = nil
 	if fake.getDeploymentReturnsOnCall == nil {
 		fake.getDeploymentReturnsOnCall = make(map[int]struct {
-			result1 *v1beta1.Deployment
+			result1 *v1beta1a.Deployment
 			result2 error
 		})
 	}
 	fake.getDeploymentReturnsOnCall[i] = struct {
-		result1 *v1beta1.Deployment
+		result1 *v1beta1a.Deployment
 		result2 error
 	}{result1, result2}
 }
@@ -1055,7 +1055,7 @@ func (fake *FakeCluster) GetSecretsAndServicesReturnsOnCall(i int, result1 map[s
 	}{result1, result2}
 }
 
-func (fake *FakeCluster) ListClusterRoleBindings(arg1 v1a.ListOptions) (*v1beta1a.ClusterRoleBindingList, error) {
+func (fake *FakeCluster) ListClusterRoleBindings(arg1 v1a.ListOptions) (*v1beta1.ClusterRoleBindingList, error) {
 	fake.listClusterRoleBindingsMutex.Lock()
 	ret, specificReturn := fake.listClusterRoleBindingsReturnsOnCall[len(fake.listClusterRoleBindingsArgsForCall)]
 	fake.listClusterRoleBindingsArgsForCall = append(fake.listClusterRoleBindingsArgsForCall, struct {
@@ -1079,7 +1079,7 @@ func (fake *FakeCluster) ListClusterRoleBindingsCallCount() int {
 	return len(fake.listClusterRoleBindingsArgsForCall)
 }
 
-func (fake *FakeCluster) ListClusterRoleBindingsCalls(stub func(v1a.ListOptions) (*v1beta1a.ClusterRoleBindingList, error)) {
+func (fake *FakeCluster) ListClusterRoleBindingsCalls(stub func(v1a.ListOptions) (*v1beta1.ClusterRoleBindingList, error)) {
 	fake.listClusterRoleBindingsMutex.Lock()
 	defer fake.listClusterRoleBindingsMutex.Unlock()
 	fake.ListClusterRoleBindingsStub = stub
@@ -1092,28 +1092,28 @@ func (fake *FakeCluster) ListClusterRoleBindingsArgsForCall(i int) v1a.ListOptio
 	return argsForCall.arg1
 }
 
-func (fake *FakeCluster) ListClusterRoleBindingsReturns(result1 *v1beta1a.ClusterRoleBindingList, result2 error) {
+func (fake *FakeCluster) ListClusterRoleBindingsReturns(result1 *v1beta1.ClusterRoleBindingList, result2 error) {
 	fake.listClusterRoleBindingsMutex.Lock()
 	defer fake.listClusterRoleBindingsMutex.Unlock()
 	fake.ListClusterRoleBindingsStub = nil
 	fake.listClusterRoleBindingsReturns = struct {
-		result1 *v1beta1a.ClusterRoleBindingList
+		result1 *v1beta1.ClusterRoleBindingList
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCluster) ListClusterRoleBindingsReturnsOnCall(i int, result1 *v1beta1a.ClusterRoleBindingList, result2 error) {
+func (fake *FakeCluster) ListClusterRoleBindingsReturnsOnCall(i int, result1 *v1beta1.ClusterRoleBindingList, result2 error) {
 	fake.listClusterRoleBindingsMutex.Lock()
 	defer fake.listClusterRoleBindingsMutex.Unlock()
 	fake.ListClusterRoleBindingsStub = nil
 	if fake.listClusterRoleBindingsReturnsOnCall == nil {
 		fake.listClusterRoleBindingsReturnsOnCall = make(map[int]struct {
-			result1 *v1beta1a.ClusterRoleBindingList
+			result1 *v1beta1.ClusterRoleBindingList
 			result2 error
 		})
 	}
 	fake.listClusterRoleBindingsReturnsOnCall[i] = struct {
-		result1 *v1beta1a.ClusterRoleBindingList
+		result1 *v1beta1.ClusterRoleBindingList
 		result2 error
 	}{result1, result2}
 }

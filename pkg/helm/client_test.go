@@ -167,7 +167,7 @@ foo: bar
 			serviceList := serviceTemplate(false)
 			fakeCluster.ListServicesReturns(&serviceList, nil)
 
-			message, statusCode, err := myHelmClient.ReleaseReadiness("myRelease", "myInstance", fakeCluster)
+			message, statusCode, err := myHelmClient.ResourceReadiness("myNamespace", fakeCluster)
 
 			Expect(err).To(BeNil())
 			Expect(*message).To(Equal("service deployment load balancer in progress"))
@@ -189,7 +189,7 @@ foo: bar
 			podList.Items[0].Status.Conditions = condition
 			fakeCluster.ListPodsReturns(&podList, nil)
 
-			message, statusCode, err := myHelmClient.ReleaseReadiness("myRelease", "myInstance", fakeCluster)
+			message, statusCode, err := myHelmClient.ResourceReadiness("myNamespace", fakeCluster)
 
 			Expect(err).To(BeNil())
 			Expect(statusCode).To(Equal(hapi_release.Status_PENDING_INSTALL))
@@ -207,7 +207,7 @@ foo: bar
 
 			fakeCluster.ListPersistentVolumesReturns(&volumeClaimList, nil)
 
-			message, statusCode, err := myHelmClient.ReleaseReadiness("myRelease", "myInstance", fakeCluster)
+			message, statusCode, err := myHelmClient.ResourceReadiness("myNamespace", fakeCluster)
 
 			Expect(err).To(BeNil())
 			Expect(statusCode).To(Equal(hapi_release.Status_PENDING_INSTALL))
@@ -228,7 +228,7 @@ foo: bar
 
 			fakeCluster.ListDeploymentsReturns(&deploymentsList, nil)
 
-			message, statusCode, err := myHelmClient.ReleaseReadiness("myRelease", "myInstance", fakeCluster)
+			message, statusCode, err := myHelmClient.ResourceReadiness("myNamespace", fakeCluster)
 
 			Expect(err).To(BeNil())
 			Expect(statusCode).To(Equal(hapi_release.Status_PENDING_INSTALL))
@@ -248,7 +248,7 @@ foo: bar
 			deploymentsList := deploymentTemplate(true)
 			fakeCluster.ListDeploymentsReturns(&deploymentsList, nil)
 
-			message, statusCode, err := myHelmClient.ReleaseReadiness("myRelease", "myInstance", fakeCluster)
+			message, statusCode, err := myHelmClient.ResourceReadiness("myNamespace", fakeCluster)
 
 			Expect(err).To(BeNil())
 			Expect(statusCode).To(Equal(hapi_release.Status_DEPLOYED))
@@ -268,7 +268,7 @@ foo: bar
 			deploymentsList := deploymentTemplate(true)
 			fakeCluster.ListDeploymentsReturns(&deploymentsList, nil)
 
-			message, statusCode, err := myHelmClient.ReleaseReadiness("myRelease", "myInstance", fakeCluster)
+			message, statusCode, err := myHelmClient.ResourceReadiness("myNamespace", fakeCluster)
 
 			Expect(err).To(BeNil())
 			Expect(statusCode).To(Equal(hapi_release.Status_DEPLOYED))
@@ -288,7 +288,7 @@ foo: bar
 
 			fakeCluster.ListDeploymentsReturns(&deploymentsList, nil)
 
-			message, statusCode, err := myHelmClient.ReleaseReadiness("myRelease", "myInstance", fakeCluster)
+			message, statusCode, err := myHelmClient.ResourceReadiness("myNamespace", fakeCluster)
 
 			Expect(err).To(BeNil())
 			Expect(statusCode).To(Equal(hapi_release.Status_DEPLOYED))
@@ -299,7 +299,7 @@ foo: bar
 			errorMsg := "list services error"
 			fakeCluster.ListServicesReturns(&api_v1.ServiceList{}, errors.New(errorMsg))
 
-			message, statusCode, err := myHelmClient.ReleaseReadiness("myRelease", "myInstance", fakeCluster)
+			message, statusCode, err := myHelmClient.ResourceReadiness("myNamespace", fakeCluster)
 
 			Expect(err).ToNot(BeNil())
 			Expect(err.Error()).To(Equal(errorMsg))
@@ -313,7 +313,7 @@ foo: bar
 
 			fakeCluster.ListPodsReturns(nil, errors.New("nope"))
 
-			message, statusCode, err := myHelmClient.ReleaseReadiness("myRelease", "myInstance", fakeCluster)
+			message, statusCode, err := myHelmClient.ResourceReadiness("myNamespace", fakeCluster)
 			Expect(err).NotTo(BeNil())
 			Expect(err.Error()).To(Equal("nope"))
 			Expect(message).To(BeNil())
@@ -331,7 +331,7 @@ foo: bar
 			errMessage := "bad volume list"
 			fakeCluster.ListPersistentVolumesReturns(&volumeClaimList, errors.New(errMessage))
 
-			message, statusCode, err := myHelmClient.ReleaseReadiness("myRelease", "myInstance", fakeCluster)
+			message, statusCode, err := myHelmClient.ResourceReadiness("myNamespace", fakeCluster)
 
 			Expect(err).ToNot(BeNil())
 			Expect(statusCode).To(Equal(hapi_release.Status_UNKNOWN))
@@ -353,7 +353,7 @@ foo: bar
 
 			fakeCluster.ListDeploymentsReturns(nil, errors.New(errMessage))
 
-			message, statusCode, err := myHelmClient.ReleaseReadiness("myRelease", "myInstance", fakeCluster)
+			message, statusCode, err := myHelmClient.ResourceReadiness("myNamespace", fakeCluster)
 
 			Expect(err).ToNot(BeNil())
 			Expect(err.Error()).To(Equal(errMessage))

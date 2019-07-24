@@ -506,7 +506,7 @@ func (broker *PksServiceBroker) LastOperation(ctx context.Context, instanceID st
 
 	var message *string
 	if operationData != "deprovision" {
-		message, code, err = helmClient.ReleaseReadiness(broker.getReleaseName(instanceID), instanceID, cluster)
+		message, code, err = helmClient.ResourceReadiness(broker.getNamespace(instanceID), cluster)
 		if err != nil || code == hapi_release.Status_UNKNOWN {
 			return brokerapi.LastOperation{}, err
 		}

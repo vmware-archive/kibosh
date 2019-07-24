@@ -204,24 +204,6 @@ type FakeMyHelmClient struct {
 		result1 *services.GetHistoryResponse
 		result2 error
 	}
-	ReleaseReadinessStub        func(string, string, k8s.Cluster, ...helma.StatusOption) (*string, release.Status_Code, error)
-	releaseReadinessMutex       sync.RWMutex
-	releaseReadinessArgsForCall []struct {
-		arg1 string
-		arg2 string
-		arg3 k8s.Cluster
-		arg4 []helma.StatusOption
-	}
-	releaseReadinessReturns struct {
-		result1 *string
-		result2 release.Status_Code
-		result3 error
-	}
-	releaseReadinessReturnsOnCall map[int]struct {
-		result1 *string
-		result2 release.Status_Code
-		result3 error
-	}
 	ReleaseStatusStub        func(string, ...helma.StatusOption) (*services.GetReleaseStatusResponse, error)
 	releaseStatusMutex       sync.RWMutex
 	releaseStatusArgsForCall []struct {
@@ -235,6 +217,22 @@ type FakeMyHelmClient struct {
 	releaseStatusReturnsOnCall map[int]struct {
 		result1 *services.GetReleaseStatusResponse
 		result2 error
+	}
+	ResourceReadinessStub        func(string, k8s.Cluster) (*string, release.Status_Code, error)
+	resourceReadinessMutex       sync.RWMutex
+	resourceReadinessArgsForCall []struct {
+		arg1 string
+		arg2 k8s.Cluster
+	}
+	resourceReadinessReturns struct {
+		result1 *string
+		result2 release.Status_Code
+		result3 error
+	}
+	resourceReadinessReturnsOnCall map[int]struct {
+		result1 *string
+		result2 release.Status_Code
+		result3 error
 	}
 	RollbackReleaseStub        func(string, ...helma.RollbackOption) (*services.RollbackReleaseResponse, error)
 	rollbackReleaseMutex       sync.RWMutex
@@ -1220,75 +1218,6 @@ func (fake *FakeMyHelmClient) ReleaseHistoryReturnsOnCall(i int, result1 *servic
 	}{result1, result2}
 }
 
-func (fake *FakeMyHelmClient) ReleaseReadiness(arg1 string, arg2 string, arg3 k8s.Cluster, arg4 ...helma.StatusOption) (*string, release.Status_Code, error) {
-	fake.releaseReadinessMutex.Lock()
-	ret, specificReturn := fake.releaseReadinessReturnsOnCall[len(fake.releaseReadinessArgsForCall)]
-	fake.releaseReadinessArgsForCall = append(fake.releaseReadinessArgsForCall, struct {
-		arg1 string
-		arg2 string
-		arg3 k8s.Cluster
-		arg4 []helma.StatusOption
-	}{arg1, arg2, arg3, arg4})
-	fake.recordInvocation("ReleaseReadiness", []interface{}{arg1, arg2, arg3, arg4})
-	fake.releaseReadinessMutex.Unlock()
-	if fake.ReleaseReadinessStub != nil {
-		return fake.ReleaseReadinessStub(arg1, arg2, arg3, arg4...)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
-	}
-	fakeReturns := fake.releaseReadinessReturns
-	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
-}
-
-func (fake *FakeMyHelmClient) ReleaseReadinessCallCount() int {
-	fake.releaseReadinessMutex.RLock()
-	defer fake.releaseReadinessMutex.RUnlock()
-	return len(fake.releaseReadinessArgsForCall)
-}
-
-func (fake *FakeMyHelmClient) ReleaseReadinessCalls(stub func(string, string, k8s.Cluster, ...helma.StatusOption) (*string, release.Status_Code, error)) {
-	fake.releaseReadinessMutex.Lock()
-	defer fake.releaseReadinessMutex.Unlock()
-	fake.ReleaseReadinessStub = stub
-}
-
-func (fake *FakeMyHelmClient) ReleaseReadinessArgsForCall(i int) (string, string, k8s.Cluster, []helma.StatusOption) {
-	fake.releaseReadinessMutex.RLock()
-	defer fake.releaseReadinessMutex.RUnlock()
-	argsForCall := fake.releaseReadinessArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
-}
-
-func (fake *FakeMyHelmClient) ReleaseReadinessReturns(result1 *string, result2 release.Status_Code, result3 error) {
-	fake.releaseReadinessMutex.Lock()
-	defer fake.releaseReadinessMutex.Unlock()
-	fake.ReleaseReadinessStub = nil
-	fake.releaseReadinessReturns = struct {
-		result1 *string
-		result2 release.Status_Code
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakeMyHelmClient) ReleaseReadinessReturnsOnCall(i int, result1 *string, result2 release.Status_Code, result3 error) {
-	fake.releaseReadinessMutex.Lock()
-	defer fake.releaseReadinessMutex.Unlock()
-	fake.ReleaseReadinessStub = nil
-	if fake.releaseReadinessReturnsOnCall == nil {
-		fake.releaseReadinessReturnsOnCall = make(map[int]struct {
-			result1 *string
-			result2 release.Status_Code
-			result3 error
-		})
-	}
-	fake.releaseReadinessReturnsOnCall[i] = struct {
-		result1 *string
-		result2 release.Status_Code
-		result3 error
-	}{result1, result2, result3}
-}
-
 func (fake *FakeMyHelmClient) ReleaseStatus(arg1 string, arg2 ...helma.StatusOption) (*services.GetReleaseStatusResponse, error) {
 	fake.releaseStatusMutex.Lock()
 	ret, specificReturn := fake.releaseStatusReturnsOnCall[len(fake.releaseStatusArgsForCall)]
@@ -1351,6 +1280,73 @@ func (fake *FakeMyHelmClient) ReleaseStatusReturnsOnCall(i int, result1 *service
 		result1 *services.GetReleaseStatusResponse
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) ResourceReadiness(arg1 string, arg2 k8s.Cluster) (*string, release.Status_Code, error) {
+	fake.resourceReadinessMutex.Lock()
+	ret, specificReturn := fake.resourceReadinessReturnsOnCall[len(fake.resourceReadinessArgsForCall)]
+	fake.resourceReadinessArgsForCall = append(fake.resourceReadinessArgsForCall, struct {
+		arg1 string
+		arg2 k8s.Cluster
+	}{arg1, arg2})
+	fake.recordInvocation("ResourceReadiness", []interface{}{arg1, arg2})
+	fake.resourceReadinessMutex.Unlock()
+	if fake.ResourceReadinessStub != nil {
+		return fake.ResourceReadinessStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	fakeReturns := fake.resourceReadinessReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeMyHelmClient) ResourceReadinessCallCount() int {
+	fake.resourceReadinessMutex.RLock()
+	defer fake.resourceReadinessMutex.RUnlock()
+	return len(fake.resourceReadinessArgsForCall)
+}
+
+func (fake *FakeMyHelmClient) ResourceReadinessCalls(stub func(string, k8s.Cluster) (*string, release.Status_Code, error)) {
+	fake.resourceReadinessMutex.Lock()
+	defer fake.resourceReadinessMutex.Unlock()
+	fake.ResourceReadinessStub = stub
+}
+
+func (fake *FakeMyHelmClient) ResourceReadinessArgsForCall(i int) (string, k8s.Cluster) {
+	fake.resourceReadinessMutex.RLock()
+	defer fake.resourceReadinessMutex.RUnlock()
+	argsForCall := fake.resourceReadinessArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeMyHelmClient) ResourceReadinessReturns(result1 *string, result2 release.Status_Code, result3 error) {
+	fake.resourceReadinessMutex.Lock()
+	defer fake.resourceReadinessMutex.Unlock()
+	fake.ResourceReadinessStub = nil
+	fake.resourceReadinessReturns = struct {
+		result1 *string
+		result2 release.Status_Code
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeMyHelmClient) ResourceReadinessReturnsOnCall(i int, result1 *string, result2 release.Status_Code, result3 error) {
+	fake.resourceReadinessMutex.Lock()
+	defer fake.resourceReadinessMutex.Unlock()
+	fake.ResourceReadinessStub = nil
+	if fake.resourceReadinessReturnsOnCall == nil {
+		fake.resourceReadinessReturnsOnCall = make(map[int]struct {
+			result1 *string
+			result2 release.Status_Code
+			result3 error
+		})
+	}
+	fake.resourceReadinessReturnsOnCall[i] = struct {
+		result1 *string
+		result2 release.Status_Code
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeMyHelmClient) RollbackRelease(arg1 string, arg2 ...helma.RollbackOption) (*services.RollbackReleaseResponse, error) {
@@ -1833,10 +1829,10 @@ func (fake *FakeMyHelmClient) Invocations() map[string][][]interface{} {
 	defer fake.releaseContentMutex.RUnlock()
 	fake.releaseHistoryMutex.RLock()
 	defer fake.releaseHistoryMutex.RUnlock()
-	fake.releaseReadinessMutex.RLock()
-	defer fake.releaseReadinessMutex.RUnlock()
 	fake.releaseStatusMutex.RLock()
 	defer fake.releaseStatusMutex.RUnlock()
+	fake.resourceReadinessMutex.RLock()
+	defer fake.resourceReadinessMutex.RUnlock()
 	fake.rollbackReleaseMutex.RLock()
 	defer fake.rollbackReleaseMutex.RUnlock()
 	fake.runReleaseTestMutex.RLock()
