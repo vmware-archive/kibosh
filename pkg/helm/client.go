@@ -206,7 +206,7 @@ func (c myHelmClient) InstallReleaseFromChart(myChart *chart.Chart, namespace st
 }
 
 func (c myHelmClient) InstallChart(registryConfig *config.RegistryConfig, namespace api_v1.Namespace, releaseName string, chart *MyChart, planName string, installValues []byte) (*rls.InstallReleaseResponse, error) {
-	_, err := c.cluster.CreateNamespaceIfNotExists(&namespace)
+	err := c.cluster.CreateNamespaceIfNotExists(&namespace)
 	if err != nil {
 		return nil, err
 	}

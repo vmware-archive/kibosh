@@ -41,18 +41,16 @@ type FakeCluster struct {
 		result1 *v1.Namespace
 		result2 error
 	}
-	CreateNamespaceIfNotExistsStub        func(*v1.Namespace) (*v1.Namespace, error)
+	CreateNamespaceIfNotExistsStub        func(*v1.Namespace) error
 	createNamespaceIfNotExistsMutex       sync.RWMutex
 	createNamespaceIfNotExistsArgsForCall []struct {
 		arg1 *v1.Namespace
 	}
 	createNamespaceIfNotExistsReturns struct {
-		result1 *v1.Namespace
-		result2 error
+		result1 error
 	}
 	createNamespaceIfNotExistsReturnsOnCall map[int]struct {
-		result1 *v1.Namespace
-		result2 error
+		result1 error
 	}
 	CreateSecretStub        func(string, *v1.Secret) (*v1.Secret, error)
 	createSecretMutex       sync.RWMutex
@@ -281,6 +279,19 @@ type FakeCluster struct {
 		result1 *v1.ServiceList
 		result2 error
 	}
+	NamespaceExistsStub        func(string) (bool, error)
+	namespaceExistsMutex       sync.RWMutex
+	namespaceExistsArgsForCall []struct {
+		arg1 string
+	}
+	namespaceExistsReturns struct {
+		result1 bool
+		result2 error
+	}
+	namespaceExistsReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
 	PatchStub        func(string, string, types.PatchType, []byte, ...string) (*v1.ServiceAccount, error)
 	patchMutex       sync.RWMutex
 	patchArgsForCall []struct {
@@ -442,7 +453,7 @@ func (fake *FakeCluster) CreateNamespaceReturnsOnCall(i int, result1 *v1.Namespa
 	}{result1, result2}
 }
 
-func (fake *FakeCluster) CreateNamespaceIfNotExists(arg1 *v1.Namespace) (*v1.Namespace, error) {
+func (fake *FakeCluster) CreateNamespaceIfNotExists(arg1 *v1.Namespace) error {
 	fake.createNamespaceIfNotExistsMutex.Lock()
 	ret, specificReturn := fake.createNamespaceIfNotExistsReturnsOnCall[len(fake.createNamespaceIfNotExistsArgsForCall)]
 	fake.createNamespaceIfNotExistsArgsForCall = append(fake.createNamespaceIfNotExistsArgsForCall, struct {
@@ -454,10 +465,10 @@ func (fake *FakeCluster) CreateNamespaceIfNotExists(arg1 *v1.Namespace) (*v1.Nam
 		return fake.CreateNamespaceIfNotExistsStub(arg1)
 	}
 	if specificReturn {
-		return ret.result1, ret.result2
+		return ret.result1
 	}
 	fakeReturns := fake.createNamespaceIfNotExistsReturns
-	return fakeReturns.result1, fakeReturns.result2
+	return fakeReturns.result1
 }
 
 func (fake *FakeCluster) CreateNamespaceIfNotExistsCallCount() int {
@@ -466,7 +477,7 @@ func (fake *FakeCluster) CreateNamespaceIfNotExistsCallCount() int {
 	return len(fake.createNamespaceIfNotExistsArgsForCall)
 }
 
-func (fake *FakeCluster) CreateNamespaceIfNotExistsCalls(stub func(*v1.Namespace) (*v1.Namespace, error)) {
+func (fake *FakeCluster) CreateNamespaceIfNotExistsCalls(stub func(*v1.Namespace) error) {
 	fake.createNamespaceIfNotExistsMutex.Lock()
 	defer fake.createNamespaceIfNotExistsMutex.Unlock()
 	fake.CreateNamespaceIfNotExistsStub = stub
@@ -479,30 +490,27 @@ func (fake *FakeCluster) CreateNamespaceIfNotExistsArgsForCall(i int) *v1.Namesp
 	return argsForCall.arg1
 }
 
-func (fake *FakeCluster) CreateNamespaceIfNotExistsReturns(result1 *v1.Namespace, result2 error) {
+func (fake *FakeCluster) CreateNamespaceIfNotExistsReturns(result1 error) {
 	fake.createNamespaceIfNotExistsMutex.Lock()
 	defer fake.createNamespaceIfNotExistsMutex.Unlock()
 	fake.CreateNamespaceIfNotExistsStub = nil
 	fake.createNamespaceIfNotExistsReturns = struct {
-		result1 *v1.Namespace
-		result2 error
-	}{result1, result2}
+		result1 error
+	}{result1}
 }
 
-func (fake *FakeCluster) CreateNamespaceIfNotExistsReturnsOnCall(i int, result1 *v1.Namespace, result2 error) {
+func (fake *FakeCluster) CreateNamespaceIfNotExistsReturnsOnCall(i int, result1 error) {
 	fake.createNamespaceIfNotExistsMutex.Lock()
 	defer fake.createNamespaceIfNotExistsMutex.Unlock()
 	fake.CreateNamespaceIfNotExistsStub = nil
 	if fake.createNamespaceIfNotExistsReturnsOnCall == nil {
 		fake.createNamespaceIfNotExistsReturnsOnCall = make(map[int]struct {
-			result1 *v1.Namespace
-			result2 error
+			result1 error
 		})
 	}
 	fake.createNamespaceIfNotExistsReturnsOnCall[i] = struct {
-		result1 *v1.Namespace
-		result2 error
-	}{result1, result2}
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeCluster) CreateSecret(arg1 string, arg2 *v1.Secret) (*v1.Secret, error) {
@@ -1565,6 +1573,69 @@ func (fake *FakeCluster) ListServicesReturnsOnCall(i int, result1 *v1.ServiceLis
 	}{result1, result2}
 }
 
+func (fake *FakeCluster) NamespaceExists(arg1 string) (bool, error) {
+	fake.namespaceExistsMutex.Lock()
+	ret, specificReturn := fake.namespaceExistsReturnsOnCall[len(fake.namespaceExistsArgsForCall)]
+	fake.namespaceExistsArgsForCall = append(fake.namespaceExistsArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("NamespaceExists", []interface{}{arg1})
+	fake.namespaceExistsMutex.Unlock()
+	if fake.NamespaceExistsStub != nil {
+		return fake.NamespaceExistsStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.namespaceExistsReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeCluster) NamespaceExistsCallCount() int {
+	fake.namespaceExistsMutex.RLock()
+	defer fake.namespaceExistsMutex.RUnlock()
+	return len(fake.namespaceExistsArgsForCall)
+}
+
+func (fake *FakeCluster) NamespaceExistsCalls(stub func(string) (bool, error)) {
+	fake.namespaceExistsMutex.Lock()
+	defer fake.namespaceExistsMutex.Unlock()
+	fake.NamespaceExistsStub = stub
+}
+
+func (fake *FakeCluster) NamespaceExistsArgsForCall(i int) string {
+	fake.namespaceExistsMutex.RLock()
+	defer fake.namespaceExistsMutex.RUnlock()
+	argsForCall := fake.namespaceExistsArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeCluster) NamespaceExistsReturns(result1 bool, result2 error) {
+	fake.namespaceExistsMutex.Lock()
+	defer fake.namespaceExistsMutex.Unlock()
+	fake.NamespaceExistsStub = nil
+	fake.namespaceExistsReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCluster) NamespaceExistsReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.namespaceExistsMutex.Lock()
+	defer fake.namespaceExistsMutex.Unlock()
+	fake.NamespaceExistsStub = nil
+	if fake.namespaceExistsReturnsOnCall == nil {
+		fake.namespaceExistsReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.namespaceExistsReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeCluster) Patch(arg1 string, arg2 string, arg3 types.PatchType, arg4 []byte, arg5 ...string) (*v1.ServiceAccount, error) {
 	var arg4Copy []byte
 	if arg4 != nil {
@@ -1744,6 +1815,8 @@ func (fake *FakeCluster) Invocations() map[string][][]interface{} {
 	defer fake.listServiceAccountsMutex.RUnlock()
 	fake.listServicesMutex.RLock()
 	defer fake.listServicesMutex.RUnlock()
+	fake.namespaceExistsMutex.RLock()
+	defer fake.namespaceExistsMutex.RUnlock()
 	fake.patchMutex.RLock()
 	defer fake.patchMutex.RUnlock()
 	fake.updateSecretMutex.RLock()

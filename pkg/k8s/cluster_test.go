@@ -196,7 +196,7 @@ users:
 			cluster, err := NewUnitTestCluster(&fakeClusterDelegate)
 			Expect(err).To(BeNil())
 
-			_, err = cluster.CreateNamespaceIfNotExists(&api_v1.Namespace{})
+			err = cluster.CreateNamespaceIfNotExists(&api_v1.Namespace{})
 			Expect(err).To(BeNil())
 
 			Expect(fakeClusterDelegate.CreateNamespaceCallCount()).To((Equal(1)))
@@ -209,11 +209,43 @@ users:
 			cluster, err := NewUnitTestCluster(&fakeClusterDelegate)
 			Expect(err).To(BeNil())
 
-			_, err = cluster.CreateNamespaceIfNotExists(&api_v1.Namespace{})
+			err = cluster.CreateNamespaceIfNotExists(&api_v1.Namespace{})
 			Expect(err).To(BeNil())
 
 			Expect(fakeClusterDelegate.CreateNamespaceCallCount()).To((Equal(0)))
 		})
+
+		It("check if namespace exists", func() {
+			fakeClusterDelegate = k8sfakes.FakeClusterDelegate{}
+			fakeClusterDelegate.GetNamespaceReturns(&api_v1.Namespace{}, nil)
+
+			cluster, err := NewUnitTestCluster(&fakeClusterDelegate)
+			Expect(err).To(BeNil())
+
+			exists, err := cluster.NamespaceExists("mynamespace")
+			Expect(err).To(BeNil())
+			Expect(exists).To(BeTrue())
+
+			Expect(fakeClusterDelegate.CreateNamespaceCallCount()).To((Equal(0)))
+		})
+
+		It("namespace doesn't exists", func() {
+			statusError := &k8s_errors.StatusError{ErrStatus: meta_v1.Status{
+				Reason: meta_v1.StatusReasonNotFound},
+			}
+			fakeClusterDelegate = k8sfakes.FakeClusterDelegate{}
+			fakeClusterDelegate.GetNamespaceReturns(nil, statusError)
+
+			cluster, err := NewUnitTestCluster(&fakeClusterDelegate)
+			Expect(err).To(BeNil())
+
+			exists, err := cluster.NamespaceExists("mynamespace")
+			Expect(err).To(BeNil())
+			Expect(exists).To(BeFalse())
+
+			Expect(fakeClusterDelegate.CreateNamespaceCallCount()).To((Equal(0)))
+		})
+
 
 		It("secrets and services returns externalIPs field when Service Type NodePort is used", func() {
 			nodeList := api_v1.NodeList{

@@ -54,7 +54,7 @@ func PrepareCluster(config *config.Config, cluster k8s.Cluster, helmClient my_he
 			Labels: map[string]string{"kibosh": "internal"},
 		},
 	}
-	_, err := cluster.CreateNamespaceIfNotExists(namespace)
+	err := cluster.CreateNamespaceIfNotExists(namespace)
 	if err != nil {
 		logger.WithError(err).Error("failed creating namespace for tiller")
 		return err

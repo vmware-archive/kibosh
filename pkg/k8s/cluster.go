@@ -16,8 +16,8 @@
 package k8s
 
 import (
-	"errors"
 	"github.com/cf-platform-eng/kibosh/pkg/config"
+	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	api_v1 "k8s.io/api/core/v1"
 	v1_beta1 "k8s.io/api/extensions/v1beta1"
@@ -37,7 +37,8 @@ import (
 type Cluster interface {
 	ClusterDelegate
 
-	CreateNamespaceIfNotExists(*api_v1.Namespace) (*api_v1.Namespace, error)
+	CreateNamespaceIfNotExists(*api_v1.Namespace) error
+	NamespaceExists(namespaceName string) (bool, error)
 	GetSecretsAndServices(namespace string) (map[string]interface{}, error)
 }
 
@@ -154,23 +155,39 @@ func GetClusterFromK8sConfig(k8sConfig *k8sAPI.Config) (Cluster, error) {
 	return NewCluster(creds)
 }
 
-func (cluster *cluster) CreateNamespaceIfNotExists(namespace *api_v1.Namespace) (*api_v1.Namespace, error) {
-	_, err := cluster.GetNamespace(namespace.Name, &meta_v1.GetOptions{})
+func (cluster *cluster) CreateNamespaceIfNotExists(namespace *api_v1.Namespace) error {
+
+	exists, err := cluster.NamespaceExists(namespace.Name)
+	if err != nil {
+		return err
+	}
+
+	if !exists {
+		_, err = cluster.CreateNamespace(namespace)
+	}
+	return err
+}
+
+func (cluster *cluster) NamespaceExists(namespaceName string) (bool, error) {
+
+	_, err := cluster.GetNamespace(namespaceName, nil)
 	if err != nil {
 		statusError, ok := err.(*k8s_errors.StatusError)
 		if ok {
-			if statusError.ErrStatus.Reason == meta_v1.StatusReasonNotFound {
-				return cluster.CreateNamespace(namespace)
-			} else {
-				return nil, err
+			if statusError.ErrStatus.Reason != meta_v1.StatusReasonNotFound {
+				return false, err
 			}
 		} else {
-			return nil, err
+			return false, err
 		}
-	} else {
-		return namespace, nil
+
+		return false, nil
 	}
+
+	return true, nil
+
 }
+
 func (cluster *cluster) GetSecretsAndServices(namespace string) (map[string]interface{}, error) {
 	secrets, err := cluster.ListSecrets(namespace, meta_v1.ListOptions{})
 	if err != nil {
@@ -250,7 +267,11 @@ func (cluster *clusterDelegate) DeleteNamespace(name string, options *meta_v1.De
 }
 
 func (cluster *clusterDelegate) GetNamespace(name string, options *meta_v1.GetOptions) (*api_v1.Namespace, error) {
-	return cluster.GetClient().CoreV1().Namespaces().Get(name, meta_v1.GetOptions{})
+	if options == nil {
+		return cluster.GetClient().CoreV1().Namespaces().Get(name, meta_v1.GetOptions{})
+	} else {
+		return cluster.GetClient().CoreV1().Namespaces().Get(name, *options)
+	}
 }
 
 func (cluster *clusterDelegate) ListPods(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.PodList, error) {
