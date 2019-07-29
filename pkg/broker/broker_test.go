@@ -355,7 +355,7 @@ var _ = Describe("Broker", func() {
 				Expect(err).To(BeNil())
 
 				Expect(fakeHelmClient.InstallChartCallCount()).To(Equal(1))
-				_, namespace, releaseName, chart, plan, opts := fakeHelmClient.InstallChartArgsForCall(0)
+				_, namespace, releaseName, chart, plan, opts, _ := fakeHelmClient.InstallChartArgsForCall(0)
 				Expect(chart).To(Equal(spacebearsChart))
 				Expect(namespace.Name).To(Equal("kibosh-my-instance-guid"))
 				Expect(releaseName).To(Equal("k-5h5kntfw"))
@@ -382,7 +382,7 @@ var _ = Describe("Broker", func() {
 				Expect(err).To(BeNil())
 
 				Expect(fakeHelmClient.InstallChartCallCount()).To(Equal(1))
-				_, _, _, chart, _, _ := fakeHelmClient.InstallChartArgsForCall(0)
+				_, _, _, chart, _, _, _ := fakeHelmClient.InstallChartArgsForCall(0)
 				Expect(chart).To(Equal(mysqlChart))
 			})
 
@@ -399,7 +399,7 @@ var _ = Describe("Broker", func() {
 				Expect(err).To(BeNil())
 
 				Expect(fakeHelmClient.InstallChartCallCount()).To(Equal(1))
-				_, namespace, releaseName, chart, plan, opts := fakeHelmClient.InstallChartArgsForCall(0)
+				_, namespace, releaseName, chart, plan, opts, _ := fakeHelmClient.InstallChartArgsForCall(0)
 				Expect(chart).To(Equal(spacebearsChart))
 				Expect(namespace.Name).To(Equal("kibosh-my-instance-guid"))
 				Expect(releaseName).To(Equal("k-5h5kntfw"))

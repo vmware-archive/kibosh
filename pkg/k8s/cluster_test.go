@@ -246,7 +246,6 @@ users:
 			Expect(fakeClusterDelegate.CreateNamespaceCallCount()).To((Equal(0)))
 		})
 
-
 		It("secrets and services returns externalIPs field when Service Type NodePort is used", func() {
 			nodeList := api_v1.NodeList{
 				Items: []api_v1.Node{

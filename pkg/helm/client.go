@@ -62,7 +62,7 @@ type MyHelmClient interface {
 	Install(*helmstaller.Options) error
 	Upgrade(*helmstaller.Options) error
 	Uninstall(*helmstaller.Options) error
-	InstallChart(registryConfig *config.RegistryConfig, namespace api_v1.Namespace, releaseName string, chart *MyChart, planName string, installValues []byte) (*rls.InstallReleaseResponse, error)
+	InstallChart(registryConfig *config.RegistryConfig, namespace api_v1.Namespace, releaseName string, chart *MyChart, planName string, installValues []byte, opts ...helm.InstallOption) (*rls.InstallReleaseResponse, error)
 	InstallOperator(chart *MyChart, namespace string) (*rls.InstallReleaseResponse, error)
 	UpdateChart(chart *MyChart, rlsName string, planName string, updateValues []byte) (*rls.UpdateReleaseResponse, error)
 	MergeValueBytes(base []byte, override []byte) ([]byte, error)
@@ -205,7 +205,7 @@ func (c myHelmClient) InstallReleaseFromChart(myChart *chart.Chart, namespace st
 	return client.InstallReleaseFromChart(myChart, namespace, opts...)
 }
 
-func (c myHelmClient) InstallChart(registryConfig *config.RegistryConfig, namespace api_v1.Namespace, releaseName string, chart *MyChart, planName string, installValues []byte) (*rls.InstallReleaseResponse, error) {
+func (c myHelmClient) InstallChart(registryConfig *config.RegistryConfig, namespace api_v1.Namespace, releaseName string, chart *MyChart, planName string, installValues []byte, opts ...helm.InstallOption) (*rls.InstallReleaseResponse, error) {
 	err := c.cluster.CreateNamespaceIfNotExists(&namespace)
 	if err != nil {
 		return nil, err
@@ -233,7 +233,8 @@ func (c myHelmClient) InstallChart(registryConfig *config.RegistryConfig, namesp
 		mergedValues = installValues
 	}
 
-	return c.InstallReleaseFromChart(chart.Chart, namespaceName, helm.ReleaseName(releaseName), helm.ValueOverrides(mergedValues))
+	mergedOpts := append(opts, helm.ReleaseName(releaseName), helm.ValueOverrides(mergedValues))
+	return c.InstallReleaseFromChart(chart.Chart, namespaceName, mergedOpts...)
 }
 
 func (c myHelmClient) InstallOperator(chart *MyChart, namespace string) (*rls.InstallReleaseResponse, error) {
