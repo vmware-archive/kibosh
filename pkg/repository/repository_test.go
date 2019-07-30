@@ -215,7 +215,7 @@ version: 0.0.2
 			Expect(err).To(BeNil())
 
 			chart, err := helm.NewChart(thirdChartDir, "", logger)
-			tarFile, err := chartutil.Save(chart.Chart, tarDir)
+			tarFile, err := chartutil.Save(&chart.Chart, tarDir)
 
 			err = myRepository.SaveChart(tarFile)
 
@@ -329,7 +329,7 @@ version: 0.0.1
 			Expect(err).To(BeNil())
 
 			chart, err := helm.NewChart(tarDir, "docker.example.com", logger)
-			tarFile, err := chartutil.Save(chart.Chart, tarDir)
+			tarFile, err := chartutil.Save(&chart.Chart, tarDir)
 
 			myRepository := repository.NewRepository(repoDir, "", logger)
 			files, err := ioutil.ReadDir(repoDir)
@@ -378,7 +378,7 @@ version: 0.0.1
 			Expect(err).To(BeNil())
 
 			chart, err := helm.NewChart(tarDir, "docker.example.com", logger)
-			tarFile, err := chartutil.Save(chart.Chart, tarDir)
+			tarFile, err := chartutil.Save(&chart.Chart, tarDir)
 
 			myRepository := repository.NewRepository(repoDir, "", logger)
 			_, err = ioutil.ReadDir(repoDir)
@@ -396,7 +396,7 @@ version: 0.0.1
 			Expect(err).To(BeNil())
 
 			chart, err := helm.NewChart(tarDir, "docker.example.com", logger)
-			tarFile, err := chartutil.Save(chart.Chart, tarDir)
+			tarFile, err := chartutil.Save(&chart.Chart, tarDir)
 
 			myRepository := repository.NewRepository(repoDir, "", logger)
 			files, err := ioutil.ReadDir(repoDir)
@@ -421,7 +421,7 @@ version: 0.0.2
 			chart2, err := helm.NewChart(tarDir2, "docker.example.com", logger)
 			Expect(err).To(BeNil())
 
-			tarFile2, err := chartutil.Save(chart2.Chart, tarDir2)
+			tarFile2, err := chartutil.Save(&chart2.Chart, tarDir2)
 			Expect(err).To(BeNil())
 
 			err = myRepository.SaveChart(tarFile2)

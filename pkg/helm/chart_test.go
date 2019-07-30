@@ -141,7 +141,7 @@ var _ = Describe("Broker", func() {
 			chartArchiveDirPath, err := ioutil.TempDir("", "chartarcive-")
 			Expect(err).To(BeNil())
 
-			chartArchivePath, err := chartutil.Save(chartToSave.Chart, chartArchiveDirPath)
+			chartArchivePath, err := chartutil.Save(&chartToSave.Chart, chartArchiveDirPath)
 			Expect(err).To(BeNil())
 
 			loadedChart, err := helm.NewChart(chartArchivePath, "", logger)
@@ -191,7 +191,7 @@ var _ = Describe("Broker", func() {
 			chartArchiveDirPath, err := ioutil.TempDir("", "chartarcive-")
 			Expect(err).To(BeNil())
 
-			chartArchivePath, err = chartutil.Save(chartToSave.Chart, chartArchiveDirPath)
+			chartArchivePath, err = chartutil.Save(&chartToSave.Chart, chartArchiveDirPath)
 			Expect(err).To(BeNil())
 		})
 
@@ -245,7 +245,7 @@ var _ = Describe("Broker", func() {
 			chartArchiveDirPath, err := ioutil.TempDir("", "chartarcive-")
 			Expect(err).To(BeNil())
 
-			chartArchivePath, err = chartutil.Save(chartToSave.Chart, chartArchiveDirPath)
+			chartArchivePath, err = chartutil.Save(&chartToSave.Chart, chartArchiveDirPath)
 			Expect(err).To(BeNil())
 
 			loadedChart, err := helm.NewChart(chartArchivePath, "", logger)
@@ -272,7 +272,7 @@ var _ = Describe("Broker", func() {
 			chartArchiveDirPath, err := ioutil.TempDir("", "chartarcive-")
 			Expect(err).To(BeNil())
 
-			chartArchivePath, err = chartutil.Save(chartToSave.Chart, chartArchiveDirPath)
+			chartArchivePath, err = chartutil.Save(&chartToSave.Chart, chartArchiveDirPath)
 			Expect(err).To(BeNil())
 
 			loadedChart, err := helm.NewChart(chartArchivePath, "", logger)
@@ -293,7 +293,7 @@ var _ = Describe("Broker", func() {
 			chartArchiveDirPath, err = ioutil.TempDir("", "chartarcive-")
 			Expect(err).To(BeNil())
 
-			_, err = chartutil.Save(chartToSave.Chart, chartArchiveDirPath)
+			_, err = chartutil.Save(&chartToSave.Chart, chartArchiveDirPath)
 			Expect(err).To(BeNil())
 		})
 
@@ -330,7 +330,7 @@ var _ = Describe("Broker", func() {
 		It("multiple charts", func() {
 			chartToSave2, err := helm.NewChart(chartPath, "", logger)
 			chartToSave2.Metadata.Name = "spacebears2"
-			_, err = chartutil.Save(chartToSave2.Chart, chartArchiveDirPath)
+			_, err = chartutil.Save(&chartToSave2.Chart, chartArchiveDirPath)
 			Expect(err).To(BeNil())
 
 			charts, err := helm.LoadFromDir(chartArchiveDirPath, logrus.New())

@@ -97,7 +97,7 @@ var _ = Describe("Operator", func() {
 		installer = NewInstaller(&registryConfig, &cluster, &client, logger)
 
 		spacebearsChart = &my_helm.MyChart{
-			Chart: &hapi_chart.Chart{
+			Chart: hapi_chart.Chart{
 				Metadata: &hapi_chart.Metadata{
 					Name:        "spacebears",
 					Description: "spacebears service and spacebears broker helm chart",
@@ -117,7 +117,7 @@ var _ = Describe("Operator", func() {
 			},
 		}
 		mysqlChart = &my_helm.MyChart{
-			Chart: &hapi_chart.Chart{
+			Chart: hapi_chart.Chart{
 				Metadata: &hapi_chart.Metadata{
 					Name:        "mysql",
 					Description: "all your data are belong to us",

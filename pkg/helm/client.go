@@ -234,11 +234,11 @@ func (c myHelmClient) InstallChart(registryConfig *config.RegistryConfig, namesp
 	}
 
 	mergedOpts := append(opts, helm.ReleaseName(releaseName), helm.ValueOverrides(mergedValues))
-	return c.InstallReleaseFromChart(chart.Chart, namespaceName, mergedOpts...)
+	return c.InstallReleaseFromChart(&chart.Chart, namespaceName, mergedOpts...)
 }
 
 func (c myHelmClient) InstallOperator(chart *MyChart, namespace string) (*rls.InstallReleaseResponse, error) {
-	return c.InstallReleaseFromChart(chart.Chart, namespace, helm.ReleaseName(namespace), helm.ValueOverrides(chart.TransformedValues))
+	return c.InstallReleaseFromChart(&chart.Chart, namespace, helm.ReleaseName(namespace), helm.ValueOverrides(chart.TransformedValues))
 }
 
 func (c myHelmClient) UpdateChart(chart *MyChart, rlsName string, planName string, updateValues []byte) (*rls.UpdateReleaseResponse, error) {
@@ -252,7 +252,7 @@ func (c myHelmClient) UpdateChart(chart *MyChart, rlsName string, planName strin
 		return nil, err
 	}
 
-	return c.UpdateReleaseFromChart(rlsName, chart.Chart, helm.UpdateValueOverrides(mergedValues))
+	return c.UpdateReleaseFromChart(rlsName, &chart.Chart, helm.UpdateValueOverrides(mergedValues))
 }
 
 func (c myHelmClient) DeleteRelease(rlsName string, opts ...helm.DeleteOption) (*rls.UninstallReleaseResponse, error) {

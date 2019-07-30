@@ -77,7 +77,7 @@ var _ = Describe("Broker", func() {
 		}
 		bullets := []string{"bullet1 for plan for spacebears", "bullet2 for plan for spacebears"}
 		spacebearsChart = &my_helm.MyChart{
-			Chart: &hapi_chart.Chart{
+			Chart: hapi_chart.Chart{
 				Metadata: &hapi_chart.Metadata{
 					Name:        "spacebears",
 					Description: "spacebears service and spacebears broker helm chart",
@@ -102,7 +102,7 @@ var _ = Describe("Broker", func() {
 			},
 		}
 		mysqlChart = &my_helm.MyChart{
-			Chart: &hapi_chart.Chart{
+			Chart: hapi_chart.Chart{
 				Metadata: &hapi_chart.Metadata{
 					Name:        "mysql",
 					Description: "all your data are belong to us",

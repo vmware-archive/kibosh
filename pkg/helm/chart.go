@@ -38,7 +38,7 @@ import (
 )
 
 type MyChart struct {
-	*chart.Chart
+	chart.Chart
 
 	PrivateRegistryServer string          `json:"privateRegistryServer"`
 	TransformedValues     []byte          `json:"transformedValues"`
@@ -122,7 +122,7 @@ func NewChart(chartPath string, privateRegistryServer string, log *logrus.Logger
 	if err != nil {
 		return nil, NewChartValidationError(err)
 	}
-	myChart.Chart = loadedChart
+	myChart.Chart = *loadedChart
 
 	err = myChart.LoadChartValues()
 	if err != nil {

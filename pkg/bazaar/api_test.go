@@ -86,7 +86,7 @@ var _ = Describe("Api", func() {
 						Name: "plan2",
 					},
 				},
-				Chart: &hapi_chart.Chart{
+				Chart: hapi_chart.Chart{
 					Metadata: &hapi_chart.Metadata{
 						Name:        "spacebears",
 						Description: "spacebears service and spacebears broker helm chart",
@@ -262,7 +262,7 @@ var _ = Describe("Api", func() {
 						Name: "plan1",
 					},
 				},
-				Chart: &hapi_chart.Chart{
+				Chart: hapi_chart.Chart{
 					Metadata: &hapi_chart.Metadata{
 						Name: "spacebears",
 					},
