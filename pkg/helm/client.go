@@ -252,7 +252,7 @@ func (c myHelmClient) UpdateChart(chart *MyChart, rlsName string, planName strin
 		return nil, err
 	}
 
-	return c.UpdateReleaseFromChart(rlsName, &chart.Chart, helm.UpdateValueOverrides(mergedValues))
+	return c.UpdateReleaseFromChart(rlsName, &chart.Chart, helm.UpdateValueOverrides(mergedValues), helm.ReuseValues(true))
 }
 
 func (c myHelmClient) DeleteRelease(rlsName string, opts ...helm.DeleteOption) (*rls.UninstallReleaseResponse, error) {
