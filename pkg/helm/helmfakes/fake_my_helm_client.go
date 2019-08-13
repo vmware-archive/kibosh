@@ -10,6 +10,7 @@ import (
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/helm/cmd/helm/installer"
+	"k8s.io/helm/pkg/chartutil"
 	helma "k8s.io/helm/pkg/helm"
 	"k8s.io/helm/pkg/proto/hapi/chart"
 	"k8s.io/helm/pkg/proto/hapi/release"
@@ -217,6 +218,21 @@ type FakeMyHelmClient struct {
 	}
 	releaseStatusReturnsOnCall map[int]struct {
 		result1 *services.GetReleaseStatusResponse
+		result2 error
+	}
+	RenderTemplatedValuesStub        func(chartutil.ReleaseOptions, []byte, *helm.MyChart) ([]byte, error)
+	renderTemplatedValuesMutex       sync.RWMutex
+	renderTemplatedValuesArgsForCall []struct {
+		arg1 chartutil.ReleaseOptions
+		arg2 []byte
+		arg3 *helm.MyChart
+	}
+	renderTemplatedValuesReturns struct {
+		result1 []byte
+		result2 error
+	}
+	renderTemplatedValuesReturnsOnCall map[int]struct {
+		result1 []byte
 		result2 error
 	}
 	ResourceReadinessStub        func(string, k8s.Cluster) (*string, release.Status_Code, error)
@@ -1284,6 +1300,76 @@ func (fake *FakeMyHelmClient) ReleaseStatusReturnsOnCall(i int, result1 *service
 	}{result1, result2}
 }
 
+func (fake *FakeMyHelmClient) RenderTemplatedValues(arg1 chartutil.ReleaseOptions, arg2 []byte, arg3 *helm.MyChart) ([]byte, error) {
+	var arg2Copy []byte
+	if arg2 != nil {
+		arg2Copy = make([]byte, len(arg2))
+		copy(arg2Copy, arg2)
+	}
+	fake.renderTemplatedValuesMutex.Lock()
+	ret, specificReturn := fake.renderTemplatedValuesReturnsOnCall[len(fake.renderTemplatedValuesArgsForCall)]
+	fake.renderTemplatedValuesArgsForCall = append(fake.renderTemplatedValuesArgsForCall, struct {
+		arg1 chartutil.ReleaseOptions
+		arg2 []byte
+		arg3 *helm.MyChart
+	}{arg1, arg2Copy, arg3})
+	fake.recordInvocation("RenderTemplatedValues", []interface{}{arg1, arg2Copy, arg3})
+	fake.renderTemplatedValuesMutex.Unlock()
+	if fake.RenderTemplatedValuesStub != nil {
+		return fake.RenderTemplatedValuesStub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.renderTemplatedValuesReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeMyHelmClient) RenderTemplatedValuesCallCount() int {
+	fake.renderTemplatedValuesMutex.RLock()
+	defer fake.renderTemplatedValuesMutex.RUnlock()
+	return len(fake.renderTemplatedValuesArgsForCall)
+}
+
+func (fake *FakeMyHelmClient) RenderTemplatedValuesCalls(stub func(chartutil.ReleaseOptions, []byte, *helm.MyChart) ([]byte, error)) {
+	fake.renderTemplatedValuesMutex.Lock()
+	defer fake.renderTemplatedValuesMutex.Unlock()
+	fake.RenderTemplatedValuesStub = stub
+}
+
+func (fake *FakeMyHelmClient) RenderTemplatedValuesArgsForCall(i int) (chartutil.ReleaseOptions, []byte, *helm.MyChart) {
+	fake.renderTemplatedValuesMutex.RLock()
+	defer fake.renderTemplatedValuesMutex.RUnlock()
+	argsForCall := fake.renderTemplatedValuesArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeMyHelmClient) RenderTemplatedValuesReturns(result1 []byte, result2 error) {
+	fake.renderTemplatedValuesMutex.Lock()
+	defer fake.renderTemplatedValuesMutex.Unlock()
+	fake.RenderTemplatedValuesStub = nil
+	fake.renderTemplatedValuesReturns = struct {
+		result1 []byte
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) RenderTemplatedValuesReturnsOnCall(i int, result1 []byte, result2 error) {
+	fake.renderTemplatedValuesMutex.Lock()
+	defer fake.renderTemplatedValuesMutex.Unlock()
+	fake.RenderTemplatedValuesStub = nil
+	if fake.renderTemplatedValuesReturnsOnCall == nil {
+		fake.renderTemplatedValuesReturnsOnCall = make(map[int]struct {
+			result1 []byte
+			result2 error
+		})
+	}
+	fake.renderTemplatedValuesReturnsOnCall[i] = struct {
+		result1 []byte
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeMyHelmClient) ResourceReadiness(arg1 string, arg2 k8s.Cluster) (*string, release.Status_Code, error) {
 	fake.resourceReadinessMutex.Lock()
 	ret, specificReturn := fake.resourceReadinessReturnsOnCall[len(fake.resourceReadinessArgsForCall)]
@@ -1833,6 +1919,8 @@ func (fake *FakeMyHelmClient) Invocations() map[string][][]interface{} {
 	defer fake.releaseHistoryMutex.RUnlock()
 	fake.releaseStatusMutex.RLock()
 	defer fake.releaseStatusMutex.RUnlock()
+	fake.renderTemplatedValuesMutex.RLock()
+	defer fake.renderTemplatedValuesMutex.RUnlock()
 	fake.resourceReadinessMutex.RLock()
 	defer fake.resourceReadinessMutex.RUnlock()
 	fake.rollbackReleaseMutex.RLock()
