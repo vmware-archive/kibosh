@@ -2,7 +2,7 @@
 vars:
 - &odb_version "v0.27.0"
 - &golang_version "1.12"
-- &mysql_integration_image_version "5.7.14"
+- &mysql_integration_image_version "5.7.27"
 
 resource_types:
 - name: gcs-resource
