@@ -180,7 +180,7 @@ foo: bar
 			myChart, err := test.DefaultMyChart()
 			Expect(err).To(BeNil())
 
-			outputValues, err := myHelmClient.RenderTemplatedValues(releaseOptions, inputValues, myChart)
+			outputValues, err := myHelmClient.RenderTemplatedValues(releaseOptions, inputValues, myChart.Chart)
 			Expect(err).To(BeNil())
 			Expect(outputValues).To(Equal([]byte(`some-key: flying-otter`)))
 		})
@@ -190,7 +190,7 @@ foo: bar
 			myChart, err := test.DefaultMyChart()
 			Expect(err).To(BeNil())
 
-			outputValues, err := myHelmClient.RenderTemplatedValues(releaseOptions, inputValues, myChart)
+			outputValues, err := myHelmClient.RenderTemplatedValues(releaseOptions, inputValues, myChart.Chart)
 			Expect(err).To(BeNil())
 			Expect(outputValues).To(Equal([]byte(`foo: bar`)))
 		})
@@ -200,17 +200,17 @@ foo: bar
 			myChart, err := test.DefaultMyChart()
 			Expect(err).To(BeNil())
 
-			outputValues, err := myHelmClient.RenderTemplatedValues(releaseOptions, inputValues, myChart)
+			outputValues, err := myHelmClient.RenderTemplatedValues(releaseOptions, inputValues, myChart.Chart)
 			Expect(outputValues).To(Equal([]byte(`do-not-shout: raaaar`)))
 			Expect(err).To(BeNil())
 		})
 
-		It("removes the ephemeral template before exiting", func() {
+		It("doesn't mess with the original chart", func() {
 			myChart, err := test.DefaultMyChart()
 			Expect(err).To(BeNil())
 			Expect(len(myChart.Templates)).To(Equal(0))
 
-			_, err = myHelmClient.RenderTemplatedValues(releaseOptions, []byte{}, myChart)
+			_, err = myHelmClient.RenderTemplatedValues(releaseOptions, []byte{}, myChart.Chart)
 			Expect(err).To(BeNil())
 			Expect(len(myChart.Templates)).To(Equal(0))
 		})

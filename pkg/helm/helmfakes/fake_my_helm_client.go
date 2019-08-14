@@ -220,12 +220,12 @@ type FakeMyHelmClient struct {
 		result1 *services.GetReleaseStatusResponse
 		result2 error
 	}
-	RenderTemplatedValuesStub        func(chartutil.ReleaseOptions, []byte, *helm.MyChart) ([]byte, error)
+	RenderTemplatedValuesStub        func(chartutil.ReleaseOptions, []byte, chart.Chart) ([]byte, error)
 	renderTemplatedValuesMutex       sync.RWMutex
 	renderTemplatedValuesArgsForCall []struct {
 		arg1 chartutil.ReleaseOptions
 		arg2 []byte
-		arg3 *helm.MyChart
+		arg3 chart.Chart
 	}
 	renderTemplatedValuesReturns struct {
 		result1 []byte
@@ -1300,7 +1300,7 @@ func (fake *FakeMyHelmClient) ReleaseStatusReturnsOnCall(i int, result1 *service
 	}{result1, result2}
 }
 
-func (fake *FakeMyHelmClient) RenderTemplatedValues(arg1 chartutil.ReleaseOptions, arg2 []byte, arg3 *helm.MyChart) ([]byte, error) {
+func (fake *FakeMyHelmClient) RenderTemplatedValues(arg1 chartutil.ReleaseOptions, arg2 []byte, arg3 chart.Chart) ([]byte, error) {
 	var arg2Copy []byte
 	if arg2 != nil {
 		arg2Copy = make([]byte, len(arg2))
@@ -1311,7 +1311,7 @@ func (fake *FakeMyHelmClient) RenderTemplatedValues(arg1 chartutil.ReleaseOption
 	fake.renderTemplatedValuesArgsForCall = append(fake.renderTemplatedValuesArgsForCall, struct {
 		arg1 chartutil.ReleaseOptions
 		arg2 []byte
-		arg3 *helm.MyChart
+		arg3 chart.Chart
 	}{arg1, arg2Copy, arg3})
 	fake.recordInvocation("RenderTemplatedValues", []interface{}{arg1, arg2Copy, arg3})
 	fake.renderTemplatedValuesMutex.Unlock()
@@ -1331,13 +1331,13 @@ func (fake *FakeMyHelmClient) RenderTemplatedValuesCallCount() int {
 	return len(fake.renderTemplatedValuesArgsForCall)
 }
 
-func (fake *FakeMyHelmClient) RenderTemplatedValuesCalls(stub func(chartutil.ReleaseOptions, []byte, *helm.MyChart) ([]byte, error)) {
+func (fake *FakeMyHelmClient) RenderTemplatedValuesCalls(stub func(chartutil.ReleaseOptions, []byte, chart.Chart) ([]byte, error)) {
 	fake.renderTemplatedValuesMutex.Lock()
 	defer fake.renderTemplatedValuesMutex.Unlock()
 	fake.RenderTemplatedValuesStub = stub
 }
 
-func (fake *FakeMyHelmClient) RenderTemplatedValuesArgsForCall(i int) (chartutil.ReleaseOptions, []byte, *helm.MyChart) {
+func (fake *FakeMyHelmClient) RenderTemplatedValuesArgsForCall(i int) (chartutil.ReleaseOptions, []byte, chart.Chart) {
 	fake.renderTemplatedValuesMutex.RLock()
 	defer fake.renderTemplatedValuesMutex.RUnlock()
 	argsForCall := fake.renderTemplatedValuesArgsForCall[i]

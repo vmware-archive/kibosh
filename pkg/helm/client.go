@@ -71,7 +71,7 @@ type MyHelmClient interface {
 	MergeValueBytes(base []byte, override []byte) ([]byte, error)
 	HasDifferentTLSConfig() bool
 	PrintStatus(out io.Writer, deploymentName string) error
-	RenderTemplatedValues(releaseOptions chartutil.ReleaseOptions, inputValues []byte, chart *MyChart) ([]byte, error)
+	RenderTemplatedValues(releaseOptions chartutil.ReleaseOptions, inputValues []byte, chart chart.Chart) ([]byte, error)
 }
 
 func NewMyHelmClient(cluster k8s.Cluster, tlsConf *config.HelmTLSConfig, namespace string, logger *logrus.Logger) MyHelmClient {
@@ -236,7 +236,7 @@ func (c myHelmClient) InstallChart(registryConfig *config.RegistryConfig, namesp
 		if err != nil {
 			return nil, err
 		}
-		renderedValues, err := c.RenderTemplatedValues(releaseOptions, planOverrideValues, chart)
+		renderedValues, err := c.RenderTemplatedValues(releaseOptions, planOverrideValues, chart.Chart)
 		if err != nil {
 			return nil, err
 		}
@@ -245,7 +245,7 @@ func (c myHelmClient) InstallChart(registryConfig *config.RegistryConfig, namesp
 			return nil, err
 		}
 	} else {
-		renderedValues, err := c.RenderTemplatedValues(releaseOptions, chart.TransformedValues, chart)
+		renderedValues, err := c.RenderTemplatedValues(releaseOptions, chart.TransformedValues, chart.Chart)
 		if err != nil {
 			return nil, err
 		}
@@ -256,21 +256,19 @@ func (c myHelmClient) InstallChart(registryConfig *config.RegistryConfig, namesp
 	return c.InstallReleaseFromChart(&chart.Chart, namespaceName, mergedOpts...)
 }
 
-//change signature to not take MyChart, instead take the inner chart, and not a pointer, so ewe get a copy
-func (c myHelmClient) RenderTemplatedValues(releaseOptions chartutil.ReleaseOptions, inputValues []byte, myChart *MyChart) ([]byte, error) {
+func (c myHelmClient) RenderTemplatedValues(releaseOptions chartutil.ReleaseOptions, inputValues []byte, chartToInstall chart.Chart) ([]byte, error) {
 	ephemeralTemplateName := "templates/ephemeral_kibosh_yaml_template.yaml"
-	myChart.Templates = append(myChart.Templates, &chart.Template{
+	chartToInstall.Templates = append(chartToInstall.Templates, &chart.Template{
 		Name: ephemeralTemplateName,
 		Data: inputValues,
 	})
-	rendered, err := renderutil.Render(&myChart.Chart, &chart.Config{}, renderutil.Options{ReleaseOptions: releaseOptions})
+	rendered, err := renderutil.Render(&chartToInstall, &chart.Config{}, renderutil.Options{ReleaseOptions: releaseOptions})
 	if err != nil {
 		return nil, err
 	}
-	outputValues := rendered[fmt.Sprintf("%s/%s", myChart.Metadata.Name, ephemeralTemplateName)]
+	outputValues := rendered[fmt.Sprintf("%s/%s", chartToInstall.Metadata.Name, ephemeralTemplateName)]
 	outputValuesBytes := []byte(outputValues)
 
-	myChart.Templates = myChart.Templates[0 : len(myChart.Templates)-1]
 	return outputValuesBytes, nil
 }
 
