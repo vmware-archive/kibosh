@@ -277,17 +277,25 @@ func (c myHelmClient) InstallOperator(chart *MyChart, namespace string) (*rls.In
 }
 
 func (c myHelmClient) UpdateChart(chart *MyChart, rlsName string, planName string, updateValues []byte) (*rls.UpdateReleaseResponse, error) {
-	existingChartValues, err := c.MergeValueBytes(chart.TransformedValues, chart.Plans[planName].Values)
+	planOverrideValues, err := c.MergeValueBytes(chart.TransformedValues, chart.Plans[planName].Values)
+	if err != nil {
+		return nil, err
+	}
+	releaseOptions := chartutil.ReleaseOptions{
+		Name:      rlsName,
+		IsInstall: false,
+		IsUpgrade: true,
+	}
+	renderedValues, err := c.RenderTemplatedValues(releaseOptions, planOverrideValues, chart.Chart)
+	if err != nil {
+		return nil, err
+	}
+	finalValues, err := c.MergeValueBytes(renderedValues, updateValues)
 	if err != nil {
 		return nil, err
 	}
 
-	mergedValues, err := c.MergeValueBytes(existingChartValues, updateValues)
-	if err != nil {
-		return nil, err
-	}
-
-	return c.UpdateReleaseFromChart(rlsName, &chart.Chart, helm.UpdateValueOverrides(mergedValues), helm.ReuseValues(true))
+	return c.UpdateReleaseFromChart(rlsName, &chart.Chart, helm.UpdateValueOverrides(finalValues), helm.ReuseValues(true))
 }
 
 func (c myHelmClient) DeleteRelease(rlsName string, opts ...helm.DeleteOption) (*rls.UninstallReleaseResponse, error) {
