@@ -46,9 +46,7 @@ import (
 	deploymentutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 	"net"
 	"reflect"
-	"regexp"
 	"strings"
-	"text/tabwriter"
 )
 
 type myHelmClient struct {
@@ -108,12 +106,13 @@ func (c myHelmClient) open() (*kube.Tunnel, helm.Interface, error) {
 			block, _ := pem.Decode(pemData)
 			if block == nil {
 				c.logger.Error("pem decode")
+			} else {
+				cert, err := x509.ParseCertificate(block.Bytes)
+				if err != nil {
+					c.logger.Error(err)
+				}
+				servername = cert.Subject.CommonName
 			}
-			cert, err := x509.ParseCertificate(block.Bytes)
-			if err != nil {
-				c.logger.Error(err)
-			}
-			servername = cert.Subject.CommonName
 		}
 		tlsOpts := tlsutil.Options{
 			CaCertFile:         c.tlsConf.TLSCaCertFile,
@@ -290,11 +289,27 @@ func (c myHelmClient) UpdateChart(chart *MyChart, rlsName string, planName strin
 	if err != nil {
 		return nil, err
 	}
-	finalValues, err := c.MergeValueBytes(renderedValues, updateValues)
+	updateOverrideValues, err := c.MergeValueBytes(renderedValues, updateValues)
+
+	updateOverrideYaml := map[string]interface{}{}
+	err = yaml.Unmarshal(updateOverrideValues, &updateOverrideYaml)
 	if err != nil {
 		return nil, err
 	}
 
+	updatedValuesYaml := map[string]interface{}{}
+	err = yaml.Unmarshal(updateValues, &updatedValuesYaml)
+	if err != nil {
+		return nil, err
+	}
+
+	//finalValues should only contain keys from updatedValuesYaml
+	v := filterValues(updateOverrideYaml, updatedValuesYaml)
+	finalValues, err := yaml.Marshal(v)
+	if err != nil {
+		return nil, err
+	}
+	c.logger.Infof("Updated helm release with these values: %+v", string(finalValues))
 	return c.UpdateReleaseFromChart(rlsName, &chart.Chart, helm.UpdateValueOverrides(finalValues), helm.ReuseValues(true))
 }
 
@@ -551,39 +566,8 @@ func mergeValueMaps(dest map[string]interface{}, src map[string]interface{}) map
 	return dest
 }
 
-// This is copied from helm client since it was in the main package
-// https://github.com/helm/helm/blob/v2.9.1/cmd/helm/status.go
 func (c myHelmClient) PrintStatus(out io.Writer, deploymentName string) error {
-	res, err := c.ReleaseStatus(deploymentName)
-	if err != nil {
-		return err
-	}
-
-	if res.Info.LastDeployed != nil {
-		fmt.Fprintf(out, "LAST DEPLOYED: %s\n", timeconv.String(res.Info.LastDeployed))
-	}
-	fmt.Fprintf(out, "NAMESPACE: %s\n", res.Namespace)
-	fmt.Fprintf(out, "STATUS: %s\n", res.Info.Status.Code)
-	fmt.Fprintf(out, "\n")
-	if len(res.Info.Status.Resources) > 0 {
-		re := regexp.MustCompile("  +")
-
-		w := tabwriter.NewWriter(out, 0, 0, 2, ' ', tabwriter.TabIndent)
-		fmt.Fprintf(w, "RESOURCES:\n%s\n", re.ReplaceAllString(res.Info.Status.Resources, "\t"))
-		w.Flush()
-	}
-	if res.Info.Status.LastTestSuiteRun != nil {
-		lastRun := res.Info.Status.LastTestSuiteRun
-		fmt.Fprintf(out, "TEST SUITE:\n%s\n%s\n\n%s\n",
-			fmt.Sprintf("Last Started: %s", timeconv.String(lastRun.StartedAt)),
-			fmt.Sprintf("Last Completed: %s", timeconv.String(lastRun.CompletedAt)),
-			c.formatTestResults(lastRun.Results))
-	}
-
-	if len(res.Info.Status.Notes) > 0 {
-		fmt.Fprintf(out, "NOTES:\n%s\n", res.Info.Status.Notes)
-	}
-	return nil
+	panic("Not yet implemented")
 }
 
 func (c myHelmClient) formatTestResults(results []*release.TestRun) string {
@@ -600,4 +584,19 @@ func (c myHelmClient) formatTestResults(results []*release.TestRun) string {
 		tbl.AddRow(n, s, i, ts, tc)
 	}
 	return tbl.String()
+}
+
+func filterValues(fullVals map[string]interface{}, filterKeys map[string]interface{}) map[string]interface{} {
+
+	for k, v := range filterKeys {
+		nextMap, ok := v.(map[string]interface{})
+		// If it isn't another map, overwrite the value
+		if !ok {
+			filterKeys[k] = fullVals[k]
+		} else {
+			valsMap := fullVals[k].(map[string]interface{})
+			filterKeys[k] = filterValues(valsMap, nextMap)
+		}
+	}
+	return filterKeys
 }
