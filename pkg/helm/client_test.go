@@ -18,6 +18,7 @@ package helm_test
 import (
 	"errors"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
+	"github.com/cf-platform-eng/kibosh/pkg/test"
 	"github.com/ghodss/yaml"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -26,6 +27,7 @@ import (
 	api_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/helm/pkg/chartutil"
 	hapi_release "k8s.io/helm/pkg/proto/hapi/release"
 	"os"
 
@@ -159,6 +161,59 @@ foo: bar
 `)
 		_, err := myHelmClient.MergeValueBytes(base, override)
 		Expect(err).ToNot(BeNil())
+	})
+
+	Context("Rendering values for helm install", func() {
+		var releaseOptions chartutil.ReleaseOptions
+
+		BeforeEach(func() {
+			releaseOptions = chartutil.ReleaseOptions{
+				Name:      "flying-otter",
+				Namespace: "kibosh-flying-otter",
+				IsUpgrade: false,
+				IsInstall: true,
+			}
+		})
+
+		It("comes back with actual values in placeholder values", func() {
+			inputValues := []byte(`some-key: {{ .Release.Name }}`)
+			myChart, err := test.DefaultMyChart()
+			Expect(err).To(BeNil())
+
+			outputValues, err := myHelmClient.RenderTemplatedValues(releaseOptions, inputValues, myChart.Chart)
+			Expect(err).To(BeNil())
+			Expect(outputValues).To(Equal([]byte(`some-key: flying-otter`)))
+		})
+
+		It("doesn't mess with non templatized syntax", func() {
+			inputValues := []byte(`foo: bar`)
+			myChart, err := test.DefaultMyChart()
+			Expect(err).To(BeNil())
+
+			outputValues, err := myHelmClient.RenderTemplatedValues(releaseOptions, inputValues, myChart.Chart)
+			Expect(err).To(BeNil())
+			Expect(outputValues).To(Equal([]byte(`foo: bar`)))
+		})
+
+		It("has access to full templating languaged", func() {
+			inputValues := []byte(`do-not-shout: {{ "RAAAAR" | lower }}`)
+			myChart, err := test.DefaultMyChart()
+			Expect(err).To(BeNil())
+
+			outputValues, err := myHelmClient.RenderTemplatedValues(releaseOptions, inputValues, myChart.Chart)
+			Expect(outputValues).To(Equal([]byte(`do-not-shout: raaaar`)))
+			Expect(err).To(BeNil())
+		})
+
+		It("doesn't mess with the original chart", func() {
+			myChart, err := test.DefaultMyChart()
+			Expect(err).To(BeNil())
+			Expect(len(myChart.Templates)).To(Equal(0))
+
+			_, err = myHelmClient.RenderTemplatedValues(releaseOptions, []byte{}, myChart.Chart)
+			Expect(err).To(BeNil())
+			Expect(len(myChart.Templates)).To(Equal(0))
+		})
 	})
 
 	Context("Readiness checks", func() {

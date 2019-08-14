@@ -25,12 +25,14 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
 	"github.com/gosuri/uitable/util/strutil"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
 	api_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	helmstaller "k8s.io/helm/cmd/helm/installer"
+	"k8s.io/helm/pkg/chartutil"
 	"k8s.io/helm/pkg/helm"
 	"k8s.io/helm/pkg/helm/portforwarder"
 	"k8s.io/helm/pkg/kube"
@@ -38,6 +40,7 @@ import (
 	"k8s.io/helm/pkg/proto/hapi/release"
 	hapi_release "k8s.io/helm/pkg/proto/hapi/release"
 	rls "k8s.io/helm/pkg/proto/hapi/services"
+	"k8s.io/helm/pkg/renderutil"
 	"k8s.io/helm/pkg/timeconv"
 	"k8s.io/helm/pkg/tlsutil"
 	deploymentutil "k8s.io/kubernetes/pkg/controller/deployment/util"
@@ -68,6 +71,7 @@ type MyHelmClient interface {
 	MergeValueBytes(base []byte, override []byte) ([]byte, error)
 	HasDifferentTLSConfig() bool
 	PrintStatus(out io.Writer, deploymentName string) error
+	RenderTemplatedValues(releaseOptions chartutil.ReleaseOptions, inputValues []byte, chart chart.Chart) ([]byte, error)
 }
 
 func NewMyHelmClient(cluster k8s.Cluster, tlsConf *config.HelmTLSConfig, namespace string, logger *logrus.Logger) MyHelmClient {
@@ -181,12 +185,12 @@ func (c *myHelmClient) Uninstall(opts *helmstaller.Options) error {
 func (c myHelmClient) ListReleases(opts ...helm.ReleaseListOption) (*rls.ListReleasesResponse, error) {
 	tunnel, client, err := c.open()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Error opening tunnel")
 	}
 	defer tunnel.Close()
 	releases, err := client.ListReleases(opts...)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Error listing releases on the underlying client")
 	}
 	return releases, nil
 }
@@ -219,22 +223,53 @@ func (c myHelmClient) InstallChart(registryConfig *config.RegistryConfig, namesp
 			return nil, err
 		}
 	}
-	var mergedValues []byte
+
+	releaseOptions := chartutil.ReleaseOptions{
+		Name:      releaseName,
+		Namespace: namespaceName,
+		IsInstall: true,
+		IsUpgrade: false,
+	}
+	var finalValues []byte
 	if planName != "" {
-		overrideValues, err := c.MergeValueBytes(chart.TransformedValues, chart.Plans[planName].Values)
+		planOverrideValues, err := c.MergeValueBytes(chart.TransformedValues, chart.Plans[planName].Values)
 		if err != nil {
 			return nil, err
 		}
-		mergedValues, err = c.MergeValueBytes(overrideValues, installValues)
+		renderedValues, err := c.RenderTemplatedValues(releaseOptions, planOverrideValues, chart.Chart)
+		if err != nil {
+			return nil, err
+		}
+		finalValues, err = c.MergeValueBytes(renderedValues, installValues)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		mergedValues = installValues
+		renderedValues, err := c.RenderTemplatedValues(releaseOptions, chart.TransformedValues, chart.Chart)
+		if err != nil {
+			return nil, err
+		}
+		finalValues, err = c.MergeValueBytes(renderedValues, installValues)
 	}
 
-	mergedOpts := append(opts, helm.ReleaseName(releaseName), helm.ValueOverrides(mergedValues))
+	mergedOpts := append(opts, helm.ReleaseName(releaseName), helm.ValueOverrides(finalValues))
 	return c.InstallReleaseFromChart(&chart.Chart, namespaceName, mergedOpts...)
+}
+
+func (c myHelmClient) RenderTemplatedValues(releaseOptions chartutil.ReleaseOptions, inputValues []byte, chartToInstall chart.Chart) ([]byte, error) {
+	ephemeralTemplateName := "templates/ephemeral_kibosh_yaml_template.yaml"
+	chartToInstall.Templates = append(chartToInstall.Templates, &chart.Template{
+		Name: ephemeralTemplateName,
+		Data: inputValues,
+	})
+	rendered, err := renderutil.Render(&chartToInstall, &chart.Config{}, renderutil.Options{ReleaseOptions: releaseOptions})
+	if err != nil {
+		return nil, err
+	}
+	outputValues := rendered[fmt.Sprintf("%s/%s", chartToInstall.Metadata.Name, ephemeralTemplateName)]
+	outputValuesBytes := []byte(outputValues)
+
+	return outputValuesBytes, nil
 }
 
 func (c myHelmClient) InstallOperator(chart *MyChart, namespace string) (*rls.InstallReleaseResponse, error) {
@@ -242,17 +277,25 @@ func (c myHelmClient) InstallOperator(chart *MyChart, namespace string) (*rls.In
 }
 
 func (c myHelmClient) UpdateChart(chart *MyChart, rlsName string, planName string, updateValues []byte) (*rls.UpdateReleaseResponse, error) {
-	existingChartValues, err := c.MergeValueBytes(chart.TransformedValues, chart.Plans[planName].Values)
+	planOverrideValues, err := c.MergeValueBytes(chart.TransformedValues, chart.Plans[planName].Values)
+	if err != nil {
+		return nil, err
+	}
+	releaseOptions := chartutil.ReleaseOptions{
+		Name:      rlsName,
+		IsInstall: false,
+		IsUpgrade: true,
+	}
+	renderedValues, err := c.RenderTemplatedValues(releaseOptions, planOverrideValues, chart.Chart)
+	if err != nil {
+		return nil, err
+	}
+	finalValues, err := c.MergeValueBytes(renderedValues, updateValues)
 	if err != nil {
 		return nil, err
 	}
 
-	mergedValues, err := c.MergeValueBytes(existingChartValues, updateValues)
-	if err != nil {
-		return nil, err
-	}
-
-	return c.UpdateReleaseFromChart(rlsName, &chart.Chart, helm.UpdateValueOverrides(mergedValues), helm.ReuseValues(true))
+	return c.UpdateReleaseFromChart(rlsName, &chart.Chart, helm.UpdateValueOverrides(finalValues), helm.ReuseValues(true))
 }
 
 func (c myHelmClient) DeleteRelease(rlsName string, opts ...helm.DeleteOption) (*rls.UninstallReleaseResponse, error) {

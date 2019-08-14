@@ -52,7 +52,7 @@ fmt:
 vet:
 	@go vet ${GO_PACKAGES}
 
-test: unit-test vet
+test: generate unit-test vet
 
 generate:
 	#counterfeiter -o pkg/test/fake_kubernetes_client.go k8s.io/client-go/kubernetes.Interface
