@@ -434,6 +434,7 @@ jobs:
         - |
           go get github.com/onsi/ginkgo/ginkgo
           go get github.com/onsi/gomega
+          go get github.com/maxbrunsfeld/counterfeiter
 
           export SRC=/go/src/github.com/cf-platform-eng/kibosh
           mkdir -p $SRC
