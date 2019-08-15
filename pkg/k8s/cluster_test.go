@@ -246,6 +246,48 @@ users:
 			Expect(fakeClusterDelegate.CreateNamespaceCallCount()).To((Equal(0)))
 		})
 
+		It("annotations are included in response for service types", func() {
+			secretsList := api_v1.SecretList{
+				Items: []api_v1.Secret{
+					{
+						ObjectMeta: meta_v1.ObjectMeta{Name: "passwords"},
+						Data:       map[string][]byte{"db-password": []byte("abc123")},
+						Type:       api_v1.SecretTypeOpaque,
+					},
+				},
+			}
+
+			serviceList := api_v1.ServiceList{
+				Items: []api_v1.Service{
+					{
+						ObjectMeta: meta_v1.ObjectMeta{Name: "my-service-lb",
+							Annotations: map[string]string{
+								"external-dns.alpha.kubernetes.io/hostname": "testing.example.com",
+							},
+						},
+						Spec: api_v1.ServiceSpec{
+							Ports: []api_v1.ServicePort{},
+							Type:  "LoadBalancer",
+						},
+					},
+				},
+			}
+
+			fakeClusterDelegate.ListSecretsReturns(&secretsList, nil)
+			fakeClusterDelegate.ListServicesReturns(&serviceList, nil)
+
+			cluster, err := NewUnitTestCluster(&fakeClusterDelegate)
+			Expect(err).To(BeNil())
+
+			creds, err := cluster.GetSecretsAndServices("mynamespaceid")
+			Expect(err).To(BeNil())
+
+			services := creds["services"]
+			metadata := services.([]map[string]interface{})[0]["metadata"]
+			annotations := metadata.(meta_v1.ObjectMeta).Annotations
+			Expect(annotations).To(HaveKeyWithValue("external-dns.alpha.kubernetes.io/hostname", "testing.example.com"))
+		})
+
 		It("secrets and services returns externalIPs field when Service Type NodePort is used", func() {
 			nodeList := api_v1.NodeList{
 				Items: []api_v1.Node{

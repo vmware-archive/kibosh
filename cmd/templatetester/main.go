@@ -14,46 +14,39 @@ func main() {
 
 	argsWithoutProgramName := os.Args[1:]
 	if len(argsWithoutProgramName) != 2 {
-		os.Stderr.WriteString("single arg expected the path to parse")
+		os.Stderr.WriteString("expecting two args: namespace followed by template path")
 		os.Exit(1)
 	}
 	namespace := argsWithoutProgramName[0]
 	filename := argsWithoutProgramName[1]
 
 	cluster, err := k8s.NewClusterFromDefaultConfig()
-	if err != nil {
-		os.Stderr.WriteString(err.Error())
-		os.Exit(1)
-	}
+	exitOnErr(err)
 
 	servicesAndSecrets, err := cluster.GetSecretsAndServices(namespace)
-	if err != nil {
-		os.Stderr.WriteString(err.Error())
-		os.Exit(1)
-	}
+	exitOnErr(err)
 
 	println(fmt.Sprintf("servicesAndSecrets %v", servicesAndSecrets))
 	rawTemplate, err := ioutil.ReadFile(filename)
-	if err != nil {
-		os.Stderr.WriteString(err.Error())
-		os.Exit(1)
-	}
+	exitOnErr(err)
 
 	bind := &helm.Bind{}
 	err = yaml.Unmarshal(rawTemplate, bind)
 
 	renderedTemplate, err := helm.RenderJsonnetTemplate(string(bind.Template), servicesAndSecrets)
-	if err != nil {
-		os.Stderr.WriteString(err.Error())
-		os.Exit(1)
-	}
+	exitOnErr(err)
+
 	var bindCredentials map[string]interface{}
 	err = json.Unmarshal([]byte(renderedTemplate), &bindCredentials)
-	if err != nil {
-		os.Stderr.WriteString(err.Error())
-		os.Exit(1)
-	}
+	exitOnErr(err)
 
 	println("Rendered template")
 	println(renderedTemplate)
+}
+
+func exitOnErr(err error) {
+	if err != nil {
+		os.Stderr.WriteString(err.Error())
+		os.Exit(1)
+	}
 }

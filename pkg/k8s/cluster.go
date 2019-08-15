@@ -223,9 +223,10 @@ func (cluster *cluster) GetSecretsAndServices(namespace string) (map[string]inte
 			}
 		}
 		credentialService := map[string]interface{}{
-			"name":   service.ObjectMeta.Name,
-			"spec":   service.Spec,
-			"status": service.Status,
+			"name":     service.ObjectMeta.Name,
+			"metadata": service.ObjectMeta,
+			"spec":     service.Spec,
+			"status":   service.Status,
 		}
 		servicesMap = append(servicesMap, credentialService)
 	}
