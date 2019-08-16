@@ -284,18 +284,11 @@ for example values.
 ## Dev
 ### Setup
 
-Install Go dependencies
-```bash
-go get -u github.com/onsi/ginkgo/ginkgo
-go get -u github.com/onsi/gomega
-go get -u github.com/maxbrunsfeld/counterfeiter
-go get -u github.com/golang/dep/cmd/dep
-go get -u github.com/gosuri/uitable
-```
+Clone the repo (recommended to clone outside of `$GOPATH` because using go modules).
 
 ### Run
-Run `make bootstrap` from a clean checkout to setup initial dependencies. This will restore
-the locked dependency set specified by `Gopkg.toml` (we're no longer checking in `vendor`).
+Run `make bootstrap` from a clean checkout to setup initial dependencies. This will set up the dependencies
+in the `go.sum` file as well as get external binary tools (counterfeiter, ginkgo, etc).
 
 #### For a remote K8s Cluster
 Copy `local_dev.sh.template` to `local_dev.sh` (which is in `.gitignore`) and 
@@ -416,40 +409,6 @@ kubectl create -f [above contents in file].yml
 kubectl get secrets --namespace=kube-system | grep "kibosh-concourse-ci"
 kubectl get secret --namespace=kube-system kibosh-concourse-ci-token-pfnqs -o yaml
 ```
-
-### Dependency vendoring
-
-To add a dependency:
-```bash
-dep ensure -add github.com/pkg/errors
-```
-
-To update a dependency:
-```bash
-dep ensure -update github.com/pkg/errors
-```
-
-Dependency vendoring with respect to helm & k8s is trickier. `dep` isn't able to build the
-tree without significant help. The `Gopkg.tml` has several overrides needed to get everything
-to compile.
-
-Updating to a new version of helm/k8s will probably require re-visiting the override & constraint
-matrix built. Useful inputs into this process are:
-* The k8s Godeps
-    - https://github.com/kubernetes/kubernetes/blob/master/Godeps/Godeps.json
-* Helm's Glide dependencies and dependency lock file
-    - https://github.com/kubernetes/helm/blob/master/glide.yaml
-    - https://github.com/kubernetes/helm/blob/master/glide.lock
-* Draft's `Gopkg.toml` file (they're doing the same thing we are, pulling in Helm as a library)
-    - https://github.com/cf-platform-eng/kibosh
-* This [helm tracker issue](https://github.com/kubernetes/helm/issues/3031) also has some useful context
-
-Also run the make target `cleandep` to wipe out the lock file an any local state when upgrading
-helm/k8s, to make sure it can be rebuilt cleanly from the specified constraints.
-
-More dep links:
-* Common dep commands: https://golang.github.io/dep/docs/daily-dep.html
-* `Gopks.toml` details: https://github.com/golang/dep/blob/master/docs/Gopkg.toml.md
 
 ## Bazaar
 Kibosh can also manage multiple charts more dynamically (without redeployment).

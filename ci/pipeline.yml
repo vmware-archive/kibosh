@@ -394,7 +394,7 @@ jobs:
           set -e
 
           pushd source-repo
-          export helmdep=$(grep "k8s.io/helm" Gopkg.toml -A 1 | tail -n 1 | awk '{print $3}' | tr -d '\"')
+          export helmdep=$(grep "k8s.io/helm" go.mod | awk '{print $2}' | tr -d '\"' | sed 's/\+.*//')
           export helmsrc=$(grep "TillerTag string" pkg/helm/installer.go | awk '{print $4}' | tr -d '\"')
           if [[ "$helmdep" == "$helmsrc" ]]; then
             echo "Ok: $helmdep $helmsrc"

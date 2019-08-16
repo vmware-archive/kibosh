@@ -58,8 +58,7 @@ generate:
 	go generate ./...
 
 cleandep:
-	rm -rf vendor
-	rm -f Gopkg.lock
+	go mod tidy
 
 bootstrap:
 	go install "github.com/maxbrunsfeld/counterfeiter/v6"
