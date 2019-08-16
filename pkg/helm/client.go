@@ -20,6 +20,12 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"net"
+	"reflect"
+	"strings"
+
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
 	"github.com/ghodss/yaml"
@@ -27,8 +33,6 @@ import (
 	"github.com/gosuri/uitable/util/strutil"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"io"
-	"io/ioutil"
 	api_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	helmstaller "k8s.io/helm/cmd/helm/installer"
@@ -44,9 +48,6 @@ import (
 	"k8s.io/helm/pkg/timeconv"
 	"k8s.io/helm/pkg/tlsutil"
 	deploymentutil "k8s.io/kubernetes/pkg/controller/deployment/util"
-	"net"
-	"reflect"
-	"strings"
 )
 
 type myHelmClient struct {

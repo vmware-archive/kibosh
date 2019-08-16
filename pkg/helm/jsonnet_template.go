@@ -2,8 +2,9 @@ package helm
 
 import (
 	"encoding/json"
-	"github.com/google/go-jsonnet"
 	"strings"
+
+	"github.com/google/go-jsonnet"
 )
 
 func RenderJsonnetTemplate(template string, data map[string]interface{}) (string, error) {

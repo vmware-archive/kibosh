@@ -21,6 +21,8 @@ import (
 	"encoding/base32"
 	"encoding/json"
 	"fmt"
+	"strings"
+
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	"github.com/cf-platform-eng/kibosh/pkg/credstore"
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
@@ -35,7 +37,6 @@ import (
 	api_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	hapi_release "k8s.io/helm/pkg/proto/hapi/release"
-	"strings"
 )
 
 const registrySecretName = "registry-secret"

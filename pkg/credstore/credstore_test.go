@@ -1,12 +1,13 @@
 package credstore_test
 
 import (
+	"net/http"
+	"net/http/httptest"
+
 	"github.com/cf-platform-eng/kibosh/pkg/credstore"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"net/http"
-	"net/http/httptest"
 )
 
 var _ = Describe("Credhub Store", func() {

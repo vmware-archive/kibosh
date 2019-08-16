@@ -16,9 +16,10 @@
 package main
 
 import (
+	"os"
+
 	"github.com/cf-platform-eng/kibosh/pkg/bazaar/cli"
 	"github.com/spf13/cobra"
-	"os"
 )
 
 func main() {

@@ -2,9 +2,10 @@ package logger
 
 import (
 	"bytes"
-	"golang.org/x/crypto/ssh/terminal"
 	"io"
 	"os"
+
+	"golang.org/x/crypto/ssh/terminal"
 
 	"github.com/sirupsen/logrus"
 )

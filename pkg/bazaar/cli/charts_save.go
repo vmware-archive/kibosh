@@ -19,12 +19,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/cf-platform-eng/kibosh/pkg/bazaar"
-	"github.com/cf-platform-eng/kibosh/pkg/httphelpers"
-	"github.com/spf13/cobra"
 	"io"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/cf-platform-eng/kibosh/pkg/bazaar"
+	"github.com/cf-platform-eng/kibosh/pkg/httphelpers"
+	"github.com/spf13/cobra"
 )
 
 type chartsSaveCmd struct {

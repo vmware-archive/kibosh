@@ -18,14 +18,15 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
+
 	"github.com/cf-platform-eng/kibosh/pkg/bazaar"
 	"github.com/cf-platform-eng/kibosh/pkg/httphelpers"
 	"github.com/gosuri/uitable"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"io"
-	"io/ioutil"
-	"net/http"
 )
 
 type chartsListCmd struct {

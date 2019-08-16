@@ -16,9 +16,10 @@
 package cli
 
 import (
-	"github.com/spf13/cobra"
 	"io"
 	"strings"
+
+	"github.com/spf13/cobra"
 )
 
 type baseBazaarCmd struct {

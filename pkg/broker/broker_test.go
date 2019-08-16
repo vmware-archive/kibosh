@@ -18,6 +18,8 @@ package broker_test
 import (
 	"encoding/json"
 	"errors"
+	"strings"
+
 	. "github.com/cf-platform-eng/kibosh/pkg/broker"
 	my_config "github.com/cf-platform-eng/kibosh/pkg/config"
 	"github.com/cf-platform-eng/kibosh/pkg/credstore/credstorefakes"
@@ -37,7 +39,6 @@ import (
 	hapi_chart "k8s.io/helm/pkg/proto/hapi/chart"
 	hapi_release "k8s.io/helm/pkg/proto/hapi/release"
 	hapi_services "k8s.io/helm/pkg/proto/hapi/services"
-	"strings"
 )
 
 var _ = Describe("Broker", func() {

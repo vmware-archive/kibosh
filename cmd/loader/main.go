@@ -18,13 +18,13 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/cf-platform-eng/kibosh/pkg/moreio"
 	"io/ioutil"
 	"os"
 	"path"
 	"strings"
 
 	"github.com/cf-platform-eng/kibosh/pkg/docker"
+	"github.com/cf-platform-eng/kibosh/pkg/moreio"
 )
 
 func main() {

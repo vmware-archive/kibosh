@@ -22,9 +22,10 @@ import (
 	. "github.com/onsi/gomega"
 
 	"encoding/json"
-	. "github.com/cf-platform-eng/kibosh/pkg/config"
 	"io/ioutil"
 	"path/filepath"
+
+	. "github.com/cf-platform-eng/kibosh/pkg/config"
 )
 
 var _ = Describe("Config", func() {

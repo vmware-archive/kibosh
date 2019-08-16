@@ -16,8 +16,9 @@
 package bazaar_test
 
 import (
-	"github.com/cf-platform-eng/kibosh/pkg/bazaar"
 	"os"
+
+	"github.com/cf-platform-eng/kibosh/pkg/bazaar"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

@@ -17,11 +17,12 @@ package main
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/cf-platform-eng/kibosh/pkg/bazaar"
 	"github.com/cf-platform-eng/kibosh/pkg/httphelpers"
 	"github.com/cf-platform-eng/kibosh/pkg/repository"
 	"github.com/sirupsen/logrus"
-	"net/http"
 )
 
 func main() {

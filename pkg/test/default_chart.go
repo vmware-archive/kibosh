@@ -16,10 +16,11 @@
 package test
 
 import (
-	"github.com/cf-platform-eng/kibosh/pkg/helm"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/cf-platform-eng/kibosh/pkg/helm"
 )
 
 type TestChart struct {

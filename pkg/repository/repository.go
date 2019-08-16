@@ -17,14 +17,15 @@ package repository
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+
 	"github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/moreio"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"io/ioutil"
 	"k8s.io/helm/pkg/chartutil"
-	"os"
-	"path/filepath"
 )
 
 //go:generate counterfeiter ./ Repository

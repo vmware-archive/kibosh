@@ -17,18 +17,19 @@ package helm_test
 
 import (
 	"encoding/json"
+	"io/ioutil"
+	"os"
+	"path"
+	"path/filepath"
+	"strings"
+
 	"github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/test"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
 	"k8s.io/helm/pkg/chartutil"
-	"os"
-	"path"
-	"path/filepath"
-	"strings"
 )
 
 var _ = Describe("Broker", func() {

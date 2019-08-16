@@ -18,11 +18,12 @@ package k8s_test
 import (
 	"encoding/json"
 	"errors"
-	"github.com/cf-platform-eng/kibosh/pkg/k8s/k8sfakes"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
+
+	"github.com/cf-platform-eng/kibosh/pkg/k8s/k8sfakes"
 
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	. "github.com/cf-platform-eng/kibosh/pkg/k8s"

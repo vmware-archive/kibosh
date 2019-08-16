@@ -17,10 +17,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/cf-platform-eng/kibosh/pkg/cf"
-	"github.com/cf-platform-eng/kibosh/pkg/credstore"
 	"net/http"
 	"os"
+
+	"github.com/cf-platform-eng/kibosh/pkg/cf"
+	"github.com/cf-platform-eng/kibosh/pkg/credstore"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/cf-platform-eng/kibosh/pkg/broker"

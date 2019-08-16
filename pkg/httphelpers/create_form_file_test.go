@@ -22,8 +22,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/cf-platform-eng/kibosh/pkg/httphelpers"
 	"io/ioutil"
+
+	"github.com/cf-platform-eng/kibosh/pkg/httphelpers"
 )
 
 var _ = Describe("Save charts", func() {

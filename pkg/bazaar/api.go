@@ -24,11 +24,12 @@ import (
 	"os"
 	"path/filepath"
 
+	"strings"
+
 	"github.com/cf-platform-eng/kibosh/pkg/httphelpers"
 	"github.com/cf-platform-eng/kibosh/pkg/repository"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"strings"
 )
 
 type API interface {

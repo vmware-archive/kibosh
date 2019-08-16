@@ -2,11 +2,12 @@ package docker
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os/exec"
 	"path"
 	"strings"
+
+	"gopkg.in/yaml.v2"
 )
 
 type ImageValues struct {

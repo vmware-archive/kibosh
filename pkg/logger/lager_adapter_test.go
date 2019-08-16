@@ -3,8 +3,9 @@ package logger_test
 import (
 	"bufio"
 	"bytes"
-	"code.cloudfoundry.org/lager"
 	"errors"
+
+	"code.cloudfoundry.org/lager"
 	"github.com/cf-platform-eng/kibosh/pkg/logger"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

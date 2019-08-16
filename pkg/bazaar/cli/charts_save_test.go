@@ -25,12 +25,13 @@ import (
 	. "github.com/onsi/gomega"
 
 	"encoding/json"
+	"io/ioutil"
+	"os"
+
 	"github.com/cf-platform-eng/kibosh/pkg/bazaar"
 	"github.com/cf-platform-eng/kibosh/pkg/bazaar/cli"
 	"github.com/cf-platform-eng/kibosh/pkg/httphelpers"
 	"github.com/spf13/cobra"
-	"io/ioutil"
-	"os"
 )
 
 var _ = Describe("Save charts", func() {
