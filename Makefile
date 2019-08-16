@@ -1,6 +1,6 @@
-go default: all
+default: all
 
-GO_PACKAGES = $$(go list ./... ./cmd/loader | grep -v vendor)
+GO_PACKAGES = $$(go list ./... ./cmd/loader | grep -v vendor | grep -v tools)
 GO_FILES = $$(find . -name "*.go" | grep -v vendor | uniq)
 
 build-kibosh-linux:
@@ -47,7 +47,7 @@ unit-test:
 	@go test ${GO_PACKAGES}
 
 fmt:
-	gofmt -s -l -w $(GO_FILES)
+	goimports -l -w $(GO_FILES)
 
 vet:
 	@go vet ${GO_PACKAGES}
@@ -55,29 +55,19 @@ vet:
 test: generate unit-test vet
 
 generate:
-	#counterfeiter -o pkg/test/fake_kubernetes_client.go k8s.io/client-go/kubernetes.Interface
-	# ^ requires having k8s.io/client-go checked out, see https://git.io/vFo28
-	#sed -i '' 's/FakeInterface/FakeK8sInterface/g' pkg/test/fake_kubernetes_client.go
 	go generate ./...
 
 cleandep:
 	rm -rf vendor
 	rm -f Gopkg.lock
 
-HAS_DEP := $(shell command -v dep;)
-HAS_BINDATA := $(shell command -v go-bindata;)
+bootstrap:
+	go install "github.com/maxbrunsfeld/counterfeiter/v6"
+	go install "github.com/onsi/ginkgo"
+	go install "github.com/onsi/gomega"
+	go install "golang.org/x/tools/cmd/goimports"
 
 boostrap: bootstrap
-
-.PHONY: bootstrap
-bootstrap:
-ifndef HAS_DEP
-	go get -u github.com/golang/dep/cmd/dep
-endif
-ifndef HAS_BINDATA
-	go get github.com/jteeuwen/go-bindata/...
-endif
-	dep ensure -v
 
 all: fmt test build-kibosh build-loader build-bazaar build-bazaar-cli build-template-tester
 quick: fmt test build-kibosh-mac build-loader-mac build-template-tester-mac

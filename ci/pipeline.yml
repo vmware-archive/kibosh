@@ -432,31 +432,21 @@ jobs:
         args:
         - -exc
         - |
-          go get github.com/onsi/ginkgo/ginkgo
-          go get github.com/onsi/gomega
-          go get github.com/maxbrunsfeld/counterfeiter
-
-          export SRC=/go/src/github.com/cf-platform-eng/kibosh
-          mkdir -p $SRC
-          cp -r source-repo/* $SRC
-
-          pushd $SRC
-          # make cleandep
+          pushd source-repo
           make bootstrap
-          make test
           make all
           popd
 
           export VERSION=`cat version/version`
 
-          cp $SRC/kibosh.darwin output/kibosh-${VERSION}.darwin
-          cp $SRC/kibosh.linux output/kibosh-${VERSION}.linux
-          cp $SRC/loader.linux output/loader-${VERSION}.linux
-          cp $SRC/bazaar.linux output/bazaar-${VERSION}.linux
-          cp $SRC/bazaarcli.mac output/bazaarcli-${VERSION}.mac
-          cp $SRC/bazaarcli.linux output/bazaarcli-${VERSION}.linux
-          cp $SRC/template-tester.linux output/template-tester-${VERSION}.linux
-          cp $SRC/template-tester.mac output/template-tester-${VERSION}.mac
+          cp source-repo/kibosh.darwin output/kibosh-${VERSION}.darwin
+          cp source-repo/kibosh.linux output/kibosh-${VERSION}.linux
+          cp source-repo/loader.linux output/loader-${VERSION}.linux
+          cp source-repo/bazaar.linux output/bazaar-${VERSION}.linux
+          cp source-repo/bazaarcli.mac output/bazaarcli-${VERSION}.mac
+          cp source-repo/bazaarcli.linux output/bazaarcli-${VERSION}.linux
+          cp source-repo/template-tester.linux output/template-tester-${VERSION}.linux
+          cp source-repo/template-tester.mac output/template-tester-${VERSION}.mac
     on_failure: *slack_on_failure
   - put: kibosh-linux
     params:
