@@ -483,12 +483,19 @@ func (c myHelmClient) UpdateReleaseFromChart(rlsName string, chart *chart.Chart,
 	return client.UpdateReleaseFromChart(rlsName, chart, opts...)
 }
 
+
 func (c myHelmClient) RollbackRelease(rlsName string, opts ...helm.RollbackOption) (*rls.RollbackReleaseResponse, error) {
 	panic("Not yet implemented")
 }
 
 func (c myHelmClient) ReleaseContent(rlsName string, opts ...helm.ContentOption) (*rls.GetReleaseContentResponse, error) {
-	panic("Not yet implemented")
+	tunnel, client, err := c.open()
+	if err != nil {
+		return nil, err
+	}
+	defer tunnel.Close()
+
+	return client.ReleaseContent(rlsName, opts...)
 }
 
 func (c myHelmClient) ReleaseHistory(rlsName string, opts ...helm.HistoryOption) (*rls.GetHistoryResponse, error) {
