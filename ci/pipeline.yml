@@ -913,11 +913,12 @@ jobs:
           mv kibosh-release/kibosh*.tgz output/
           mv template-tester-linux/template-tester*.linux output/
           mv template-tester-mac/template-tester*.mac output/
+          echo -n 'v' | cat - version/version > output/github-version
     on_failure: *slack_on_failure
   - put: release-repo
     params:
-      name: version/version
-      tag: version/version
+      name: output/github-version
+      tag: output/github-version
       globs:
       - output/kibosh*.*
       - output/bazaarcli*.*
