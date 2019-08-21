@@ -18,8 +18,10 @@ package broker_test
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 
+	"github.com/ghodss/yaml"
 	. "github.com/cf-platform-eng/kibosh/pkg/broker"
 	my_config "github.com/cf-platform-eng/kibosh/pkg/config"
 	"github.com/cf-platform-eng/kibosh/pkg/credstore/credstorefakes"
@@ -241,6 +243,7 @@ var _ = Describe("Broker", func() {
 		BeforeEach(func() {
 			details = brokerapi.ProvisionDetails{
 				ServiceID: spacebearsServiceGUID,
+				PlanID:    spacebearsServiceGUID + "-small",
 			}
 
 			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, nil, logger)
@@ -273,6 +276,39 @@ var _ = Describe("Broker", func() {
 			Expect(fakeClusterFactory.GetClusterCallCount()).To(Equal(0))
 		})
 
+		Context("credstore", func() {
+			It("fetches from credstore and sends those values", func() {
+				fakeCredStore.GetStub = func(path string) (string, error) {
+					if path == "/c/kibosh/spacebears/small/values" {
+						return "secret: abc123", nil
+					} else {
+						panic(fmt.Sprintf("Aske for unexpected credential path [%s]", path))
+					}
+				}
+				broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, fakeCredStore, nil, logger)
+
+				_, err := broker.Provision(nil, "my-instance-guid", details, true)
+				Expect(err).To(BeNil())
+
+				Expect(fakeCredStore.GetCallCount()).To(Equal(1))
+
+				Expect(fakeHelmClient.InstallChartCallCount()).To(Equal(1))
+				_, _, _, _, planBytes, _, _ := fakeHelmClient.InstallChartArgsForCall(0)
+
+				Expect(string(planBytes)).To(Equal("secret: abc123"))
+			})
+
+			It("surfaces error on credstore failure", func() {
+				fakeCredStore.GetReturns("", errors.New("no plan values for you"))
+
+				broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, fakeCredStore, nil, logger)
+
+				_, err := broker.Provision(nil, "my-instance-guid", details, true)
+				Expect(err).NotTo(BeNil())
+				Expect(err.Error()).To(ContainSubstring("plan values"))
+			})
+		})
+
 		Context("cluster config in plan", func() {
 			var k8sConfig *k8sAPI.Config
 			BeforeEach(func() {
@@ -299,6 +335,7 @@ var _ = Describe("Broker", func() {
 
 				plan := spacebearsChart.Plans["small"]
 				plan.ClusterConfig = k8sConfig
+				plan.CredentialsPath = "small-creds.yaml"
 				spacebearsChart.Plans["small"] = plan
 
 				details = brokerapi.ProvisionDetails{
@@ -330,6 +367,30 @@ var _ = Describe("Broker", func() {
 				Expect(fakeServiceAccountInstallerFactory.ServiceAccountInstallerCallCount()).To(Equal(1))
 				Expect(fakeServiceAccountInstaller.InstallCallCount()).To(Equal(1))
 				Expect(fakeInstaller.InstallCallCount()).To(Equal(1))
+			})
+
+			It("with credstore", func() {
+				fakeCredStore.GetStub = func(path string) (string, error) {
+					if path == "/c/kibosh/spacebears/small/values" {
+						return "secret: abc123", nil
+					} else if path == "/c/kibosh/spacebears/small/cluster-creds" {
+						configYAML, err := yaml.Marshal(k8sConfig)
+						Expect(err).To(BeNil())
+						return string(configYAML), nil
+					} else {
+						panic(fmt.Sprintf("Aske for unexpected credential path [%s]", path))
+					}
+				}
+				broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, fakeCredStore, nil, logger)
+
+				_, err := broker.Provision(nil, "my-instance-guid", details, true)
+				Expect(err).To(BeNil())
+
+				Expect(fakeCredStore.GetCallCount()).To(Equal(2))
+
+				Expect(fakeClusterFactory.GetClusterFromK8sConfigCallCount()).To(Equal(1))
+				configUsed := fakeClusterFactory.GetClusterFromK8sConfigArgsForCall(0)
+				Expect(configUsed.CurrentContext).To(Equal("context2"))
 			})
 		})
 
@@ -642,35 +703,6 @@ var _ = Describe("Broker", func() {
 			c := fakeClusterFactory.GetClusterFromK8sConfigArgsForCall(0)
 			Expect(c.CurrentContext).To(Equal("context2"))
 		})
-
-		//FIt("returns the status if Service.Spec.Type is not load balancer", func() {
-		//	serviceList := api_v1.ServiceList{
-		//		Items: []api_v1.Service{
-		//			{
-		//				ObjectMeta: meta_v1.ObjectMeta{Name: "kibosh-my-mysql-db-instance"},
-		//				Spec: api_v1.ServiceSpec{
-		//					Ports: []api_v1.ServicePort{},
-		//					Type:  "",
-		//				},
-		//			},
-		//		},
-		//	}
-		//	fakeCluster.ListServicesReturns(&serviceList, nil)
-		//
-		//	fakeHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
-		//		Info: &hapi_release.Info{
-		//			Status: &hapi_release.Status{
-		//				Code: hapi_release.Status_DEPLOYED,
-		//			},
-		//		},
-		//	}, nil)
-		//
-		//	result, err := broker.LastOperation(nil, "my-instance-guid", brokerapi.PollDetails{OperationData: "provision"})
-		//
-		//	Expect(err).To(BeNil())
-		//	Expect(result).NotTo(BeNil())
-		//
-		//})
 	})
 
 	Context("bind", func() {

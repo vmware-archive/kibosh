@@ -441,3 +441,8 @@ func (c *MyChart) ensureIgnore(chartPath string) error {
 func (c *MyChart) String() string {
 	return c.Metadata.Name
 }
+
+
+func (p Plan) HasCluster() bool {
+	return p.CredentialsPath != ""
+}

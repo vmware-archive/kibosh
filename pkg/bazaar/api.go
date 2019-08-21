@@ -199,7 +199,6 @@ func (api *api) saveChartToRepository(r *http.Request) error {
 	formdata := r.MultipartForm
 
 	files := formdata.File["chart"]
-	//file, handler, err := r.FormFile("chart")
 	for i := range files {
 		file, err := files[i].Open()
 		if err != nil {

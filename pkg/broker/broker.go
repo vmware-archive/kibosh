@@ -36,6 +36,7 @@ import (
 	"github.com/sirupsen/logrus"
 	api_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8sAPI "k8s.io/client-go/tools/clientcmd/api"
 	hapi_release "k8s.io/helm/pkg/proto/hapi/release"
 )
 
@@ -175,19 +176,30 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 	}
 
 	var cluster k8s.Cluster
-	planHasCluster := chart.Plans[planName].ClusterConfig != nil
+	planHasCluster := chart.Plans[planName].HasCluster()
 	if planHasCluster {
-		cluster, err = broker.clusterFactory.GetClusterFromK8sConfig(chart.Plans[planName].ClusterConfig)
+		if broker.credstore != nil {
+			creds, err := broker.credstore.Get(fmt.Sprintf("/c/%s/%s/%s/cluster-creds", credhubClientIdentifier, chart.Metadata.Name, planName))
+			if err != nil {
+				return brokerapi.ProvisionedServiceSpec{}, errors.Wrap(err, "Unable to get creds from credstore")
+			}
+			clusterConfig := &k8sAPI.Config{}
+			err = yaml.Unmarshal([]byte(creds), clusterConfig)
+			if err != nil {
+				return brokerapi.ProvisionedServiceSpec{}, errors.Wrap(err, "Unable to get unmarshall creds retreived from credstore")
+			}
+			cluster, err = broker.clusterFactory.GetClusterFromK8sConfig(clusterConfig)
+		} else {
+			cluster, err = broker.clusterFactory.GetClusterFromK8sConfig(chart.Plans[planName].ClusterConfig)
+		}
 	} else {
 		cluster, err = broker.clusterFactory.DefaultCluster()
 	}
-
 	if err != nil {
-		return brokerapi.ProvisionedServiceSpec{}, err
+		return brokerapi.ProvisionedServiceSpec{}, errors.Wrap(err, "Unable to get cluster")
 	}
 
 	myHelmClient := broker.helmClientFactory.HelmClient(cluster)
-
 	if planHasCluster {
 		planClusterServiceAccountInstaller := broker.serviceAccountInstallerFactory.ServiceAccountInstaller(cluster)
 		err = PrepareCluster(broker.config, cluster, myHelmClient, planClusterServiceAccountInstaller, broker.helmInstallerFactory, broker.operators, broker.logger)
@@ -211,7 +223,17 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 		},
 	}
 
-	planBytes := chart.Plans[planName].Values
+	var planBytes []byte
+	if broker.credstore != nil {
+		creds, err := broker.credstore.Get(fmt.Sprintf("/c/%s/%s/%s/values", credhubClientIdentifier, chart.Metadata.Name, planName))
+		if err != nil {
+			return brokerapi.ProvisionedServiceSpec{}, err
+		}
+		planBytes = []byte(creds)
+	} else {
+		planBytes = chart.Plans[planName].Values
+	}
+
 	_, err = myHelmClient.InstallChart(broker.config.RegistryConfig, namespace, broker.getReleaseName(instanceID), chart, planBytes, installValues)
 	if err != nil {
 		return brokerapi.ProvisionedServiceSpec{}, err

@@ -10,7 +10,7 @@ import (
 //go:generate counterfeiter ./ CredStore
 type CredStore interface {
 	Put(key string, credentials interface{}) (interface{}, error)
-	Get(key string) (interface{}, error)
+	Get(key string) (string, error)
 	Delete(key string) error
 	AddPermission(path string, actor string, ops []string) (*permissions.Permission, error)
 	DeletePermission(path string) error
@@ -41,8 +41,13 @@ func (c *credhubStore) Put(key string, credentials interface{}) (interface{}, er
 	return c.credHubClient.SetCredential(key, "json", credentials)
 }
 
-func (c *credhubStore) Get(key string) (interface{}, error) {
-	return c.credHubClient.GetLatestValue(key)
+func (c *credhubStore) Get(key string) (string, error) {
+	value, err := c.credHubClient.GetLatestValue(key)
+	if err != nil {
+		return "", err
+	}
+
+	return string(value.Value), nil
 }
 
 func (c *credhubStore) Delete(key string) error {

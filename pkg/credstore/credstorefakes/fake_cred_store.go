@@ -46,17 +46,17 @@ type FakeCredStore struct {
 	deletePermissionReturnsOnCall map[int]struct {
 		result1 error
 	}
-	GetStub        func(string) (interface{}, error)
+	GetStub        func(string) (string, error)
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
 		arg1 string
 	}
 	getReturns struct {
-		result1 interface{}
+		result1 string
 		result2 error
 	}
 	getReturnsOnCall map[int]struct {
-		result1 interface{}
+		result1 string
 		result2 error
 	}
 	PutStub        func(string, interface{}) (interface{}, error)
@@ -267,7 +267,7 @@ func (fake *FakeCredStore) DeletePermissionReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeCredStore) Get(arg1 string) (interface{}, error) {
+func (fake *FakeCredStore) Get(arg1 string) (string, error) {
 	fake.getMutex.Lock()
 	ret, specificReturn := fake.getReturnsOnCall[len(fake.getArgsForCall)]
 	fake.getArgsForCall = append(fake.getArgsForCall, struct {
@@ -291,7 +291,7 @@ func (fake *FakeCredStore) GetCallCount() int {
 	return len(fake.getArgsForCall)
 }
 
-func (fake *FakeCredStore) GetCalls(stub func(string) (interface{}, error)) {
+func (fake *FakeCredStore) GetCalls(stub func(string) (string, error)) {
 	fake.getMutex.Lock()
 	defer fake.getMutex.Unlock()
 	fake.GetStub = stub
@@ -304,28 +304,28 @@ func (fake *FakeCredStore) GetArgsForCall(i int) string {
 	return argsForCall.arg1
 }
 
-func (fake *FakeCredStore) GetReturns(result1 interface{}, result2 error) {
+func (fake *FakeCredStore) GetReturns(result1 string, result2 error) {
 	fake.getMutex.Lock()
 	defer fake.getMutex.Unlock()
 	fake.GetStub = nil
 	fake.getReturns = struct {
-		result1 interface{}
+		result1 string
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCredStore) GetReturnsOnCall(i int, result1 interface{}, result2 error) {
+func (fake *FakeCredStore) GetReturnsOnCall(i int, result1 string, result2 error) {
 	fake.getMutex.Lock()
 	defer fake.getMutex.Unlock()
 	fake.GetStub = nil
 	if fake.getReturnsOnCall == nil {
 		fake.getReturnsOnCall = make(map[int]struct {
-			result1 interface{}
+			result1 string
 			result2 error
 		})
 	}
 	fake.getReturnsOnCall[i] = struct {
-		result1 interface{}
+		result1 string
 		result2 error
 	}{result1, result2}
 }
