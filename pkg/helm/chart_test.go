@@ -528,7 +528,7 @@ images:
 
 			Expect(err).To(BeNil())
 			Expect(myChart.Plans["small"].Name).To(Equal("small"))
-			Expect(myChart.Plans["small"].File).To(Equal("small.yaml"))
+			Expect(myChart.Plans["small"].ValuesFile).To(Equal("small.yaml"))
 			Expect(myChart.Plans["small"].Description).To(Equal("default (small) plan for mysql"))
 			Expect(len(myChart.Plans)).To(Equal(2))
 			Expect(myChart.Plans["small"].Values).To(Equal(testChart.PlanContents["small"]))

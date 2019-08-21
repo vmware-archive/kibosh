@@ -65,7 +65,7 @@ type Plan struct {
 	Name            string   `yaml:"name" json:"name"`
 	Description     string   `yaml:"description" json:"description"`
 	Bullets         []string `yaml:"bullets" json:"bullets"`
-	File            string   `yaml:"file" json:"file"`
+	ValuesFile      string   `yaml:"file" json:"file"`
 	Free            *bool    `yaml:"free,omitempty" json:"free"`
 	Bindable        *bool    `yaml:"bindable,omitempty" json:"bindable"`
 	CredentialsPath string   `yaml:"credentials" json:"credentialsPath"`
@@ -354,7 +354,7 @@ func (c *MyChart) loadPlans(plansPath string, plans []Plan) error {
 	c.Plans = map[string]Plan{}
 
 	for _, p := range plans {
-		planValues, err := ioutil.ReadFile(filepath.Join(plansPath, p.File))
+		planValues, err := ioutil.ReadFile(filepath.Join(plansPath, p.ValuesFile))
 		if err != nil {
 			return err
 		}

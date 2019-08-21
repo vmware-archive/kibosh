@@ -64,7 +64,7 @@ type MyHelmClient interface {
 	Install(*helmstaller.Options) error
 	Upgrade(*helmstaller.Options) error
 	Uninstall(*helmstaller.Options) error
-	InstallChart(registryConfig *config.RegistryConfig, namespace api_v1.Namespace, releaseName string, chart *MyChart, planName string, installValues []byte, opts ...helm.InstallOption) (*rls.InstallReleaseResponse, error)
+	InstallChart(registryConfig *config.RegistryConfig, namespace api_v1.Namespace, releaseName string, chart *MyChart, planBytes []byte, installValues []byte, opts ...helm.InstallOption) (*rls.InstallReleaseResponse, error)
 	InstallOperator(chart *MyChart, namespace string) (*rls.InstallReleaseResponse, error)
 	UpdateChart(chart *MyChart, rlsName string, planName string, updateValues []byte) (*rls.UpdateReleaseResponse, error)
 	MergeValueBytes(base []byte, override []byte) ([]byte, error)
@@ -209,7 +209,7 @@ func (c myHelmClient) InstallReleaseFromChart(myChart *chart.Chart, namespace st
 	return client.InstallReleaseFromChart(myChart, namespace, opts...)
 }
 
-func (c myHelmClient) InstallChart(registryConfig *config.RegistryConfig, namespace api_v1.Namespace, releaseName string, chart *MyChart, planName string, installValues []byte, opts ...helm.InstallOption) (*rls.InstallReleaseResponse, error) {
+func (c myHelmClient) InstallChart(registryConfig *config.RegistryConfig, namespace api_v1.Namespace, releaseName string, chart *MyChart, planBytes []byte, installValues []byte, opts ...helm.InstallOption) (*rls.InstallReleaseResponse, error) {
 	err := c.cluster.CreateNamespaceIfNotExists(&namespace)
 	if err != nil {
 		return nil, err
@@ -231,8 +231,8 @@ func (c myHelmClient) InstallChart(registryConfig *config.RegistryConfig, namesp
 		IsUpgrade: false,
 	}
 	var finalValues []byte
-	if planName != "" {
-		planOverrideValues, err := c.MergeValueBytes(chart.TransformedValues, chart.Plans[planName].Values)
+	if planBytes != nil {
+		planOverrideValues, err := c.MergeValueBytes(chart.TransformedValues, planBytes)
 		if err != nil {
 			return nil, err
 		}
@@ -482,7 +482,6 @@ func (c myHelmClient) UpdateReleaseFromChart(rlsName string, chart *chart.Chart,
 
 	return client.UpdateReleaseFromChart(rlsName, chart, opts...)
 }
-
 
 func (c myHelmClient) RollbackRelease(rlsName string, opts ...helm.RollbackOption) (*rls.RollbackReleaseResponse, error) {
 	panic("Not yet implemented")

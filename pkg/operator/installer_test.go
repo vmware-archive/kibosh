@@ -107,12 +107,12 @@ var _ = Describe("Operator", func() {
 				"small": {
 					Name:        "small",
 					Description: "default (small) plan for spacebears",
-					File:        "small.yaml",
+					ValuesFile:  "small.yaml",
 				},
 				"medium": {
 					Name:        "medium",
 					Description: "medium plan for spacebears",
-					File:        "medium.yaml",
+					ValuesFile:  "medium.yaml",
 				},
 			},
 		}
@@ -127,12 +127,12 @@ var _ = Describe("Operator", func() {
 				"small": {
 					Name:        "tiny",
 					Description: "tiny data",
-					File:        "tiny.yaml",
+					ValuesFile:  "tiny.yaml",
 				},
 				"medium": {
 					Name:        "big",
 					Description: "big data",
-					File:        "big.yaml",
+					ValuesFile:  "big.yaml",
 				},
 			},
 		}

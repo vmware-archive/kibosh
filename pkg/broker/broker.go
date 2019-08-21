@@ -211,7 +211,8 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 		},
 	}
 
-	_, err = myHelmClient.InstallChart(broker.config.RegistryConfig, namespace, broker.getReleaseName(instanceID), chart, planName, installValues)
+	planBytes := chart.Plans[planName].Values
+	_, err = myHelmClient.InstallChart(broker.config.RegistryConfig, namespace, broker.getReleaseName(instanceID), chart, planBytes, installValues)
 	if err != nil {
 		return brokerapi.ProvisionedServiceSpec{}, err
 	}

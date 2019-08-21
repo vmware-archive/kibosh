@@ -88,17 +88,19 @@ var _ = Describe("Broker", func() {
 				"small": {
 					Name:        "small",
 					Description: "default (small) plan for spacebears",
-					File:        "small.yaml",
+					ValuesFile:  "small.yaml",
 					Free:        brokerapi.FreeValue(true),
 					Bindable:    brokerapi.BindableValue(true),
+					Values:      []byte(`cpu: 5`),
 				},
 				"medium": {
 					Name:        "medium",
 					Description: "medium plan for spacebears",
-					File:        "medium.yaml",
+					ValuesFile:  "medium.yaml",
 					Bullets:     bullets,
 					Free:        brokerapi.FreeValue(false),
 					Bindable:    brokerapi.BindableValue(true),
+					Values:      []byte(`cpu: 50`),
 				},
 			},
 		}
@@ -113,14 +115,14 @@ var _ = Describe("Broker", func() {
 				"small": {
 					Name:        "tiny",
 					Description: "tiny data",
-					File:        "tiny.yaml",
+					ValuesFile:  "tiny.yaml",
 					Free:        brokerapi.FreeValue(true),
 					Bindable:    brokerapi.BindableValue(true),
 				},
 				"medium": {
 					Name:        "big",
 					Description: "big data",
-					File:        "big.yaml",
+					ValuesFile:  "big.yaml",
 					Free:        brokerapi.FreeValue(false),
 					Bindable:    brokerapi.BindableValue(false),
 				},
@@ -356,11 +358,11 @@ var _ = Describe("Broker", func() {
 				Expect(err).To(BeNil())
 
 				Expect(fakeHelmClient.InstallChartCallCount()).To(Equal(1))
-				_, namespace, releaseName, chart, plan, opts, _ := fakeHelmClient.InstallChartArgsForCall(0)
+				_, namespace, releaseName, chart, planBytes, opts, _ := fakeHelmClient.InstallChartArgsForCall(0)
 				Expect(chart).To(Equal(spacebearsChart))
 				Expect(namespace.Name).To(Equal("kibosh-my-instance-guid"))
 				Expect(releaseName).To(Equal("k-5h5kntfw"))
-				Expect(plan).To(Equal("small"))
+				Expect(planBytes).To(Equal([]byte(`cpu: 5`)))
 				Expect(opts).To(BeNil())
 			})
 
@@ -400,11 +402,11 @@ var _ = Describe("Broker", func() {
 				Expect(err).To(BeNil())
 
 				Expect(fakeHelmClient.InstallChartCallCount()).To(Equal(1))
-				_, namespace, releaseName, chart, plan, opts, _ := fakeHelmClient.InstallChartArgsForCall(0)
+				_, namespace, releaseName, chart, planBytes, opts, _ := fakeHelmClient.InstallChartArgsForCall(0)
 				Expect(chart).To(Equal(spacebearsChart))
 				Expect(namespace.Name).To(Equal("kibosh-my-instance-guid"))
 				Expect(releaseName).To(Equal("k-5h5kntfw"))
-				Expect(plan).To(Equal("small"))
+				Expect(planBytes).To(Equal([]byte(`cpu: 5`)))
 				Expect(strings.TrimSpace(string(opts))).To(Equal("foo: bar"))
 			})
 		})

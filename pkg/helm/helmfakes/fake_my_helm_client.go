@@ -66,14 +66,14 @@ type FakeMyHelmClient struct {
 	installReturnsOnCall map[int]struct {
 		result1 error
 	}
-	InstallChartStub        func(*config.RegistryConfig, v1.Namespace, string, *helm.MyChart, string, []byte, ...helma.InstallOption) (*services.InstallReleaseResponse, error)
+	InstallChartStub        func(*config.RegistryConfig, v1.Namespace, string, *helm.MyChart, []byte, []byte, ...helma.InstallOption) (*services.InstallReleaseResponse, error)
 	installChartMutex       sync.RWMutex
 	installChartArgsForCall []struct {
 		arg1 *config.RegistryConfig
 		arg2 v1.Namespace
 		arg3 string
 		arg4 *helm.MyChart
-		arg5 string
+		arg5 []byte
 		arg6 []byte
 		arg7 []helma.InstallOption
 	}
@@ -590,7 +590,12 @@ func (fake *FakeMyHelmClient) InstallReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeMyHelmClient) InstallChart(arg1 *config.RegistryConfig, arg2 v1.Namespace, arg3 string, arg4 *helm.MyChart, arg5 string, arg6 []byte, arg7 ...helma.InstallOption) (*services.InstallReleaseResponse, error) {
+func (fake *FakeMyHelmClient) InstallChart(arg1 *config.RegistryConfig, arg2 v1.Namespace, arg3 string, arg4 *helm.MyChart, arg5 []byte, arg6 []byte, arg7 ...helma.InstallOption) (*services.InstallReleaseResponse, error) {
+	var arg5Copy []byte
+	if arg5 != nil {
+		arg5Copy = make([]byte, len(arg5))
+		copy(arg5Copy, arg5)
+	}
 	var arg6Copy []byte
 	if arg6 != nil {
 		arg6Copy = make([]byte, len(arg6))
@@ -603,11 +608,11 @@ func (fake *FakeMyHelmClient) InstallChart(arg1 *config.RegistryConfig, arg2 v1.
 		arg2 v1.Namespace
 		arg3 string
 		arg4 *helm.MyChart
-		arg5 string
+		arg5 []byte
 		arg6 []byte
 		arg7 []helma.InstallOption
-	}{arg1, arg2, arg3, arg4, arg5, arg6Copy, arg7})
-	fake.recordInvocation("InstallChart", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6Copy, arg7})
+	}{arg1, arg2, arg3, arg4, arg5Copy, arg6Copy, arg7})
+	fake.recordInvocation("InstallChart", []interface{}{arg1, arg2, arg3, arg4, arg5Copy, arg6Copy, arg7})
 	fake.installChartMutex.Unlock()
 	if fake.InstallChartStub != nil {
 		return fake.InstallChartStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7...)
@@ -625,13 +630,13 @@ func (fake *FakeMyHelmClient) InstallChartCallCount() int {
 	return len(fake.installChartArgsForCall)
 }
 
-func (fake *FakeMyHelmClient) InstallChartCalls(stub func(*config.RegistryConfig, v1.Namespace, string, *helm.MyChart, string, []byte, ...helma.InstallOption) (*services.InstallReleaseResponse, error)) {
+func (fake *FakeMyHelmClient) InstallChartCalls(stub func(*config.RegistryConfig, v1.Namespace, string, *helm.MyChart, []byte, []byte, ...helma.InstallOption) (*services.InstallReleaseResponse, error)) {
 	fake.installChartMutex.Lock()
 	defer fake.installChartMutex.Unlock()
 	fake.InstallChartStub = stub
 }
 
-func (fake *FakeMyHelmClient) InstallChartArgsForCall(i int) (*config.RegistryConfig, v1.Namespace, string, *helm.MyChart, string, []byte, []helma.InstallOption) {
+func (fake *FakeMyHelmClient) InstallChartArgsForCall(i int) (*config.RegistryConfig, v1.Namespace, string, *helm.MyChart, []byte, []byte, []helma.InstallOption) {
 	fake.installChartMutex.RLock()
 	defer fake.installChartMutex.RUnlock()
 	argsForCall := fake.installChartArgsForCall[i]
