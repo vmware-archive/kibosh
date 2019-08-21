@@ -27,8 +27,9 @@ type bazaarConfig struct {
 	Port         int    `envconfig:"PORT" default:"8081"`
 	HelmChartDir string `envconfig:"HELM_CHART_DIR" default:"charts"`
 
-	RegistryConfig *config.RegistryConfig
-	KiboshConfig   *KiboshConfig
+	RegistryConfig  *config.RegistryConfig
+	KiboshConfig    *KiboshConfig
+	CredStoreConfig *config.CredStoreConfig
 }
 
 type KiboshConfig struct {

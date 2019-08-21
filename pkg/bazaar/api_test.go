@@ -16,20 +16,27 @@
 package bazaar_test
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"encoding/json"
 	"errors"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"os"
+	"sort"
 
 	"github.com/cf-platform-eng/kibosh/pkg/bazaar"
+	"github.com/cf-platform-eng/kibosh/pkg/credstore/credstorefakes"
 	"github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/httphelpers"
 	"github.com/cf-platform-eng/kibosh/pkg/repository/repositoryfakes"
+	"github.com/cf-platform-eng/kibosh/pkg/test"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
+	"k8s.io/helm/pkg/chartutil"
 	hapi_chart "k8s.io/helm/pkg/proto/hapi/chart"
 )
 
@@ -37,6 +44,7 @@ var _ = Describe("Api", func() {
 	const spacebearsServiceGUID = "37b7acb6-6755-56fe-a17f-2307657023ef"
 
 	var repo repositoryfakes.FakeRepository
+
 	var logger *logrus.Logger
 	var api bazaar.API
 	var kiboshConfig *bazaar.KiboshConfig
@@ -57,7 +65,7 @@ var _ = Describe("Api", func() {
 			User:   "bob",
 			Pass:   "monkey123",
 		}
-		api = bazaar.NewAPI(&repo, kiboshConfig, logger)
+		api = bazaar.NewAPI(&repo, kiboshConfig, nil, logger)
 	})
 
 	AfterEach(func() {
@@ -168,7 +176,7 @@ var _ = Describe("Api", func() {
 				Pass:   "monkey123",
 			}
 
-			api = bazaar.NewAPI(&repo, kiboshConfig, logger)
+			api = bazaar.NewAPI(&repo, kiboshConfig, nil, logger)
 
 			req, err := createRequestWithFile()
 			Expect(err).To(BeNil())
@@ -192,7 +200,59 @@ var _ = Describe("Api", func() {
 			Expect(repo.SaveChartCallCount()).To(Equal(1))
 		})
 	})
+	Context("Save Chart w CredHub", func() {
+		var fakeCredStore *credstorefakes.FakeCredStore
 
+		BeforeEach(func() {
+			fakeCredStore = &credstorefakes.FakeCredStore{}
+			api = bazaar.NewAPI(&repo, kiboshConfig, fakeCredStore, logger)
+
+		})
+
+		It("Removes plan from tarball and stores in credhub", func() {
+			tmpDir, err := ioutil.TempDir("", "")
+			Expect(err).To(BeNil())
+
+			err = test.DefaultChart().WriteChart(tmpDir)
+			Expect(err).To(BeNil())
+
+			myChart, err := helm.NewChart(tmpDir, "", logger)
+			Expect(err).To(BeNil())
+
+			outDir, err := ioutil.TempDir("", "")
+			Expect(err).To(BeNil())
+
+			chartTarball, err := chartutil.Save(&myChart.Chart, outDir)
+			Expect(err).To(BeNil())
+			req, err := httphelpers.CreateFormRequest("/foo", "chart", []string{chartTarball})
+			Expect(err).To(BeNil())
+			recorder := httptest.NewRecorder()
+
+			apiHandler := api.Charts()
+			apiHandler.ServeHTTP(recorder, req)
+
+			Expect(repo.SaveChartCallCount()).To(Equal(1))
+			path := repo.SaveChartArgsForCall(0)
+
+			file1, err := os.Open(path)
+			Expect(err).To(BeNil())
+			gzipReader, err := gzip.NewReader(file1)
+			Expect(err).To(BeNil())
+			tarReader := tar.NewReader(gzipReader)
+			var headers []string
+			for {
+				header, err := tarReader.Next()
+				if err == io.EOF {
+					break
+				}
+				Expect(err).To(BeNil())
+				headers = append(headers, header.Name)
+			}
+			sort.Strings(headers)
+
+			Expect(headers).To(Equal([]string{"spacebears/.helmignore", "spacebears/Chart.yaml", "spacebears/plans.yaml", "spacebears/values.yaml"}))
+		})
+	})
 	Context("Delete chart", func() {
 		It("url parsing fails", func() {
 			req, err := http.NewRequest("DELETE", "/charts", nil)
@@ -226,7 +286,7 @@ var _ = Describe("Api", func() {
 			})
 			kiboshAPITestServer = httptest.NewServer(handler)
 
-			api = bazaar.NewAPI(&repo, kiboshConfig, logger)
+			api = bazaar.NewAPI(&repo, kiboshConfig, nil, logger)
 
 			req, err := http.NewRequest("DELETE", "/charts/mysql", nil)
 			Expect(err).To(BeNil())

@@ -16,6 +16,8 @@
 package bazaar
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -23,6 +25,11 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+
+	"github.com/cf-platform-eng/kibosh/pkg/broker"
+	"github.com/cf-platform-eng/kibosh/pkg/credstore"
+	"github.com/cf-platform-eng/kibosh/pkg/helm"
+	"gopkg.in/yaml.v2"
 
 	"strings"
 
@@ -42,13 +49,15 @@ type API interface {
 type api struct {
 	repo         repository.Repository
 	kiboshConfig *KiboshConfig
+	credStore    credstore.CredStore
 	logger       *logrus.Logger
 }
 
-func NewAPI(repo repository.Repository, kiboshConfig *KiboshConfig, logger *logrus.Logger) API {
+func NewAPI(repo repository.Repository, kiboshConfig *KiboshConfig, credStore credstore.CredStore, logger *logrus.Logger) API {
 	return &api{
 		repo:         repo,
 		kiboshConfig: kiboshConfig,
+		credStore:    credStore,
 		logger:       logger,
 	}
 }
@@ -195,7 +204,6 @@ func (api *api) saveChartToRepository(r *http.Request) error {
 		api.logger.WithError(err).Error("SaveChart: Couldn't parse the multipart form request")
 		return err
 	}
-
 	formdata := r.MultipartForm
 
 	files := formdata.File["chart"]
@@ -206,8 +214,9 @@ func (api *api) saveChartToRepository(r *http.Request) error {
 			return err
 		}
 
-		chartPath, err := ioutil.TempDir("", "chart-")
-		f, err := os.OpenFile(filepath.Join(chartPath, files[i].Filename), os.O_WRONLY|os.O_CREATE, 0666)
+		chartDir, err := ioutil.TempDir("", "chart-")
+		chartPath := filepath.Join(chartDir, files[i].Filename)
+		f, err := os.OpenFile(chartPath, os.O_WRONLY|os.O_CREATE, 0666)
 
 		if err != nil {
 			api.logger.WithError(err).Error("SaveChart: Couldn't write on disk ")
@@ -221,7 +230,13 @@ func (api *api) saveChartToRepository(r *http.Request) error {
 			return err
 		}
 
-		err = api.repo.SaveChart(filepath.Join(chartPath, files[i].Filename))
+		if api.credStore != nil {
+			chartPath, err = api.removeAndStorePlanDetails(chartPath)
+			if err != nil {
+				return errors.Wrap(err, "unable to store plans in CredHub")
+			}
+		}
+		err = api.repo.SaveChart(chartPath)
 		if err != nil {
 			api.logger.WithError(err).Error("SaveChart: Couldn't save the chart")
 			return err
@@ -270,4 +285,115 @@ func (api *api) ServerError(code int, message string, w http.ResponseWriter) {
 	if err != nil {
 		api.logger.WithError(err).Error("error writing server error response")
 	}
+}
+
+func (api *api) removeAndStorePlanDetails(chartPath string) (string, error) {
+	chartFile, err := os.Open(chartPath)
+	if err != nil {
+		return "", err
+	}
+	defer chartFile.Close()
+
+	gzipReader, err := gzip.NewReader(chartFile)
+	if err != nil {
+		return "", err
+	}
+	defer gzipReader.Close()
+	tarReader := tar.NewReader(gzipReader)
+	tarFile, err := ioutil.TempFile("", "")
+	if err != nil {
+		return "", errors.Wrap(err, "cannot create temp file for chart")
+	}
+	defer tarFile.Close()
+	gzipWriter := gzip.NewWriter(tarFile)
+	defer gzipWriter.Close()
+
+	tarWriter := tar.NewWriter(gzipWriter)
+	defer tarWriter.Close()
+	plans := []helm.Plan{}
+	planFiles := map[string][]byte{}
+	chartYaml := map[string]string{}
+	var chartName string
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return "", err
+		}
+
+		if strings.HasSuffix(header.Name, "plans.yaml") || strings.HasSuffix(header.Name, "plans.yml") {
+			api.logger.Info(fmt.Sprintf("plans.yaml found, reading from plans.yaml"))
+			plansBytes, err := ioutil.ReadAll(tarReader)
+			if err != nil {
+				return "", err
+			}
+
+			err = yaml.Unmarshal(plansBytes, &plans)
+			if err != nil {
+				return "", errors.Wrap(err, "Error unmarshalling plan")
+			}
+			err = tarWriter.WriteHeader(header)
+			if err != nil {
+				return "", errors.Wrap(err, "error writing header to tar file")
+			}
+			_, err = tarWriter.Write(plansBytes)
+			if err != nil {
+				return "", errors.Wrap(err, "error writing body to tar file")
+			}
+
+		} else if strings.Contains(header.Name, "Chart.yaml") {
+			chartYamlBytes, err := ioutil.ReadAll(tarReader)
+			if err != nil {
+				return "", err
+			}
+
+			err = yaml.Unmarshal(chartYamlBytes, &chartYaml)
+			if err != nil {
+				return "", err
+			}
+			chartName = chartYaml["name"]
+			err = tarWriter.WriteHeader(header)
+			if err != nil {
+				return "", errors.Wrap(err, "error writing header to tar file")
+			}
+			_, err = tarWriter.Write(chartYamlBytes)
+			if err != nil {
+				return "", errors.Wrap(err, "error writing body to tar file")
+			}
+		} else if strings.Contains(header.Name, "/plans") {
+			planFileBytes, err := ioutil.ReadAll(tarReader)
+			if err != nil {
+				return "", err
+			}
+			planFiles[header.Name] = planFileBytes
+		} else {
+			err = tarWriter.WriteHeader(header)
+			if err != nil {
+				return "", errors.Wrap(err, "error writing header to tar file")
+			}
+			_, err = io.Copy(tarWriter, tarReader)
+			if err != nil {
+				return "", errors.Wrap(err, "error writing body to tar file")
+			}
+
+		}
+		for _, plan := range plans {
+			keyPath := fmt.Sprintf("/c/%s/%s/%s/values", broker.CredhubClientIdentifier, chartName, plan.Name)
+			_, err = api.credStore.Put(keyPath, planFiles["/plans/"+plan.ValuesFile])
+			if err != nil {
+				return "", errors.Wrap(err, "failed to save chart plan to CredHub")
+			}
+			if plan.CredentialsPath != "" {
+				credPath := fmt.Sprintf("/c/%s/%s/%s/cluster-creds", broker.CredhubClientIdentifier, chartName, plan.Name)
+				_, err = api.credStore.Put(credPath, planFiles["/plans/"+plan.CredentialsPath])
+				if err != nil {
+					return "", errors.Wrap(err, "failed to save cluster credential to CredHub")
+				}
+			}
+		}
+
+	}
+
+	return tarFile.Name(), err
 }

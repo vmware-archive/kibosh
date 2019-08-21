@@ -244,6 +244,8 @@ func (c *MyChart) loadOSBAPIMetadataFromArchive(chartPath string, log *logrus.Lo
 		header, err := tarReader.Next()
 		if err == io.EOF {
 			break
+		} else if err != nil {
+			return err
 		}
 
 		if strings.HasSuffix(header.Name, "plans.yaml") || strings.HasSuffix(header.Name, "plans.yml") {
@@ -441,7 +443,6 @@ func (c *MyChart) ensureIgnore(chartPath string) error {
 func (c *MyChart) String() string {
 	return c.Metadata.Name
 }
-
 
 func (p Plan) HasCluster() bool {
 	return p.CredentialsPath != ""

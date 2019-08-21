@@ -20,6 +20,7 @@ import (
 	"net/http"
 
 	"github.com/cf-platform-eng/kibosh/pkg/bazaar"
+	"github.com/cf-platform-eng/kibosh/pkg/credstore"
 	"github.com/cf-platform-eng/kibosh/pkg/httphelpers"
 	"github.com/cf-platform-eng/kibosh/pkg/repository"
 	"github.com/sirupsen/logrus"
@@ -36,7 +37,18 @@ func main() {
 	}
 
 	repo := repository.NewRepository(conf.HelmChartDir, conf.RegistryConfig.Server, bazaarLogger)
-	bazaarAPI := bazaar.NewAPI(repo, conf.KiboshConfig, bazaarLogger)
+	var credStore credstore.CredStore
+	if conf.CredStoreConfig.HasCredHubConfig() {
+		credStore, err = credstore.NewCredhubStore(
+			conf.CredStoreConfig.CredHubURL, conf.CredStoreConfig.UaaURL,
+			conf.CredStoreConfig.UaaClientName, conf.CredStoreConfig.UaaClientSecret,
+			conf.CredStoreConfig.SkipSSLValidation, bazaarLogger,
+		)
+		if err != nil {
+			bazaarLogger.Fatal("Unable to create credhub client", err)
+		}
+	}
+	bazaarAPI := bazaar.NewAPI(repo, conf.KiboshConfig, credStore, bazaarLogger)
 	authFilter := httphelpers.NewAuthFilter(conf.AdminUsername, conf.AdminPassword)
 
 	// When registering *only* the trailing slash, for the non-trailing slash url,

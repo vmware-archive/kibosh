@@ -41,7 +41,7 @@ import (
 )
 
 const registrySecretName = "registry-secret"
-const credhubClientIdentifier = "kibosh"
+const CredhubClientIdentifier = "kibosh"
 
 type PksServiceBroker struct {
 	config    *config.Config
@@ -176,10 +176,11 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 	}
 
 	var cluster k8s.Cluster
+	//@todo need to load plans from credhub if configured
 	planHasCluster := chart.Plans[planName].HasCluster()
 	if planHasCluster {
 		if broker.credstore != nil {
-			creds, err := broker.credstore.Get(fmt.Sprintf("/c/%s/%s/%s/cluster-creds", credhubClientIdentifier, chart.Metadata.Name, planName))
+			creds, err := broker.credstore.Get(fmt.Sprintf("/c/%s/%s/%s/cluster-creds", CredhubClientIdentifier, chart.Metadata.Name, planName))
 			if err != nil {
 				return brokerapi.ProvisionedServiceSpec{}, errors.Wrap(err, "Unable to get creds from credstore")
 			}
@@ -225,7 +226,7 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 
 	var planBytes []byte
 	if broker.credstore != nil {
-		creds, err := broker.credstore.Get(fmt.Sprintf("/c/%s/%s/%s/values", credhubClientIdentifier, chart.Metadata.Name, planName))
+		creds, err := broker.credstore.Get(fmt.Sprintf("/c/%s/%s/%s/values", CredhubClientIdentifier, chart.Metadata.Name, planName))
 		if err != nil {
 			return brokerapi.ProvisionedServiceSpec{}, err
 		}
@@ -572,7 +573,7 @@ func (broker *PksServiceBroker) getServiceID(chart *my_helm.MyChart) string {
 }
 
 func (broker *PksServiceBroker) getCredentialName(serviceName, bindingID string) string {
-	return fmt.Sprintf("/c/%s/%s/%s/secrets-and-services", credhubClientIdentifier, serviceName, bindingID)
+	return fmt.Sprintf("/c/%s/%s/%s/secrets-and-services", CredhubClientIdentifier, serviceName, bindingID)
 }
 
 func (broker *PksServiceBroker) getRenderedTemplate(bindTemplate string, servicesAndSecrets map[string]interface{}) (string, error) {

@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ghodss/yaml"
 	. "github.com/cf-platform-eng/kibosh/pkg/broker"
 	my_config "github.com/cf-platform-eng/kibosh/pkg/config"
 	"github.com/cf-platform-eng/kibosh/pkg/credstore/credstorefakes"
@@ -30,6 +29,7 @@ import (
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s/k8sfakes"
 	"github.com/cf-platform-eng/kibosh/pkg/repository/repositoryfakes"
+	"github.com/ghodss/yaml"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
