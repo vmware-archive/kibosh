@@ -17,6 +17,7 @@ package test
 
 import (
 	"github.com/cf-platform-eng/kibosh/pkg/helm"
+	"github.com/ghodss/yaml"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"k8s.io/helm/pkg/chartutil"
@@ -86,7 +87,7 @@ nested:
   credentials: "medium-creds.yaml"
 `)
 
-	smallYaml := []byte(``)
+	smallYaml := []byte(`cpu: 5`)
 	mediumYaml := []byte(`
 persistence:
   size: 16Gi
@@ -178,7 +179,7 @@ func (t *TestChart) WriteChart(chartPath string) error {
 		return err
 	}
 
-	if t.HasPlans {
+	if t.PlansYaml != nil {
 		err = ioutil.WriteFile(filepath.Join(chartPath, "plans.yaml"), t.PlansYaml, 0666)
 		if err != nil {
 			return err
@@ -265,4 +266,55 @@ func DefaultMyChart() (*helm.MyChart, error) {
 	}
 
 	return helm.NewChart(chartPath, false,"docker.example.com", nil)
+}
+
+func WriteMyChart(myChart *helm.MyChart, logger *logrus.Logger) (string, error) {
+	testChart := TestChart{}
+
+	myChartValueBytes, err := yaml.Marshal(myChart.Values)
+	if err != nil {
+		return "", err
+	}
+	testChart.ValuesYaml = myChartValueBytes
+
+	myChartChartBytes, err := yaml.Marshal(myChart.Metadata)
+	if err != nil {
+		return "", err
+	}
+	testChart.ChartYaml = myChartChartBytes
+
+
+	testChart.PlanContents = make(map[string][]byte)
+	plansYaml := []map[string]string{}
+	for _, plan := range myChart.Plans {
+		planeFileEntry := map[string]string{
+			"name":        plan.Name,
+			"description": plan.Description,
+			"file":        plan.Name + ".yaml",
+		}
+		if plan.ClusterConfig != nil {
+			planeFileEntry["credentials"] = plan.Name + "-creds.yaml"
+			planCredsBytes, err := yaml.Marshal(plan.ClusterConfig)
+			if err != nil {
+				return  "", err
+			}
+			testChart.PlanContents[plan.Name + "-creds"] = planCredsBytes
+
+		}
+		plansYaml = append(plansYaml, planeFileEntry)
+
+
+		myChartPlanContentsBytes, err := yaml.Marshal(plan.Values)
+		if err != nil {
+			return  "", err
+		}
+		testChart.PlanContents[plan.Name] = myChartPlanContentsBytes
+	}
+	plansYamlBytes, err := yaml.Marshal(plansYaml)
+	if err != nil {
+		panic(err)
+	}
+	testChart.PlansYaml = plansYamlBytes
+	return testChart.WriteChartPackage(logger)
+
 }

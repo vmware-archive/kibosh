@@ -36,6 +36,7 @@ import (
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/sirupsen/logrus"
+	bob "gopkg.in/yaml.v2"
 	api_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sAPI "k8s.io/client-go/tools/clientcmd/api"
@@ -84,6 +85,7 @@ var _ = Describe("Broker", func() {
 			Chart: hapi_chart.Chart{
 				Metadata: &hapi_chart.Metadata{
 					Name:        "spacebears",
+					Version: 	"0.0.1",
 					Description: "spacebears service and spacebears broker helm chart",
 				},
 			},
@@ -111,18 +113,19 @@ var _ = Describe("Broker", func() {
 			Chart: hapi_chart.Chart{
 				Metadata: &hapi_chart.Metadata{
 					Name:        "mysql",
+					Version:	"0.15.0",
 					Description: "all your data are belong to us",
 				},
 			},
 			Plans: map[string]my_helm.Plan{
-				"small": {
+				"tiny": {
 					Name:        "tiny",
 					Description: "tiny data",
 					ValuesFile:  "tiny.yaml",
 					Free:        brokerapi.FreeValue(true),
 					Bindable:    brokerapi.BindableValue(true),
 				},
-				"medium": {
+				"big": {
 					Name:        "big",
 					Description: "big data",
 					ValuesFile:  "big.yaml",
@@ -131,6 +134,10 @@ var _ = Describe("Broker", func() {
 				},
 			},
 		}
+		mysqlChartPath, err := test.WriteMyChart(mysqlChart, logger)
+		Expect(err).To(BeNil())
+
+		mysqlChart.ChartPath = mysqlChartPath
 
 		charts = []*my_helm.MyChart{spacebearsChart, mysqlChart}
 
@@ -246,7 +253,10 @@ var _ = Describe("Broker", func() {
 				ServiceID: spacebearsServiceGUID,
 				PlanID:    spacebearsServiceGUID + "-small",
 			}
-
+			testChart := test.DefaultChart()
+			chartPath, err := testChart.WriteChartPackage(logger)
+			Expect(err).To(BeNil())
+			spacebearsChart.ChartPath = chartPath
 			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, nil, nil, logger)
 			Expect(fakeClusterFactory.DefaultClusterCallCount()).To(Equal(0))
 			Expect(fakeClusterFactory.GetClusterCallCount()).To(Equal(0))
@@ -262,9 +272,6 @@ var _ = Describe("Broker", func() {
 		})
 
 		It("responds correctly", func() {
-			testChart := test.DefaultChart()
-			chartPath, err := testChart.WriteChartPackage(logger)
-			spacebearsChart.ChartPath = chartPath
 			resp, err := broker.Provision(nil, "my-instance-guid", details, true)
 
 			Expect(err).To(BeNil())
@@ -343,8 +350,13 @@ var _ = Describe("Broker", func() {
 
 				plan := spacebearsChart.Plans["small"]
 				plan.ClusterConfig = k8sConfig
+				k8sConfigBytes, err := bob.Marshal(k8sConfig)
+				print("k8sconfig:" + string(k8sConfigBytes))
 				plan.CredentialsPath = "small-creds.yaml"
 				spacebearsChart.Plans["small"] = plan
+				chartPath, err := test.WriteMyChart(spacebearsChart, logger)
+				Expect(err).To(BeNil())
+				spacebearsChart.ChartPath = chartPath
 
 				details = brokerapi.ProvisionDetails{
 					ServiceID: spacebearsServiceGUID,

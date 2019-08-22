@@ -25,8 +25,8 @@ import (
 	"github.com/cf-platform-eng/kibosh/pkg/credstore"
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
+	"github.com/cf-platform-eng/kibosh/pkg/moreio"
 	"github.com/cf-platform-eng/kibosh/pkg/repository"
-	"github.com/cf-platform-eng/kibosh/tools"
 	"github.com/ghodss/yaml"
 	"github.com/google/go-jsonnet"
 	"github.com/pborman/uuid"
@@ -185,13 +185,16 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 		if err != nil {
 			return brokerapi.ProvisionedServiceSpec{}, err
 		}
-		tools.Untar(chartReader, path.Dir(chart.ChartPath))
+		moreio.Untar(chartReader, path.Dir(chart.ChartPath))
 		err = chartReader.Close()
 		if err != nil {
 			return brokerapi.ProvisionedServiceSpec{}, err
 		}
 	}
-	plansDir := path.Join(path.Dir(chart.ChartPath),  chart.Chart.Metadata.Name, "plans")
+	if chart.ChartPath == "" {
+		return brokerapi.ProvisionedServiceSpec{}, errors.New("chart chartPath should not be empty")
+	}
+	plansDir := path.Join(path.Dir(chart.ChartPath), chart.Chart.Metadata.Name, "plans")
 
 	planDetails, err := chart.LoadPlans(plansDir, chart.Plans)
 	if err != nil {
