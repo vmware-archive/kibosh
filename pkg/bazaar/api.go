@@ -300,6 +300,7 @@ func (api *api) removeAndStorePlanDetails(chartPath string) (string, error) {
 	}
 	defer gzipReader.Close()
 	tarReader := tar.NewReader(gzipReader)
+
 	tarFile, err := ioutil.TempFile("", "")
 	if err != nil {
 		return "", errors.Wrap(err, "cannot create temp file for chart")
@@ -310,6 +311,7 @@ func (api *api) removeAndStorePlanDetails(chartPath string) (string, error) {
 
 	tarWriter := tar.NewWriter(gzipWriter)
 	defer tarWriter.Close()
+
 	plans := []helm.Plan{}
 	planFiles := map[string][]byte{}
 	chartYaml := map[string]string{}
@@ -352,6 +354,7 @@ func (api *api) removeAndStorePlanDetails(chartPath string) (string, error) {
 			if err != nil {
 				return "", err
 			}
+
 			chartName = chartYaml["name"]
 			err = tarWriter.WriteHeader(header)
 			if err != nil {
@@ -376,20 +379,20 @@ func (api *api) removeAndStorePlanDetails(chartPath string) (string, error) {
 			if err != nil {
 				return "", errors.Wrap(err, "error writing body to tar file")
 			}
-
 		}
-		for _, plan := range plans {
-			keyPath := fmt.Sprintf("/c/%s/%s/%s/values", broker.CredhubClientIdentifier, chartName, plan.Name)
-			_, err = api.credStore.Put(keyPath, planFiles["/plans/"+plan.ValuesFile])
+	}
+
+	for _, plan := range plans {
+		keyPath := fmt.Sprintf("/c/%s/%s/%s/values", broker.CredhubClientIdentifier, chartName, plan.Name)
+		_, err = api.credStore.Put(keyPath, planFiles[chartName+"/plans/"+plan.ValuesFile])
+		if err != nil {
+			return "", errors.Wrap(err, "failed to save chart plan to CredHub")
+		}
+		if plan.CredentialsPath != "" {
+			credPath := fmt.Sprintf("/c/%s/%s/%s/cluster-creds", broker.CredhubClientIdentifier, chartName, plan.Name)
+			_, err = api.credStore.Put(credPath, planFiles[chartName+"/plans/"+plan.CredentialsPath])
 			if err != nil {
-				return "", errors.Wrap(err, "failed to save chart plan to CredHub")
-			}
-			if plan.CredentialsPath != "" {
-				credPath := fmt.Sprintf("/c/%s/%s/%s/cluster-creds", broker.CredhubClientIdentifier, chartName, plan.Name)
-				_, err = api.credStore.Put(credPath, planFiles["/plans/"+plan.CredentialsPath])
-				if err != nil {
-					return "", errors.Wrap(err, "failed to save cluster credential to CredHub")
-				}
+				return "", errors.Wrap(err, "failed to save cluster credential to CredHub")
 			}
 		}
 

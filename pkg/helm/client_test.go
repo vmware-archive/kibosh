@@ -209,11 +209,11 @@ foo: bar
 		It("doesn't mess with the original chart", func() {
 			myChart, err := test.DefaultMyChart()
 			Expect(err).To(BeNil())
-			Expect(len(myChart.Templates)).To(Equal(0))
+			Expect(len(myChart.Templates)).To(Equal(1))
 
 			_, err = myHelmClient.RenderTemplatedValues(releaseOptions, []byte{}, myChart.Chart)
 			Expect(err).To(BeNil())
-			Expect(len(myChart.Templates)).To(Equal(0))
+			Expect(len(myChart.Templates)).To(Equal(1))
 		})
 	})
 

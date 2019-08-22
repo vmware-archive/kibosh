@@ -36,7 +36,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"k8s.io/helm/pkg/chartutil"
 	hapi_chart "k8s.io/helm/pkg/proto/hapi/chart"
 )
 
@@ -200,31 +199,48 @@ var _ = Describe("Api", func() {
 			Expect(repo.SaveChartCallCount()).To(Equal(1))
 		})
 	})
+
 	Context("Save Chart w CredHub", func() {
 		var fakeCredStore *credstorefakes.FakeCredStore
 
 		BeforeEach(func() {
 			fakeCredStore = &credstorefakes.FakeCredStore{}
 			api = bazaar.NewAPI(&repo, kiboshConfig, fakeCredStore, logger)
-
 		})
 
-		It("Removes plan from tarball and stores in credhub", func() {
-			tmpDir, err := ioutil.TempDir("", "")
+		It("Removes plans and creds from tarball and stores in credhub", func() {
+			chart := test.DefaultChart()
+			chartTarball, err := chart.WriteChartPackage(logger)
 			Expect(err).To(BeNil())
 
-			err = test.DefaultChart().WriteChart(tmpDir)
+			chartTarballFile, err := os.Open(chartTarball)
 			Expect(err).To(BeNil())
+			gzipReader, err := gzip.NewReader(chartTarballFile)
+			Expect(err).To(BeNil())
+			tarReader := tar.NewReader(gzipReader)
+			var preconditionHeaders []string
+			for {
+				header, err := tarReader.Next()
+				if err == io.EOF {
+					break
+				}
+				Expect(err).To(BeNil())
+				preconditionHeaders = append(preconditionHeaders, header.Name)
+			}
+			sort.Strings(preconditionHeaders)
 
-			myChart, err := helm.NewChart(tmpDir, "", logger)
-			Expect(err).To(BeNil())
+			Expect(preconditionHeaders).To(Equal([]string{
+				"spacebears/.helmignore",
+				"spacebears/Chart.yaml",
+				"spacebears/plans.yaml",
+				"spacebears/plans/medium-creds.yaml",
+				"spacebears/plans/medium.yaml",
+				"spacebears/plans/small.yaml",
+				"spacebears/templates/loadbalancer.yaml",
+				"spacebears/values.yaml",
+			}), "Chart does not contain plans: pre-conditions invalid")
 
-			outDir, err := ioutil.TempDir("", "")
-			Expect(err).To(BeNil())
-
-			chartTarball, err := chartutil.Save(&myChart.Chart, outDir)
-			Expect(err).To(BeNil())
-			req, err := httphelpers.CreateFormRequest("/foo", "chart", []string{chartTarball})
+			req, err := httphelpers.CreateFormRequest("/chart.tgz", "chart", []string{chartTarball})
 			Expect(err).To(BeNil())
 			recorder := httptest.NewRecorder()
 
@@ -234,11 +250,12 @@ var _ = Describe("Api", func() {
 			Expect(repo.SaveChartCallCount()).To(Equal(1))
 			path := repo.SaveChartArgsForCall(0)
 
-			file1, err := os.Open(path)
+			savedFile, err := os.Open(path)
 			Expect(err).To(BeNil())
-			gzipReader, err := gzip.NewReader(file1)
+
+			gzipReader, err = gzip.NewReader(savedFile)
 			Expect(err).To(BeNil())
-			tarReader := tar.NewReader(gzipReader)
+			tarReader = tar.NewReader(gzipReader)
 			var headers []string
 			for {
 				header, err := tarReader.Next()
@@ -250,9 +267,61 @@ var _ = Describe("Api", func() {
 			}
 			sort.Strings(headers)
 
-			Expect(headers).To(Equal([]string{"spacebears/.helmignore", "spacebears/Chart.yaml", "spacebears/plans.yaml", "spacebears/values.yaml"}))
+			Expect(headers).To(Equal([]string{
+				"spacebears/.helmignore",
+				"spacebears/Chart.yaml",
+				"spacebears/plans.yaml",
+				"spacebears/templates/loadbalancer.yaml",
+				"spacebears/values.yaml",
+			}))
+		})
+
+		It("uses correct credhub path to store plans and creds", func() {
+			chart := test.DefaultChart()
+			chartTarball, err := chart.WriteChartPackage(logger)
+			Expect(err).To(BeNil())
+
+			req, err := httphelpers.CreateFormRequest("/chart.tgz", "chart", []string{chartTarball})
+			Expect(err).To(BeNil())
+			recorder := httptest.NewRecorder()
+
+			apiHandler := api.Charts()
+			apiHandler.ServeHTTP(recorder, req)
+
+			Expect(fakeCredStore.PutCallCount()).To(Equal(3))
+
+			path, valueBytes := fakeCredStore.PutArgsForCall(0)
+			Expect(path).To(Equal("/c/kibosh/spacebears/small/values"))
+			Expect(valueBytes).To(Equal(chart.PlanContents["small"]))
+
+			path, valueBytes = fakeCredStore.PutArgsForCall(1)
+			Expect(path).To(Equal("/c/kibosh/spacebears/medium/values"))
+			Expect(valueBytes).To(Equal(chart.PlanContents["medium"]))
+
+			path, credBytes := fakeCredStore.PutArgsForCall(2)
+			Expect(path).To(Equal("/c/kibosh/spacebears/medium/cluster-creds"))
+			Expect(credBytes).To(Equal(chart.PlanContents["medium-creds"]))
+		})
+
+		It("surfaces errors saving to credhub", func() {
+			fakeCredStore.PutReturns(nil, errors.New("credhub is down"))
+			chart := test.DefaultChart()
+			chartTarball, err := chart.WriteChartPackage(logger)
+			Expect(err).To(BeNil())
+
+			req, err := httphelpers.CreateFormRequest("/chart.tgz", "chart", []string{chartTarball})
+			Expect(err).To(BeNil())
+			recorder := httptest.NewRecorder()
+
+			apiHandler := api.Charts()
+			apiHandler.ServeHTTP(recorder, req)
+
+			Expect(recorder.Code).To(Equal(500))
+			body, _ := ioutil.ReadAll(recorder.Body)
+			Expect(body).To(ContainSubstring("credhub is down"))
 		})
 	})
+
 	Context("Delete chart", func() {
 		It("url parsing fails", func() {
 			req, err := http.NewRequest("DELETE", "/charts", nil)

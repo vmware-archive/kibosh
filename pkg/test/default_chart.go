@@ -20,6 +20,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/sirupsen/logrus"
+	"k8s.io/helm/pkg/chartutil"
+
 	"github.com/cf-platform-eng/kibosh/pkg/helm"
 )
 
@@ -28,6 +31,7 @@ type TestChart struct {
 	ValuesYaml   []byte
 	PlansYaml    []byte
 	PlanContents map[string][]byte
+	Templates    map[string][]byte
 	HasPlans     bool
 }
 
@@ -81,12 +85,30 @@ current-context: my-context
 		"medium-creds": mediumCredsYaml,
 	}
 
+	templates := map[string][]byte{
+		"loadbalancer.yaml": []byte(`
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service-lb
+spec:
+  selector:
+    role: foo
+  type: LoadBalancer
+  ports:
+    - port: 1234
+      targetPort: 1234
+      protocol: TCP
+`),
+	}
+
 	return &TestChart{
 		ChartYaml:    chartYaml,
 		ValuesYaml:   valuesYaml,
-		HasPlans:     true,
 		PlansYaml:    plansYaml,
 		PlanContents: planContents,
+		Templates:    templates,
+		HasPlans:     true,
 	}
 }
 
@@ -109,12 +131,15 @@ name: value
 }
 
 func (t *TestChart) WriteChart(chartPath string) error {
-	plansPath := filepath.Join(chartPath, "plans")
-	_, plansPathExists := os.Stat(plansPath)
-	if os.IsNotExist(plansPathExists) {
-		err := os.Mkdir(plansPath, 0700)
-		if err != nil {
-			return err
+	subdirs := []string{"plans", "templates"}
+	for _, subdir := range subdirs {
+		subdirPath := filepath.Join(chartPath, subdir)
+		_, subdirPathExists := os.Stat(subdirPath)
+		if os.IsNotExist(subdirPathExists) {
+			err := os.Mkdir(subdirPath, 0700)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -141,7 +166,44 @@ func (t *TestChart) WriteChart(chartPath string) error {
 		}
 	}
 
+	for key, value := range t.Templates {
+		path := filepath.Join(chartPath, "templates", key)
+		err = ioutil.WriteFile(path, value, 0666)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
+}
+
+func (t *TestChart) WriteChartPackage(log *logrus.Logger) (string, error) {
+	tmpDir, err := ioutil.TempDir("", "")
+	if err != nil {
+		return "", err
+	}
+
+	err = t.WriteChart(tmpDir)
+	if err != nil {
+		return "", err
+	}
+
+	myChart, err := helm.NewChart(tmpDir, "", log)
+	if err != nil {
+		return "", err
+	}
+
+	outDir, err := ioutil.TempDir("", "")
+	if err != nil {
+		return "", err
+	}
+
+	chartTarball, err := chartutil.Save(&myChart.Chart, outDir)
+	if err != nil {
+		return "", err
+	}
+
+	return chartTarball, err
 }
 
 func (t *TestChart) WriteChartYML(chartPath string) error {
