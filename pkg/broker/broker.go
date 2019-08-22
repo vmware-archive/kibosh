@@ -176,7 +176,12 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 	}
 
 	var cluster k8s.Cluster
-	//@todo need to load plans from credhub if configured
+	// todo: load cluster, plans, etc
+	planDetails, err := chart.LoadPlans("???", chart.Plans)
+	if err != nil {
+		panic("todo: fix me")
+	}
+
 	planHasCluster := chart.Plans[planName].HasCluster()
 	if planHasCluster {
 		if broker.credstore != nil {
@@ -191,7 +196,7 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 			}
 			cluster, err = broker.clusterFactory.GetClusterFromK8sConfig(clusterConfig)
 		} else {
-			cluster, err = broker.clusterFactory.GetClusterFromK8sConfig(chart.Plans[planName].ClusterConfig)
+			cluster, err = broker.clusterFactory.GetClusterFromK8sConfig(planDetails[planName].ClusterConfig)
 		}
 	} else {
 		cluster, err = broker.clusterFactory.DefaultCluster()
@@ -232,7 +237,7 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 		}
 		planBytes = []byte(creds)
 	} else {
-		planBytes = chart.Plans[planName].Values
+		planBytes = planDetails[planName].Values
 	}
 
 	_, err = myHelmClient.InstallChart(broker.config.RegistryConfig, namespace, broker.getReleaseName(instanceID), chart, planBytes, installValues)

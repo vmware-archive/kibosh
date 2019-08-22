@@ -43,6 +43,7 @@ type MyChart struct {
 	PrivateRegistryServer string          `json:"privateRegistryServer"`
 	TransformedValues     []byte          `json:"transformedValues"`
 	BindTemplate          string          `json:"bindTemplate"`
+	PlansMetadata 		  map[string]Plan `json:"plansMetadata"`
 	Plans                 map[string]Plan `json:"plans"`
 	ChartPath             string          `json:"chartPath"`
 }
@@ -70,11 +71,14 @@ type Plan struct {
 	Bindable        *bool    `yaml:"bindable,omitempty" json:"bindable"`
 	CredentialsPath string   `yaml:"credentials" json:"credentialsPath"`
 
+	//stop loading or serliazing values and cluster config, and load them every time they're needed
+	//unload once done using
+	LoadedPlans bool
 	Values        []byte         `json:"values"`
 	ClusterConfig *k8sAPI.Config `json:"clusterConfig"`
 }
 
-func LoadFromDir(dir string, log *logrus.Logger) ([]*MyChart, error) {
+func LoadFromDir(dir string, loadPlans bool, log *logrus.Logger) ([]*MyChart, error) {
 	sourceDirStat, err := os.Stat(dir)
 	if err != nil {
 		return nil, err
@@ -90,7 +94,7 @@ func LoadFromDir(dir string, log *logrus.Logger) ([]*MyChart, error) {
 	charts := []*MyChart{}
 	for _, source := range sources {
 		chartPath := path.Join(dir, source.Name())
-		c, err := NewChart(chartPath, "", log)
+		c, err := NewChart(chartPath, loadPlans, "", log)
 		if err != nil {
 			log.Debug(fmt.Sprintf("The file [%s] not failed to load as a chart", chartPath), err)
 		} else {
@@ -101,7 +105,7 @@ func LoadFromDir(dir string, log *logrus.Logger) ([]*MyChart, error) {
 	return charts, nil
 }
 
-func NewChart(chartPath string, privateRegistryServer string, log *logrus.Logger) (*MyChart, error) {
+func NewChart(chartPath string, loadPlans bool, privateRegistryServer string, log *logrus.Logger) (*MyChart, error) {
 	myChart := &MyChart{
 		PrivateRegistryServer: privateRegistryServer,
 	}
@@ -290,9 +294,7 @@ func (c *MyChart) loadOSBAPIMetadataFromArchive(chartPath string, log *logrus.Lo
 		}
 	}
 
-	err = c.loadPlans(tempDir, plans)
-
-	return err
+	return c.loadPlansMetadata(tempDir, plans)
 }
 
 func (c *MyChart) loadOSBAPIMetadataFromDirectory(chartPath string, log *logrus.Logger) error {
@@ -349,19 +351,13 @@ func (c *MyChart) loadOSBAPIMetadataFromDirectory(chartPath string, log *logrus.
 		return err
 	}
 
-	return c.loadPlans(filepath.Join(chartPath, "plans"), plans)
+	return c.loadPlansMetadata(filepath.Join(chartPath, "plans"), plans)
 }
 
-func (c *MyChart) loadPlans(plansPath string, plans []Plan) error {
-	c.Plans = map[string]Plan{}
+func (c *MyChart) loadPlansMetadata(plansPath string, plans []Plan) error {
+	c.PlansMetadata = map[string]Plan{}
 
 	for _, p := range plans {
-		planValues, err := ioutil.ReadFile(filepath.Join(plansPath, p.ValuesFile))
-		if err != nil {
-			return err
-		}
-		p.Values = planValues
-
 		c.SetPlanDefaultValues(&p)
 		match, err := regexp.MatchString(`^[0-9a-z.\-]+$`, p.Name)
 		if err != nil {
@@ -371,22 +367,39 @@ func (c *MyChart) loadPlans(plansPath string, plans []Plan) error {
 			return errors.New(fmt.Sprintf("Name [%s] contains invalid characters", p.Name))
 		}
 
+		c.PlansMetadata[p.Name] = p
+	}
+
+	return nil
+}
+
+//todo: this name is icky
+func (c *MyChart) LoadPlans(plansPath string, plans map[string]Plan) (map[string]Plan, error) {
+	loadedPlans := map[string]Plan{}
+
+	for _, p := range plans {
+		planValues, err := ioutil.ReadFile(filepath.Join(plansPath, p.ValuesFile))
+		if err != nil {
+			return nil, err
+		}
+		p.Values = planValues
+
 		if p.CredentialsPath != "" {
 			loader := &clientcmd.ClientConfigLoadingRules{
 				ExplicitPath: filepath.Join(plansPath, p.CredentialsPath),
 			}
 			loadedConfig, err := loader.Load()
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			p.ClusterConfig = loadedConfig
 		}
 
-		c.Plans[p.Name] = p
+		loadedPlans[p.Name] = p
 	}
 
-	return nil
+	return loadedPlans, nil
 }
 
 func (c *MyChart) SetPlanDefaultValues(plan *Plan) {
