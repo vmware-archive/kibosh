@@ -184,18 +184,17 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 
 	if strings.HasSuffix(chart.ChartPath, "tgz") {
 		chartReader, err := os.Open(chart.ChartPath)
-
 		if err != nil {
 			return brokerapi.ProvisionedServiceSpec{}, err
 		}
-		tools.Untar(chartReader, path.Base(chart.ChartPath))
+		tools.Untar(chartReader, path.Dir(chart.ChartPath))
 		err = chartReader.Close()
 		if err != nil {
 			return brokerapi.ProvisionedServiceSpec{}, err
 		}
 	}
 	//@todo is this correct path, or is preceeded by chart name
-	plansDir := chart.ChartPath + "plans/"
+	plansDir := path.Join(path.Dir(chart.ChartPath),  chart.Chart.Metadata.Name, "plans")
 	var planDirFiles []string
 	err = filepath.Walk(plansDir, func(path string, info os.FileInfo, err error) error {
 		planDirFiles = append(planDirFiles, path)
@@ -205,17 +204,20 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 		panic(err)
 	}
 	for _, file := range planDirFiles {
-		planFile, err := os.Open(file)
-		if err != nil {
-			return brokerapi.ProvisionedServiceSpec{}, err
+		if strings.HasSuffix(file, "yaml") {
+			planFile, err := os.Open(file)
+			if err != nil {
+				return brokerapi.ProvisionedServiceSpec{}, err
+			}
+			planFileBytes, err := ioutil.ReadAll(planFile)
+			if err != nil {
+				return brokerapi.ProvisionedServiceSpec{}, err
+			}
+			myPlan := chart.Plans[file]
+			myPlan.Values = planFileBytes
+			//@todo file should be plan name, not filename
+			chart.Plans[path.Base(file)] = myPlan
 		}
-		planFileBytes, err := ioutil.ReadAll(planFile)
-		if err != nil {
-			return brokerapi.ProvisionedServiceSpec{}, err
-		}
-		myPlan := chart.Plans[file]
-		myPlan.Values = planFileBytes
-		chart.Plans[file] = myPlan
 	}
 	//@todo is thist the correct path
 	planDetails, err := chart.LoadPlans(chart.ChartPath+"/"+chart.Chart.Metadata.Name, chart.Plans)
