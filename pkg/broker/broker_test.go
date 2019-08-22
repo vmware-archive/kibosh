@@ -261,7 +261,7 @@ var _ = Describe("Broker", func() {
 
 		})
 
-		FIt("responds correctly", func() {
+		It("responds correctly", func() {
 			testChart := test.DefaultChart()
 			chartPath, err := testChart.WriteChartPackage(logger)
 			spacebearsChart.ChartPath = chartPath
@@ -272,8 +272,12 @@ var _ = Describe("Broker", func() {
 			Expect(resp.OperationData).To(Equal("provision"))
 		})
 
-		FIt("uses the default cluster", func() {
-			_, err := broker.Provision(nil, "my-instance-guid", details, true)
+		It("uses the default cluster", func() {
+			testChart := test.DefaultChart()
+			chartPath, err := testChart.WriteChartPackage(logger)
+			spacebearsChart.ChartPath = chartPath
+
+			_, err = broker.Provision(nil, "my-instance-guid", details, true)
 
 			Expect(err).To(BeNil())
 			Expect(fakeClusterFactory.DefaultClusterCallCount()).To(Equal(1))

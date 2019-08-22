@@ -33,14 +33,12 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"io/ioutil"
 	api_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sAPI "k8s.io/client-go/tools/clientcmd/api"
 	hapi_release "k8s.io/helm/pkg/proto/hapi/release"
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
 )
 
@@ -193,34 +191,9 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 			return brokerapi.ProvisionedServiceSpec{}, err
 		}
 	}
-	//@todo is this correct path, or is preceeded by chart name
 	plansDir := path.Join(path.Dir(chart.ChartPath),  chart.Chart.Metadata.Name, "plans")
-	var planDirFiles []string
-	err = filepath.Walk(plansDir, func(path string, info os.FileInfo, err error) error {
-		planDirFiles = append(planDirFiles, path)
-		return nil
-	})
-	if err != nil {
-		panic(err)
-	}
-	for _, file := range planDirFiles {
-		if strings.HasSuffix(file, "yaml") {
-			planFile, err := os.Open(file)
-			if err != nil {
-				return brokerapi.ProvisionedServiceSpec{}, err
-			}
-			planFileBytes, err := ioutil.ReadAll(planFile)
-			if err != nil {
-				return brokerapi.ProvisionedServiceSpec{}, err
-			}
-			myPlan := chart.Plans[file]
-			myPlan.Values = planFileBytes
-			//@todo file should be plan name, not filename
-			chart.Plans[path.Base(file)] = myPlan
-		}
-	}
-	//@todo is thist the correct path
-	planDetails, err := chart.LoadPlans(chart.ChartPath+"/"+chart.Chart.Metadata.Name, chart.Plans)
+
+	planDetails, err := chart.LoadPlans(plansDir, chart.Plans)
 	if err != nil {
 		panic("todo: fix me")
 	}
