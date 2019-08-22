@@ -21,23 +21,27 @@ import (
 	"encoding/base32"
 	"encoding/json"
 	"fmt"
-	"strings"
-
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	"github.com/cf-platform-eng/kibosh/pkg/credstore"
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
 	"github.com/cf-platform-eng/kibosh/pkg/repository"
+	"github.com/cf-platform-eng/kibosh/tools"
 	"github.com/ghodss/yaml"
 	"github.com/google/go-jsonnet"
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"io/ioutil"
 	api_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sAPI "k8s.io/client-go/tools/clientcmd/api"
 	hapi_release "k8s.io/helm/pkg/proto/hapi/release"
+	"os"
+	"path"
+	"path/filepath"
+	"strings"
 )
 
 const registrySecretName = "registry-secret"
@@ -177,7 +181,44 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 
 	var cluster k8s.Cluster
 	// todo: load cluster, plans, etc
-	planDetails, err := chart.LoadPlans("???", chart.Plans)
+
+	if strings.HasSuffix(chart.ChartPath, "tgz") {
+		chartReader, err := os.Open(chart.ChartPath)
+
+		if err != nil {
+			return brokerapi.ProvisionedServiceSpec{}, err
+		}
+		tools.Untar(chartReader, path.Base(chart.ChartPath))
+		err = chartReader.Close()
+		if err != nil {
+			return brokerapi.ProvisionedServiceSpec{}, err
+		}
+	}
+	//@todo is this correct path, or is preceeded by chart name
+	plansDir := chart.ChartPath + "plans/"
+	var planDirFiles []string
+	err = filepath.Walk(plansDir, func(path string, info os.FileInfo, err error) error {
+		planDirFiles = append(planDirFiles, path)
+		return nil
+	})
+	if err != nil {
+		panic(err)
+	}
+	for _, file := range planDirFiles {
+		planFile, err := os.Open(file)
+		if err != nil {
+			return brokerapi.ProvisionedServiceSpec{}, err
+		}
+		planFileBytes, err := ioutil.ReadAll(planFile)
+		if err != nil {
+			return brokerapi.ProvisionedServiceSpec{}, err
+		}
+		myPlan := chart.Plans[file]
+		myPlan.Values = planFileBytes
+		chart.Plans[file] = myPlan
+	}
+	//@todo is thist the correct path
+	planDetails, err := chart.LoadPlans(chart.ChartPath+"/"+chart.Chart.Metadata.Name, chart.Plans)
 	if err != nil {
 		panic("todo: fix me")
 	}

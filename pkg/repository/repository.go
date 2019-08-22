@@ -66,7 +66,7 @@ func (r *repository) GetCharts() ([]*helm.MyChart, error) {
 		}
 
 		if chartExists {
-			myChart, err := helm.NewChart(r.helmChartDir, r.privateRegistryServer, r.logger)
+			myChart, err := helm.NewChart(r.helmChartDir, false, r.privateRegistryServer, r.logger)
 			if err != nil {
 				return nil, err
 			}
@@ -88,7 +88,7 @@ func (r *repository) GetCharts() ([]*helm.MyChart, error) {
 						return nil, err
 					}
 					if subdirChartExists {
-						myChart, err := helm.NewChart(filepath.Join(subChartPath), r.privateRegistryServer, r.logger)
+						myChart, err := helm.NewChart(filepath.Join(subChartPath),false, r.privateRegistryServer, r.logger)
 						if err != nil {
 							return nil, err
 						}
@@ -140,7 +140,7 @@ func (r *repository) SaveChart(path string) error {
 	}
 
 	chartPath := filepath.Join(expandedTarPath, chartPathInfo.Name())
-	chart, err := helm.NewChart(chartPath, r.privateRegistryServer, r.logger)
+	chart, err := helm.NewChart(chartPath, false,r.privateRegistryServer, r.logger)
 	if err != nil {
 		return err
 	}

@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/cf-platform-eng/kibosh/pkg/test"
 	"strings"
 
 	. "github.com/cf-platform-eng/kibosh/pkg/broker"
@@ -260,7 +261,10 @@ var _ = Describe("Broker", func() {
 
 		})
 
-		It("responds correctly", func() {
+		FIt("responds correctly", func() {
+			testChart := test.DefaultChart()
+			chartPath, err := testChart.WriteChartPackage(logger)
+			spacebearsChart.ChartPath = chartPath
 			resp, err := broker.Provision(nil, "my-instance-guid", details, true)
 
 			Expect(err).To(BeNil())
@@ -268,7 +272,7 @@ var _ = Describe("Broker", func() {
 			Expect(resp.OperationData).To(Equal("provision"))
 		})
 
-		It("uses the default cluster", func() {
+		FIt("uses the default cluster", func() {
 			_, err := broker.Provision(nil, "my-instance-guid", details, true)
 
 			Expect(err).To(BeNil())

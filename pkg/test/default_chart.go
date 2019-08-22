@@ -16,14 +16,12 @@
 package test
 
 import (
+	"github.com/cf-platform-eng/kibosh/pkg/helm"
+	"github.com/sirupsen/logrus"
 	"io/ioutil"
+	"k8s.io/helm/pkg/chartutil"
 	"os"
 	"path/filepath"
-
-	"github.com/sirupsen/logrus"
-	"k8s.io/helm/pkg/chartutil"
-
-	"github.com/cf-platform-eng/kibosh/pkg/helm"
 )
 
 type TestChart struct {
@@ -33,6 +31,34 @@ type TestChart struct {
 	PlanContents map[string][]byte
 	Templates    map[string][]byte
 	HasPlans     bool
+}
+func (t *TestChart) WriteChartPackage(log *logrus.Logger) (string, error) {
+	tmpDir, err := ioutil.TempDir("", "")
+	if err != nil {
+		return "", err
+	}
+
+	err = t.WriteChart(tmpDir)
+	if err != nil {
+		return "", err
+	}
+
+	myChart, err := helm.NewChart(tmpDir, false,"", log)
+	if err != nil {
+		return "", err
+	}
+
+	outDir, err := ioutil.TempDir("", "")
+	if err != nil {
+		return "", err
+	}
+
+	chartTarball, err := chartutil.Save(&myChart.Chart, outDir)
+	if err != nil {
+		return "", err
+	}
+
+	return chartTarball, err
 }
 
 func DefaultChart() *TestChart {
@@ -177,34 +203,6 @@ func (t *TestChart) WriteChart(chartPath string) error {
 	return nil
 }
 
-func (t *TestChart) WriteChartPackage(log *logrus.Logger) (string, error) {
-	tmpDir, err := ioutil.TempDir("", "")
-	if err != nil {
-		return "", err
-	}
-
-	err = t.WriteChart(tmpDir)
-	if err != nil {
-		return "", err
-	}
-
-	myChart, err := helm.NewChart(tmpDir, "", log)
-	if err != nil {
-		return "", err
-	}
-
-	outDir, err := ioutil.TempDir("", "")
-	if err != nil {
-		return "", err
-	}
-
-	chartTarball, err := chartutil.Save(&myChart.Chart, outDir)
-	if err != nil {
-		return "", err
-	}
-
-	return chartTarball, err
-}
 
 func (t *TestChart) WriteChartYML(chartPath string) error {
 	plansPath := filepath.Join(chartPath, "plans")
@@ -266,5 +264,5 @@ func DefaultMyChart() (*helm.MyChart, error) {
 		return nil, err
 	}
 
-	return helm.NewChart(chartPath, "docker.example.com", nil)
+	return helm.NewChart(chartPath, false,"docker.example.com", nil)
 }
