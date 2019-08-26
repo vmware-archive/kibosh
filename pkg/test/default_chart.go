@@ -20,6 +20,8 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/helm/pkg/chartutil"
 	"os"
 	"path/filepath"
@@ -294,7 +296,17 @@ func WriteMyChart(myChart *helm.MyChart, logger *logrus.Logger) (string, error) 
 		}
 		if plan.ClusterConfig != nil {
 			planeFileEntry["credentials"] = plan.Name + "-creds.yaml"
-			planCredsBytes, err := yaml.Marshal(plan.ClusterConfig)
+			newClusterConfig := k8sConfigTestFormat{
+				Kind: plan.ClusterConfig.Kind,
+				APIVersion: plan.ClusterConfig.APIVersion,
+				Preferences: plan.ClusterConfig.Preferences,
+				Clusters:	[]map[string]*api.Cluster{plan.ClusterConfig.Clusters},
+				AuthInfos:[]map[string]*api.AuthInfo{plan.ClusterConfig.AuthInfos},
+				Contexts: []map[string]*api.Context{plan.ClusterConfig.Contexts},
+				CurrentContext: plan.ClusterConfig.CurrentContext,
+				Extensions: plan.ClusterConfig.Extensions,
+			}
+			planCredsBytes, err := yaml.Marshal(newClusterConfig)
 			if err != nil {
 				return  "", err
 			}
@@ -317,4 +329,28 @@ func WriteMyChart(myChart *helm.MyChart, logger *logrus.Logger) (string, error) 
 	testChart.PlansYaml = plansYamlBytes
 	return testChart.WriteChartPackage(logger)
 
+}
+
+type k8sConfigTestFormat struct {
+	// Legacy field from pkg/api/types.go TypeMeta.
+	// TODO(jlowdermilk): remove this after eliminating downstream dependencies.
+	// +optional
+	Kind string `json:"kind,omitempty"`
+	// Legacy field from pkg/api/types.go TypeMeta.
+	// TODO(jlowdermilk): remove this after eliminating downstream dependencies.
+	// +optional
+	APIVersion string `json:"apiVersion,omitempty"`
+	// Preferences holds general information to be use for cli interactions
+	Preferences api.Preferences `json:"preferences"`
+	// Clusters is a map of referencable names to cluster configs
+	Clusters []map[string]*api.Cluster `json:"clusters"`
+	// AuthInfos is a map of referencable names to user configs
+	AuthInfos []map[string]*api.AuthInfo `json:"users"`
+	// Contexts is a map of referencable names to context configs
+	Contexts []map[string]*api.Context `json:"contexts"`
+	// CurrentContext is the name of the context that you would like to use by default
+	CurrentContext string `json:"current-context"`
+	// Extensions holds additional information. This is useful for extenders so that reads and writes don't clobber unknown fields
+	// +optional
+	Extensions map[string]runtime.Object `json:"extensions,omitempty"`
 }

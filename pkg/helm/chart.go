@@ -71,7 +71,7 @@ type Plan struct {
 	Bindable        *bool    `yaml:"bindable,omitempty" json:"bindable"`
 	CredentialsPath string   `yaml:"credentials" json:"credentialsPath"`
 
-	//stop loading or serliazing values and cluster config, and load them every time they're needed
+	//stop loading or serializing values and cluster config, and load them every time they're needed
 	//unload once done using
 	LoadedPlans bool
 	Values        []byte         `json:"values"`
