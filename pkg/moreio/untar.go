@@ -7,16 +7,16 @@ package moreio
 // Package untar untars a tarball to disk.
 
 import (
-"archive/tar"
-"compress/gzip"
-"fmt"
-"io"
-"log"
-"os"
-"path"
-"path/filepath"
-"strings"
-"time"
+	"archive/tar"
+	"compress/gzip"
+	"fmt"
+	"io"
+	"log"
+	"os"
+	"path"
+	"path/filepath"
+	"strings"
+	"time"
 )
 
 // TODO(bradfitz): this was copied from x/build/cmd/buildlet/buildlet.go

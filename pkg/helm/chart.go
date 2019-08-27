@@ -43,7 +43,7 @@ type MyChart struct {
 	PrivateRegistryServer string          `json:"privateRegistryServer"`
 	TransformedValues     []byte          `json:"transformedValues"`
 	BindTemplate          string          `json:"bindTemplate"`
-	PlansMetadata 		  map[string]Plan `json:"plansMetadata"`
+	PlansMetadata         map[string]Plan `json:"plansMetadata"`
 	Plans                 map[string]Plan `json:"plans"`
 	ChartPath             string          `json:"chartPath"`
 }
@@ -73,7 +73,7 @@ type Plan struct {
 
 	//stop loading or serializing values and cluster config, and load them every time they're needed
 	//unload once done using
-	LoadedPlans bool
+	LoadedPlans   bool
 	Values        []byte         `json:"values"`
 	ClusterConfig *k8sAPI.Config `json:"clusterConfig"`
 }
@@ -140,6 +140,63 @@ func NewChart(chartPath string, loadPlans bool, privateRegistryServer string, lo
 	}
 	if err != nil {
 		return nil, NewChartValidationError(err)
+	}
+
+	if loadPlans {
+		planFile, err := ioutil.ReadFile(chartPath + "/plans.yaml")
+		if err != nil {
+			planFile, err = ioutil.ReadFile(chartPath + "/plans.yml")
+			if err != nil {
+				return nil, NewChartValidationError(err)
+			}
+		}
+
+		var planArr []Plan
+		err = yaml.Unmarshal(planFile, &planArr)
+		if err != nil {
+			return nil, NewChartValidationError(err)
+		}
+
+		plans := make(map[string]Plan)
+		for _, plan := range planArr {
+			if plan.CredentialsPath != "" {
+				credFile, err := ioutil.ReadFile(chartPath + "/plans/" + plan.CredentialsPath)
+				if err != nil {
+					return nil, NewChartValidationError(err)
+				}
+
+				//TODO: Solve k8s.Config parsing
+				var config map[string]interface{}
+				err = yaml.Unmarshal(credFile, &config)
+				if err != nil {
+					return nil, NewChartValidationError(err)
+				}
+
+				var k8Config k8sAPI.Config
+
+				for key, value := range config {
+					switch key {
+					case "apiVersion":
+						k8Config.APIVersion = fmt.Sprintf("%v", value)
+					case "clusters":
+						subValues := value.([]interface{})[0]
+						cluster := k8Config.Clusters[fmt.Sprintf("%v", subValues.(map[interface{}]interface{})["name"])]
+						clusterConf := subValues.(map[interface{}]interface{})[cluster].(map[interface{}]interface{})
+						cluster.CertificateAuthorityData = []byte(fmt.Sprintf("%v", clusterConf["certificate-authority-data"]))
+						cluster.Server = fmt.Sprintf("%v", clusterConf["server"])
+					case "contexts":
+					case "current-context":
+
+					}
+
+				}
+
+				//plan.ClusterConfig = &config
+			}
+			plans[plan.Name] = plan
+		}
+
+		myChart.Plans = plans
 	}
 
 	if len(myChart.Plans) < 1 {

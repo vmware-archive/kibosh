@@ -19,8 +19,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/cf-platform-eng/kibosh/pkg/test"
 	"strings"
+
+	"github.com/cf-platform-eng/kibosh/pkg/test"
 
 	. "github.com/cf-platform-eng/kibosh/pkg/broker"
 	my_config "github.com/cf-platform-eng/kibosh/pkg/config"
@@ -85,7 +86,7 @@ var _ = Describe("Broker", func() {
 			Chart: hapi_chart.Chart{
 				Metadata: &hapi_chart.Metadata{
 					Name:        "spacebears",
-					Version: 	"0.0.1",
+					Version:     "0.0.1",
 					Description: "spacebears service and spacebears broker helm chart",
 				},
 			},
@@ -113,7 +114,7 @@ var _ = Describe("Broker", func() {
 			Chart: hapi_chart.Chart{
 				Metadata: &hapi_chart.Metadata{
 					Name:        "mysql",
-					Version:	"0.15.0",
+					Version:     "0.15.0",
 					Description: "all your data are belong to us",
 				},
 			},

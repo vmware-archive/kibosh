@@ -21,6 +21,10 @@ import (
 	"encoding/base32"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path"
+	"strings"
+
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	"github.com/cf-platform-eng/kibosh/pkg/credstore"
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
@@ -37,9 +41,6 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sAPI "k8s.io/client-go/tools/clientcmd/api"
 	hapi_release "k8s.io/helm/pkg/proto/hapi/release"
-	"os"
-	"path"
-	"strings"
 )
 
 const registrySecretName = "registry-secret"
@@ -159,7 +160,7 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 		return brokerapi.ProvisionedServiceSpec{}, brokerapi.ErrAsyncRequired
 	}
 
-	planName := strings.TrimPrefix(details.PlanID, details.ServiceID+"-")
+	planName := getPlanName(details.PlanID, details.ServiceID)
 	charts, err := broker.GetChartsMap()
 	if err != nil {
 		return brokerapi.ProvisionedServiceSpec{}, err
@@ -268,6 +269,10 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 		IsAsync:       true,
 		OperationData: "provision",
 	}, nil
+}
+
+func getPlanName(planId string, serviceId string) string {
+	return strings.TrimPrefix(planId, serviceId+"-")
 }
 
 func (broker *PksServiceBroker) GetInstance(context context.Context, instanceID string) (brokerapi.GetInstanceDetailsSpec, error) {
@@ -462,7 +467,7 @@ func (broker *PksServiceBroker) Update(ctx context.Context, instanceID string, d
 		return brokerapi.UpdateServiceSpec{}, errors.New(fmt.Sprintf("Chart not found for [%s]", details.ServiceID))
 	}
 
-	planName := strings.TrimPrefix(details.PlanID, details.ServiceID+"-")
+	planName := getPlanName(details.PlanID, details.ServiceID)
 
 	planID := details.PlanID
 	serviceID := details.ServiceID

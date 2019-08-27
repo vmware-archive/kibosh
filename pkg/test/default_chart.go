@@ -16,15 +16,16 @@
 package test
 
 import (
+	"io/ioutil"
+	"os"
+	"path/filepath"
+
 	"github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/ghodss/yaml"
 	"github.com/sirupsen/logrus"
-	"io/ioutil"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/helm/pkg/chartutil"
-	"os"
-	"path/filepath"
 )
 
 type TestChart struct {
@@ -35,6 +36,7 @@ type TestChart struct {
 	Templates    map[string][]byte
 	HasPlans     bool
 }
+
 func (t *TestChart) WriteChartPackage(log *logrus.Logger) (string, error) {
 	tmpDir, err := ioutil.TempDir("", "")
 	if err != nil {
@@ -46,7 +48,7 @@ func (t *TestChart) WriteChartPackage(log *logrus.Logger) (string, error) {
 		return "", err
 	}
 
-	myChart, err := helm.NewChart(tmpDir, false,"", log)
+	myChart, err := helm.NewChart(tmpDir, false, "", log)
 	if err != nil {
 		return "", err
 	}
@@ -206,7 +208,6 @@ func (t *TestChart) WriteChart(chartPath string) error {
 	return nil
 }
 
-
 func (t *TestChart) WriteChartYML(chartPath string) error {
 	plansPath := filepath.Join(chartPath, "plans")
 	_, plansPathExists := os.Stat(plansPath)
@@ -266,8 +267,7 @@ func DefaultMyChart() (*helm.MyChart, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	return helm.NewChart(chartPath, false,"docker.example.com", nil)
+	return helm.NewChart(chartPath, false, "docker.example.com", nil)
 }
 
 func WriteMyChart(myChart *helm.MyChart, logger *logrus.Logger) (string, error) {
@@ -285,7 +285,6 @@ func WriteMyChart(myChart *helm.MyChart, logger *logrus.Logger) (string, error) 
 	}
 	testChart.ChartYaml = myChartChartBytes
 
-
 	testChart.PlanContents = make(map[string][]byte)
 	plansYaml := []map[string]string{}
 	for _, plan := range myChart.Plans {
@@ -297,28 +296,27 @@ func WriteMyChart(myChart *helm.MyChart, logger *logrus.Logger) (string, error) 
 		if plan.ClusterConfig != nil {
 			planeFileEntry["credentials"] = plan.Name + "-creds.yaml"
 			newClusterConfig := k8sConfigTestFormat{
-				Kind: plan.ClusterConfig.Kind,
-				APIVersion: plan.ClusterConfig.APIVersion,
-				Preferences: plan.ClusterConfig.Preferences,
-				Clusters:	[]map[string]*api.Cluster{plan.ClusterConfig.Clusters},
-				AuthInfos:[]map[string]*api.AuthInfo{plan.ClusterConfig.AuthInfos},
-				Contexts: []map[string]*api.Context{plan.ClusterConfig.Contexts},
+				Kind:           plan.ClusterConfig.Kind,
+				APIVersion:     plan.ClusterConfig.APIVersion,
+				Preferences:    plan.ClusterConfig.Preferences,
+				Clusters:       []map[string]*api.Cluster{plan.ClusterConfig.Clusters},
+				AuthInfos:      []map[string]*api.AuthInfo{plan.ClusterConfig.AuthInfos},
+				Contexts:       []map[string]*api.Context{plan.ClusterConfig.Contexts},
 				CurrentContext: plan.ClusterConfig.CurrentContext,
-				Extensions: plan.ClusterConfig.Extensions,
+				Extensions:     plan.ClusterConfig.Extensions,
 			}
 			planCredsBytes, err := yaml.Marshal(newClusterConfig)
 			if err != nil {
-				return  "", err
+				return "", err
 			}
-			testChart.PlanContents[plan.Name + "-creds"] = planCredsBytes
+			testChart.PlanContents[plan.Name+"-creds"] = planCredsBytes
 
 		}
 		plansYaml = append(plansYaml, planeFileEntry)
 
-
 		myChartPlanContentsBytes, err := yaml.Marshal(plan.Values)
 		if err != nil {
-			return  "", err
+			return "", err
 		}
 		testChart.PlanContents[plan.Name] = myChartPlanContentsBytes
 	}
