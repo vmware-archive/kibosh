@@ -52,6 +52,7 @@ type ClusterDelegate interface {
 	CreateNamespace(*api_v1.Namespace) (*api_v1.Namespace, error)
 	DeleteNamespace(name string, options *meta_v1.DeleteOptions) error
 	GetNamespace(name string, options *meta_v1.GetOptions) (*api_v1.Namespace, error)
+	GetNamespaces() (*api_v1.NamespaceList, error)
 	ListServiceAccounts(string, meta_v1.ListOptions) (*api_v1.ServiceAccountList, error)
 	CreateServiceAccount(string, *api_v1.ServiceAccount) (*api_v1.ServiceAccount, error)
 	ListClusterRoleBindings(meta_v1.ListOptions) (*rbacv1beta1.ClusterRoleBindingList, error)
@@ -337,6 +338,14 @@ func (cluster *clusterDelegate) ListPersistentVolumes(nameSpace string, listOpti
 		return nil, err
 	}
 	return list, nil
+}
+
+func (cluster *clusterDelegate) GetNamespaces() (*api_v1.NamespaceList, error) {
+	namespaceList, err := cluster.GetClient().CoreV1().Namespaces().List(meta_v1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return namespaceList, nil
 }
 
 func (cluster *clusterDelegate) ListDeployments(nameSpace string, listOptions meta_v1.ListOptions) (*DeploymentList, error) {
