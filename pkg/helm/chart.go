@@ -28,6 +28,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/cf-platform-eng/kibosh/pkg/moreio"
+
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
@@ -115,11 +117,33 @@ func NewChart(chartPath string, loadPlans bool, privateRegistryServer string, lo
 		return nil, NewChartValidationError(err)
 	}
 
-	if chartPathStat.IsDir() {
-		err = myChart.ensureIgnore(chartPath)
+	if !chartPathStat.IsDir() {
+		tgzFileReader, err := os.Open(chartPath)
 		if err != nil {
-			return nil, errors.Wrap(err, "Error fixing .helmignore")
+			return nil, err
 		}
+
+		chartPath = strings.ReplaceAll(chartPath, ".tgz", "")
+		err = moreio.Untar(tgzFileReader, chartPath)
+		if err != nil {
+			return nil, err
+		}
+		files, err := ioutil.ReadDir(chartPath)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, file := range files {
+			if file.IsDir() {
+				chartPath = path.Join(chartPath, file.Name())
+				break
+			}
+		}
+	}
+
+	err = myChart.ensureIgnore(chartPath)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error fixing .helmignore")
 	}
 
 	loadedChart, err := chartutil.Load(chartPath)
@@ -133,11 +157,7 @@ func NewChart(chartPath string, loadPlans bool, privateRegistryServer string, lo
 		return nil, NewChartValidationError(err)
 	}
 
-	if chartPathStat.IsDir() {
-		err = myChart.loadOSBAPIMetadataFromDirectory(chartPath, log)
-	} else {
-		err = myChart.loadOSBAPIMetadataFromArchive(chartPath, log)
-	}
+	err = myChart.loadOSBAPIMetadataFromDirectory(chartPath, log)
 	if err != nil {
 		return nil, NewChartValidationError(err)
 	}
@@ -146,67 +166,37 @@ func NewChart(chartPath string, loadPlans bool, privateRegistryServer string, lo
 		planFile, err := ioutil.ReadFile(chartPath + "/plans.yaml")
 		if err != nil {
 			planFile, err = ioutil.ReadFile(chartPath + "/plans.yml")
+		}
+
+		if err == nil {
+			var planArr []Plan
+			err = yaml.Unmarshal(planFile, &planArr)
 			if err != nil {
 				return nil, NewChartValidationError(err)
 			}
-		}
 
-		var planArr []Plan
-		err = yaml.Unmarshal(planFile, &planArr)
-		if err != nil {
-			return nil, NewChartValidationError(err)
-		}
-
-		plans := make(map[string]Plan)
-		for _, plan := range planArr {
-			if plan.CredentialsPath != "" {
-				credFile, err := ioutil.ReadFile(chartPath + "/plans/" + plan.CredentialsPath)
-				if err != nil {
-					return nil, NewChartValidationError(err)
-				}
-
-				//TODO: Solve k8s.Config parsing
-				var config map[string]interface{}
-				err = yaml.Unmarshal(credFile, &config)
-				if err != nil {
-					return nil, NewChartValidationError(err)
-				}
-
-				var k8Config k8sAPI.Config
-
-				for key, value := range config {
-					switch key {
-					case "apiVersion":
-						k8Config.APIVersion = fmt.Sprintf("%v", value)
-					case "clusters":
-						subValues := value.([]interface{})[0]
-						cluster := k8Config.Clusters[fmt.Sprintf("%v", subValues.(map[interface{}]interface{})["name"])]
-						clusterConf := subValues.(map[interface{}]interface{})[cluster].(map[interface{}]interface{})
-						cluster.CertificateAuthorityData = []byte(fmt.Sprintf("%v", clusterConf["certificate-authority-data"]))
-						cluster.Server = fmt.Sprintf("%v", clusterConf["server"])
-					case "contexts":
-					case "current-context":
-
-					}
-
-				}
-
-				//plan.ClusterConfig = &config
+			plansMap := make(map[string]Plan)
+			for _, plan := range planArr {
+				myChart.SetPlanDefaultValues(&plan)
+				plansMap[plan.Name] = plan
 			}
-			plans[plan.Name] = plan
+
+			plans, err := myChart.LoadPlans(chartPath+"/plans", plansMap)
+			if err != nil {
+				return nil, NewChartValidationError(err)
+			}
+			myChart.Plans = plans
 		}
 
-		myChart.Plans = plans
-	}
-
-	if len(myChart.Plans) < 1 {
-		defaultPlan := Plan{
-			Name:        "default",
-			Description: "Plan with default values",
-		}
-		myChart.SetPlanDefaultValues(&defaultPlan)
-		myChart.Plans = map[string]Plan{
-			"default": defaultPlan,
+		if len(myChart.Plans) < 1 {
+			defaultPlan := Plan{
+				Name:        "default",
+				Description: "Plan with default values",
+			}
+			myChart.SetPlanDefaultValues(&defaultPlan)
+			myChart.Plans = map[string]Plan{
+				"default": defaultPlan,
+			}
 		}
 	}
 

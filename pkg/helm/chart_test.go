@@ -93,7 +93,7 @@ var _ = Describe("Broker", func() {
 		err := os.Remove(filepath.Join(chartPath, "plans.yaml"))
 		Expect(err).To(BeNil())
 
-		chart, err := helm.NewChart(chartPath, false, "", logger)
+		chart, err := helm.NewChart(chartPath, true, "", logger)
 
 		Expect(err).To(BeNil())
 
@@ -216,7 +216,7 @@ var _ = Describe("Broker", func() {
 		})
 
 		It("loads plans", func() {
-			loadedChart, err := helm.NewChart(chartArchivePath, false, "", logger)
+			loadedChart, err := helm.NewChart(chartArchivePath, true, "", logger)
 
 			Expect(err).To(BeNil())
 
@@ -240,7 +240,7 @@ var _ = Describe("Broker", func() {
 			err := os.Remove(filepath.Join(chartPath, "plans.yaml"))
 			err = os.RemoveAll(filepath.Join(chartPath, "plans"))
 
-			chartToSave, err := helm.NewChart(chartPath, false, "", logger)
+			chartToSave, err := helm.NewChart(chartPath, true, "", logger)
 			Expect(err).To(BeNil())
 
 			chartArchiveDirPath, err := ioutil.TempDir("", "chartarcive-")
@@ -249,7 +249,7 @@ var _ = Describe("Broker", func() {
 			chartArchivePath, err = chartutil.Save(&chartToSave.Chart, chartArchiveDirPath)
 			Expect(err).To(BeNil())
 
-			loadedChart, err := helm.NewChart(chartArchivePath, false, "", logger)
+			loadedChart, err := helm.NewChart(chartArchivePath, true, "", logger)
 
 			Expect(err).To(BeNil())
 			Expect(loadedChart).NotTo(BeNil())
@@ -268,7 +268,7 @@ var _ = Describe("Broker", func() {
 			testChart = test.DefaultChart()
 			err = testChart.WriteChartYML(chartPath)
 
-			chartToSave, err := helm.NewChart(chartPath, false, "", logger)
+			chartToSave, err := helm.NewChart(chartPath, true, "", logger)
 
 			chartArchiveDirPath, err := ioutil.TempDir("", "chartarcive-")
 			Expect(err).To(BeNil())
@@ -276,7 +276,7 @@ var _ = Describe("Broker", func() {
 			chartArchivePath, err = chartutil.Save(&chartToSave.Chart, chartArchiveDirPath)
 			Expect(err).To(BeNil())
 
-			loadedChart, err := helm.NewChart(chartArchivePath, false, "", logger)
+			loadedChart, err := helm.NewChart(chartArchivePath, true, "", logger)
 			Expect(err).To(BeNil())
 			Expect(loadedChart).NotTo(BeNil())
 			Expect(len(loadedChart.Plans)).To(Equal(2))
@@ -308,7 +308,7 @@ var _ = Describe("Broker", func() {
 		})
 
 		It("loads plans", func() {
-			charts, err := helm.LoadFromDir(chartArchiveDirPath, false, logrus.New())
+			charts, err := helm.LoadFromDir(chartArchiveDirPath, true, logrus.New())
 
 			Expect(err).To(BeNil())
 
@@ -524,7 +524,7 @@ images:
 
 	Context("plans", func() {
 		It("loads plan correctly", func() {
-			myChart, err := helm.NewChart(chartPath, false, "", logger)
+			myChart, err := helm.NewChart(chartPath, true, "", logger)
 
 			Expect(err).To(BeNil())
 			Expect(myChart.Plans["small"].Name).To(Equal("small"))
@@ -580,7 +580,7 @@ users:
 			}
 			credsFile.Close()
 
-			myChart, err := helm.NewChart(chartPath, false, "", logger)
+			myChart, err := helm.NewChart(chartPath, true, "", logger)
 
 			Expect(myChart.Plans["medium"].ClusterConfig).To(BeNil())
 
@@ -600,7 +600,7 @@ users:
 			err := os.Remove(filepath.Join(chartPath, "plans", "small.yaml"))
 			Expect(err).To(BeNil())
 
-			_, err = helm.NewChart(chartPath, false, "", logger)
+			_, err = helm.NewChart(chartPath, true, "", logger)
 			Expect(err).NotTo(BeNil())
 		})
 
