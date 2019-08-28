@@ -160,75 +160,32 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 		return brokerapi.ProvisionedServiceSpec{}, brokerapi.ErrAsyncRequired
 	}
 
-	planName := getPlanName(details.PlanID, details.ServiceID)
-	charts, err := broker.GetChartsMap()
+	planID := details.PlanID
+	serviceID := details.ServiceID
+
+	chart, err := broker.loadChartWithPlans(planID,serviceID)
 	if err != nil {
-		return brokerapi.ProvisionedServiceSpec{}, err
+		return brokerapi.ProvisionedServiceSpec{}, errors.Wrap(err, "Unable to get chart")
 	}
-	chart := charts[details.ServiceID]
-	if chart == nil {
-		return brokerapi.ProvisionedServiceSpec{}, errors.New(fmt.Sprintf("Chart not found for [%s]", details.ServiceID))
+	planName := getPlanName(planID,serviceID)
+
+	cluster, err := broker.getCluster(chart, planName)
+	if err != nil {
+		return brokerapi.ProvisionedServiceSpec{}, errors.Wrap(err, "Unable to get cluster")
+	}
+	myHelmClient :=  broker.helmClientFactory.HelmClient(cluster)
+
+	if chart.Plans[planName].HasCluster() {
+		planClusterServiceAccountInstaller := broker.serviceAccountInstallerFactory.ServiceAccountInstaller(cluster)
+		err = PrepareCluster(broker.config, cluster, myHelmClient, planClusterServiceAccountInstaller, broker.helmInstallerFactory, broker.operators, broker.logger)
+		if err != nil {
+			return brokerapi.ProvisionedServiceSpec{}, errors.Wrap(err, "Unable to prepare cluster")
+		}
 	}
 
 	var installValues []byte
 	if details.GetRawParameters() != nil {
 		installValues, err = yaml.JSONToYAML(details.GetRawParameters())
-		if err != nil {
-			return brokerapi.ProvisionedServiceSpec{}, err
-		}
-	}
-
-	var cluster k8s.Cluster
-	// todo: load cluster, plans, etc
-
-	if strings.HasSuffix(chart.ChartPath, "tgz") {
-		chartReader, err := os.Open(chart.ChartPath)
-		if err != nil {
-			return brokerapi.ProvisionedServiceSpec{}, err
-		}
-		moreio.Untar(chartReader, path.Dir(chart.ChartPath))
-		err = chartReader.Close()
-		if err != nil {
-			return brokerapi.ProvisionedServiceSpec{}, err
-		}
-	}
-	if chart.ChartPath == "" {
-		return brokerapi.ProvisionedServiceSpec{}, errors.New("chart chartPath should not be empty")
-	}
-	plansDir := path.Join(path.Dir(chart.ChartPath), chart.Chart.Metadata.Name, "plans")
-
-	planDetails, err := chart.LoadPlans(plansDir, chart.Plans)
-	if err != nil {
-		panic("todo: fix me")
-	}
-
-	planHasCluster := chart.Plans[planName].HasCluster()
-	if planHasCluster {
-		if broker.credstore != nil {
-			creds, err := broker.credstore.Get(fmt.Sprintf("/c/%s/%s/%s/cluster-creds", CredhubClientIdentifier, chart.Metadata.Name, planName))
-			if err != nil {
-				return brokerapi.ProvisionedServiceSpec{}, errors.Wrap(err, "Unable to get creds from credstore")
-			}
-			clusterConfig := &k8sAPI.Config{}
-			err = yaml.Unmarshal([]byte(creds), clusterConfig)
-			if err != nil {
-				return brokerapi.ProvisionedServiceSpec{}, errors.Wrap(err, "Unable to get unmarshall creds retreived from credstore")
-			}
-			cluster, err = broker.clusterFactory.GetClusterFromK8sConfig(clusterConfig)
-		} else {
-			cluster, err = broker.clusterFactory.GetClusterFromK8sConfig(planDetails[planName].ClusterConfig)
-		}
-	} else {
-		cluster, err = broker.clusterFactory.DefaultCluster()
-	}
-	if err != nil {
-		return brokerapi.ProvisionedServiceSpec{}, errors.Wrap(err, "Unable to get cluster")
-	}
-
-	myHelmClient := broker.helmClientFactory.HelmClient(cluster)
-	if planHasCluster {
-		planClusterServiceAccountInstaller := broker.serviceAccountInstallerFactory.ServiceAccountInstaller(cluster)
-		err = PrepareCluster(broker.config, cluster, myHelmClient, planClusterServiceAccountInstaller, broker.helmInstallerFactory, broker.operators, broker.logger)
 		if err != nil {
 			return brokerapi.ProvisionedServiceSpec{}, err
 		}
@@ -249,18 +206,7 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 		},
 	}
 
-	var planBytes []byte
-	if broker.credstore != nil {
-		creds, err := broker.credstore.Get(fmt.Sprintf("/c/%s/%s/%s/values", CredhubClientIdentifier, chart.Metadata.Name, planName))
-		if err != nil {
-			return brokerapi.ProvisionedServiceSpec{}, err
-		}
-		planBytes = []byte(creds)
-	} else {
-		planBytes = planDetails[planName].Values
-	}
-
-	_, err = myHelmClient.InstallChart(broker.config.RegistryConfig, namespace, broker.getReleaseName(instanceID), chart, planBytes, installValues)
+	_, err = myHelmClient.InstallChart(broker.config.RegistryConfig, namespace, broker.getReleaseName(instanceID), chart, chart.Plans[getPlanName(details.PlanID, details.ServiceID)].Values, installValues)
 	if err != nil {
 		return brokerapi.ProvisionedServiceSpec{}, err
 	}
@@ -282,7 +228,15 @@ func (broker *PksServiceBroker) GetInstance(context context.Context, instanceID 
 func (broker *PksServiceBroker) Deprovision(ctx context.Context, instanceID string, details brokerapi.DeprovisionDetails, asyncAllowed bool) (brokerapi.DeprovisionServiceSpec, error) {
 	planID := details.PlanID
 	serviceID := details.ServiceID
-	cluster, err := broker.getCluster(planID, serviceID)
+	var err error
+
+	chart, err := broker.loadChartWithPlans(planID,serviceID)
+	if err != nil {
+		return brokerapi.DeprovisionServiceSpec{}, err
+	}
+	planName := getPlanName(planID,serviceID)
+
+	cluster, err := broker.getCluster(chart,planName)
 	if err != nil {
 		return brokerapi.DeprovisionServiceSpec{}, err
 	}
@@ -293,14 +247,14 @@ func (broker *PksServiceBroker) Deprovision(ctx context.Context, instanceID stri
 		_, err = helmClient.DeleteRelease(broker.getReleaseName(instanceID))
 		if err != nil {
 			broker.logger.Error(
-				"Delete Release failed for planID=", planID, " serviceID=", serviceID, " instanceID=", instanceID, " ", err,
+				"Delete Release failed for planID=", details.PlanID, " serviceID=", details.ServiceID, " instanceID=", instanceID, " ", err,
 			)
 		}
 
 		err = cluster.DeleteNamespace(broker.getNamespace(instanceID), &meta_v1.DeleteOptions{})
 		if err != nil {
 			broker.logger.Error(
-				"Delete Namespace failed for planID=", planID, " serviceID=", serviceID, " instanceID=", instanceID, " ", err,
+				"Delete Namespace failed for planID=", details.PlanID, " serviceID=", details.ServiceID, " instanceID=", instanceID, " ", err,
 			)
 		}
 	}()
@@ -314,20 +268,19 @@ func (broker *PksServiceBroker) Deprovision(ctx context.Context, instanceID stri
 func (broker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID string, details brokerapi.BindDetails, asyncAllowed bool) (brokerapi.Binding, error) {
 	planID := details.PlanID
 	serviceID := details.ServiceID
-	cluster, err := broker.getCluster(planID, serviceID)
+	var err error
+
+	chart, err := broker.loadChartWithPlans(planID,serviceID)
 	if err != nil {
 		return brokerapi.Binding{}, err
 	}
 
-	chartsMap, err := broker.GetChartsMap()
+	planName := getPlanName(planID,serviceID)
+	cluster, err := broker.getCluster(chart,planName)
 	if err != nil {
 		return brokerapi.Binding{}, err
 	}
 
-	chart, ok := chartsMap[serviceID]
-	if !ok {
-		return brokerapi.Binding{}, errors.New(fmt.Sprintf("service %s not found ", serviceID))
-	}
 
 	template := chart.BindTemplate
 	credentials, err := broker.getCredentials(cluster, instanceID, template)
@@ -356,28 +309,147 @@ func (broker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID 
 		Credentials: credentials,
 	}, nil
 }
-
-func (broker *PksServiceBroker) getCluster(planID, serviceID string) (k8s.Cluster, error) {
-	planName := strings.TrimPrefix(planID, serviceID+"-")
+func (broker *PksServiceBroker) loadChartWithPlans(planID, serviceID string) (*my_helm.MyChart, error){
 	charts, err := broker.GetChartsMap()
 	if err != nil {
 		return nil, err
 	}
 	chart := charts[serviceID]
-
-	if chart != nil {
-		plan, planFound := chart.Plans[planName]
-		if planFound && plan.ClusterConfig != nil {
-			cluster, err := broker.clusterFactory.GetClusterFromK8sConfig(chart.Plans[planName].ClusterConfig)
+	if chart == nil {
+		return nil, errors.New(fmt.Sprintf("Chart not found for [%s]", serviceID))
+	}
+	planName := getPlanName(planID, serviceID)
+	if broker.credstore != nil {
+		planValues, err := broker.credstore.Get(fmt.Sprintf("/c/%s/%s/%s/values", CredhubClientIdentifier, chart.Metadata.Name, planName))
+		if err != nil {
+			return nil, err
+		}
+		thePlan := chart.Plans[planName]
+		thePlan.Values = []byte(planValues)
+		chart.Plans[planName] = thePlan
+	} else {
+		if chart.ChartPath == "" {
+			return nil, errors.New("chart chartPath should not be empty")
+		}
+		if strings.HasSuffix(chart.ChartPath, "tgz") {
+			chartReader, err := os.Open(chart.ChartPath)
 			if err != nil {
 				return nil, err
 			}
-			if cluster != nil {
-				return cluster, err
+			moreio.Untar(chartReader, path.Dir(chart.ChartPath))
+			err = chartReader.Close()
+			if err != nil {
+				return nil, err
 			}
 		}
+
+		plansDir := path.Join(path.Dir(chart.ChartPath), chart.Chart.Metadata.Name, "plans")
+
+		chart.Plans, err = chart.LoadPlans(plansDir, chart.Plans)
+		if err != nil {
+			return nil, errors.Wrap(err, "Unable to load plans from chart")
+		}
 	}
-	return broker.clusterFactory.DefaultCluster()
+	return chart, nil
+}
+
+func (broker *PksServiceBroker) getCluster(chart *my_helm.MyChart, planName string)(k8s.Cluster, error){
+
+	planHasCluster := chart.Plans[planName].HasCluster()
+	if planHasCluster {
+		if broker.credstore != nil {
+			creds, err := broker.credstore.Get(fmt.Sprintf("/c/%s/%s/%s/cluster-creds", CredhubClientIdentifier, chart.Metadata.Name, planName))
+			if err != nil {
+				return nil, errors.Wrap(err, "Unable to get creds from credstore")
+			}
+			clusterConfig := &k8sAPI.Config{}
+			err = yaml.Unmarshal([]byte(creds), clusterConfig)
+			if err != nil {
+				return  nil, errors.Wrap(err, "Unable to get unmarshal creds retreived from credstore")
+			}
+			return broker.clusterFactory.GetClusterFromK8sConfig(clusterConfig)
+		} else {
+			return broker.clusterFactory.GetClusterFromK8sConfig(chart.Plans[planName].ClusterConfig)
+		}
+	} else {
+		return broker.clusterFactory.DefaultCluster()
+	}
+}
+
+func (broker *PksServiceBroker) getChartAndClient(planID, serviceID string) (*my_helm.MyChart, my_helm.MyHelmClient, k8s.Cluster, error) {
+	planName := getPlanName(planID, serviceID)
+	charts, err := broker.GetChartsMap()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	chart := charts[serviceID]
+	if chart == nil {
+		return nil, nil, nil, errors.New(fmt.Sprintf("Chart not found for [%s]", serviceID))
+	}
+
+	if strings.HasSuffix(chart.ChartPath, "tgz") {
+		chartReader, err := os.Open(chart.ChartPath)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		moreio.Untar(chartReader, path.Dir(chart.ChartPath))
+		err = chartReader.Close()
+		if err != nil {
+			return nil, nil, nil, err
+		}
+	}
+	if chart.ChartPath == "" {
+		return nil, nil, nil, errors.New("chart chartPath should not be empty")
+	}
+	plansDir := path.Join(path.Dir(chart.ChartPath), chart.Chart.Metadata.Name, "plans")
+
+	var cluster k8s.Cluster
+
+	planHasCluster := chart.Plans[planName].HasCluster()
+	if planHasCluster {
+		if broker.credstore != nil {
+			creds, err := broker.credstore.Get(fmt.Sprintf("/c/%s/%s/%s/cluster-creds", CredhubClientIdentifier, chart.Metadata.Name, planName))
+			if err != nil {
+				return nil, nil, nil, errors.Wrap(err, "Unable to get creds from credstore")
+			}
+			clusterConfig := &k8sAPI.Config{}
+			err = yaml.Unmarshal([]byte(creds), clusterConfig)
+			if err != nil {
+				return nil, nil, nil, errors.Wrap(err, "Unable to get unmarshal creds retreived from credstore")
+			}
+			cluster, err = broker.clusterFactory.GetClusterFromK8sConfig(clusterConfig)
+		} else {
+			chart.Plans, err = chart.LoadPlans(plansDir, chart.Plans)
+			if err != nil {
+				return nil, nil, nil, errors.Wrap(err, "Unable to load plans from chart")
+			}
+			cluster, err = broker.clusterFactory.GetClusterFromK8sConfig(chart.Plans[planName].ClusterConfig)
+		}
+	} else {
+		cluster, err = broker.clusterFactory.DefaultCluster()
+	}
+
+	myHelmClient := broker.helmClientFactory.HelmClient(cluster)
+
+	if planHasCluster {
+		planClusterServiceAccountInstaller := broker.serviceAccountInstallerFactory.ServiceAccountInstaller(cluster)
+		err = PrepareCluster(broker.config, cluster, myHelmClient, planClusterServiceAccountInstaller, broker.helmInstallerFactory, broker.operators, broker.logger)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+	}
+
+	if broker.credstore != nil {
+		creds, err := broker.credstore.Get(fmt.Sprintf("/c/%s/%s/%s/values", CredhubClientIdentifier, chart.Metadata.Name, planName))
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		thePlan := my_helm.Plan{Values:[]byte(creds)}
+		chart.Plans[planName] = thePlan
+	}
+
+	return chart, myHelmClient, nil, err
+
 }
 
 func (broker *PksServiceBroker) getCredentials(cluster k8s.Cluster, instanceID string, bindTemplate string) (map[string]interface{}, error) {
@@ -411,17 +483,17 @@ func (broker *PksServiceBroker) GetBinding(ctx context.Context, instanceID, bind
 }
 
 func (broker *PksServiceBroker) Unbind(ctx context.Context, instanceID, bindingID string, details brokerapi.UnbindDetails, asyncAllowed bool) (brokerapi.UnbindSpec, error) {
-	chartsMap, err := broker.GetChartsMap()
-	if err != nil {
-		return brokerapi.UnbindSpec{}, err
-	}
-
-	chart, ok := chartsMap[details.ServiceID]
-	if !ok {
-		return brokerapi.UnbindSpec{}, errors.New(fmt.Sprintf("service %s not found ", details.ServiceID))
-	}
 
 	if broker.credstore != nil {
+		chartsMap, err := broker.GetChartsMap()
+		if err != nil {
+			return brokerapi.UnbindSpec{}, err
+		}
+
+		chart, ok := chartsMap[details.ServiceID]
+		if !ok {
+			return brokerapi.UnbindSpec{}, errors.New(fmt.Sprintf("service %s not found ", details.ServiceID))
+		}
 		credentialName := broker.getCredentialName(broker.getServiceName(chart), bindingID)
 
 		err = broker.credstore.DeletePermission(credentialName)
@@ -429,7 +501,7 @@ func (broker *PksServiceBroker) Unbind(ctx context.Context, instanceID, bindingI
 			broker.logger.Error(fmt.Sprintf("fail to delete permissions on the key %s", credentialName), err)
 		}
 
-		err := broker.credstore.Delete(credentialName)
+		err = broker.credstore.Delete(credentialName)
 		if err != nil {
 			return brokerapi.UnbindSpec{}, err
 		}
@@ -449,33 +521,25 @@ func (broker *PksServiceBroker) Update(ctx context.Context, instanceID string, d
 			IsAsync:       true,
 			OperationData: "update",
 		}, nil
-	}
-
-	if details.GetRawParameters() != nil {
+	} else {
 		updateValues, err = yaml.JSONToYAML(details.GetRawParameters())
 		if err != nil {
 			return brokerapi.UpdateServiceSpec{}, err
 		}
 	}
-
-	charts, err := broker.GetChartsMap()
-	if err != nil {
-		return brokerapi.UpdateServiceSpec{}, err
-	}
-	chart := charts[details.ServiceID]
-	if chart == nil {
-		return brokerapi.UpdateServiceSpec{}, errors.New(fmt.Sprintf("Chart not found for [%s]", details.ServiceID))
-	}
-
-	planName := getPlanName(details.PlanID, details.ServiceID)
-
 	planID := details.PlanID
 	serviceID := details.ServiceID
-	cluster, err := broker.getCluster(planID, serviceID)
+	planName := getPlanName(planID, serviceID)
+
+	chart, err := broker.loadChartWithPlans(planID,serviceID)
 	if err != nil {
 		return brokerapi.UpdateServiceSpec{}, err
 	}
 
+	cluster, err := broker.getCluster(chart,planName)
+	if err != nil {
+		return brokerapi.UpdateServiceSpec{}, err
+	}
 	helmClient := broker.helmClientFactory.HelmClient(cluster)
 
 	_, err = helmClient.UpdateChart(chart, broker.getReleaseName(instanceID), planName, updateValues)
@@ -493,14 +557,23 @@ func (broker *PksServiceBroker) Update(ctx context.Context, instanceID string, d
 func (broker *PksServiceBroker) LastOperation(ctx context.Context, instanceID string, details brokerapi.PollDetails) (brokerapi.LastOperation, error) {
 	var brokerStatus brokerapi.LastOperationState
 	var description string
+    var cluster k8s.Cluster
+	var err error
 
 	planID := details.PlanID
 	serviceID := details.ServiceID
-	cluster, err := broker.getCluster(planID, serviceID)
-	if err != nil {
-		return brokerapi.LastOperation{}, err
-	}
 
+	chart, err := broker.loadChartWithPlans(planID,serviceID)
+	if err != nil {
+		broker.logger.Info("Could not load chart. Using default cluster.")
+		cluster, err = broker.clusterFactory.DefaultCluster()
+	} else {
+		planName := getPlanName(planID, serviceID)
+		cluster, err = broker.getCluster(chart, planName)
+		if err != nil {
+			return brokerapi.LastOperation{}, err
+		}
+	}
 	helmClient := broker.helmClientFactory.HelmClient(cluster)
 
 	response, err := helmClient.ReleaseStatus(broker.getReleaseName(instanceID))

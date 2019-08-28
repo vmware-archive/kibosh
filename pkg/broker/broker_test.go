@@ -37,7 +37,6 @@ import (
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/sirupsen/logrus"
-	bob "gopkg.in/yaml.v2"
 	api_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sAPI "k8s.io/client-go/tools/clientcmd/api"
@@ -137,7 +136,6 @@ var _ = Describe("Broker", func() {
 		}
 		mysqlChartPath, err := test.WriteMyChart(mysqlChart, logger)
 		Expect(err).To(BeNil())
-
 		mysqlChart.ChartPath = mysqlChartPath
 
 		charts = []*my_helm.MyChart{spacebearsChart, mysqlChart}
@@ -348,16 +346,7 @@ var _ = Describe("Broker", func() {
 						},
 					},
 				}
-
-				plan := spacebearsChart.Plans["small"]
-				plan.ClusterConfig = k8sConfig
-				k8sConfigBytes, err := bob.Marshal(k8sConfig)
-				print("k8sconfig:" + string(k8sConfigBytes))
-				plan.CredentialsPath = "small-creds.yaml"
-				spacebearsChart.Plans["small"] = plan
-				chartPath, err := test.WriteMyChart(spacebearsChart, logger)
-				Expect(err).To(BeNil())
-				spacebearsChart.ChartPath = chartPath
+				writeChartWithClusterConfig(spacebearsChart, *k8sConfig, logger)
 
 				details = brokerapi.ProvisionDetails{
 					ServiceID: spacebearsServiceGUID,
@@ -392,6 +381,26 @@ var _ = Describe("Broker", func() {
 
 			It("with credstore", func() {
 				fakeCredStore.GetStub = func(path string) (string, error) {
+					k8sConfig := &k8sAPI.Config{
+						Clusters: map[string]*k8sAPI.Cluster{
+							"cluster2": {
+								CertificateAuthorityData: []byte("my cat"),
+								Server:                   "myserver",
+							},
+						},
+						CurrentContext: "context2",
+						Contexts: map[string]*k8sAPI.Context{
+							"context2": {
+								Cluster:  "cluster2",
+								AuthInfo: "auth2",
+							},
+						},
+						AuthInfos: map[string]*k8sAPI.AuthInfo{
+							"auth2": {
+								Token: "my encoded 2nd token",
+							},
+						},
+					}
 					if path == "/c/kibosh/spacebears/small/values" {
 						return "secret: abc123", nil
 					} else if path == "/c/kibosh/spacebears/small/cluster-creds" {
@@ -399,7 +408,7 @@ var _ = Describe("Broker", func() {
 						Expect(err).To(BeNil())
 						return string(configYAML), nil
 					} else {
-						panic(fmt.Sprintf("Aske for unexpected credential path [%s]", path))
+						panic(fmt.Sprintf("Asked for unexpected credential path [%s]", path))
 					}
 				}
 				broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, fakeCredStore, nil, logger)
@@ -700,10 +709,7 @@ var _ = Describe("Broker", func() {
 				Contexts:       map[string]*k8sAPI.Context{"context2": {}},
 				AuthInfos:      map[string]*k8sAPI.AuthInfo{"auth2": {}},
 			}
-
-			plan := spacebearsChart.Plans["small"]
-			plan.ClusterConfig = k8sConfig
-			spacebearsChart.Plans["small"] = plan
+			writeChartWithClusterConfig(spacebearsChart,*k8sConfig,logger)
 
 			fakeClusterFactory.GetClusterFromK8sConfigReturns(&fakeCluster, nil)
 
@@ -739,10 +745,11 @@ var _ = Describe("Broker", func() {
 				"services": "myservice",
 			}, nil)
 
-			binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{ServiceID: mysqlServiceID}, false)
+			binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{ServiceID: mysqlServiceID, PlanID: mysqlServiceGUID+"-tiny"}, false)
 
 			Expect(err).To(BeNil())
 			Expect(binding).NotTo(BeNil())
+			//@todo why was this expected before? Expect(fakeClusterFactory.GetClusterFromK8sConfigCallCount()).To(Equal(1))
 
 			creds := binding.Credentials
 			secrets := creds.(map[string]interface{})["secrets"]
@@ -752,15 +759,26 @@ var _ = Describe("Broker", func() {
 
 		It("when plan has a specific cluster, fetch binding from that", func() {
 			k8sConfig := &k8sAPI.Config{
-				Clusters:       map[string]*k8sAPI.Cluster{"cluster2": {}},
+				Clusters: map[string]*k8sAPI.Cluster{
+					"cluster2": {
+						CertificateAuthorityData: []byte("my cat"),
+						Server:                   "myserver",
+					},
+				},
 				CurrentContext: "context2",
-				Contexts:       map[string]*k8sAPI.Context{"context2": {}},
-				AuthInfos:      map[string]*k8sAPI.AuthInfo{"auth2": {}},
+				Contexts: map[string]*k8sAPI.Context{
+					"context2": {
+						Cluster:  "cluster2",
+						AuthInfo: "auth2",
+					},
+				},
+				AuthInfos: map[string]*k8sAPI.AuthInfo{
+					"auth2": {
+						Token: "my encoded 2nd token",
+					},
+				},
 			}
-
-			plan := spacebearsChart.Plans["small"]
-			plan.ClusterConfig = k8sConfig
-			spacebearsChart.Plans["small"] = plan
+			writeChartWithClusterConfig(spacebearsChart, *k8sConfig, logger)
 
 			fakeClusterFactory.GetClusterFromK8sConfigReturns(&fakeCluster, nil)
 
@@ -1174,3 +1192,19 @@ var _ = Describe("Broker", func() {
 		})
 	})
 })
+
+func writeChartWithClusterConfig(chart *my_helm.MyChart, k8sConfig k8sAPI.Config, logger *logrus.Logger) {
+	k8sConfig2 := k8sConfig
+	plan := chart.Plans["small"]
+	plan.ClusterConfig = &k8sConfig2
+	plan.CredentialsPath = "small-creds.yaml"
+	chart.Plans["small"] = plan
+	chartPath, err := test.WriteMyChart(chart, logger)
+	Expect(err).To(BeNil())
+	chart.ChartPath = chartPath
+
+	plan.ClusterConfig = nil
+	plan.Values = []byte("")
+	chart.Plans["small"] = plan
+
+}
