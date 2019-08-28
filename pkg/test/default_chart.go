@@ -267,7 +267,7 @@ func DefaultMyChart() (*helm.MyChart, error) {
 	if err != nil {
 		return nil, err
 	}
-	return helm.NewChart(chartPath, false, "docker.example.com", nil)
+	return helm.NewChart(chartPath, true, "docker.example.com", nil)
 }
 
 func WriteMyChart(myChart *helm.MyChart, logger *logrus.Logger) (string, error) {

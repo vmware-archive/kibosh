@@ -123,7 +123,7 @@ func NewChart(chartPath string, loadPlans bool, privateRegistryServer string, lo
 			return nil, err
 		}
 
-		chartPath = strings.ReplaceAll(chartPath, ".tgz", "")
+		chartPath = strings.ReplaceAll(chartPath, ".tgz", "") + "uncompressed"
 		err = moreio.Untar(tgzFileReader, chartPath)
 		if err != nil {
 			return nil, err
