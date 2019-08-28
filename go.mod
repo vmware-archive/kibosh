@@ -95,7 +95,7 @@ require (
 	go.uber.org/atomic v1.4.0 // indirect
 	go.uber.org/multierr v1.1.0 // indirect
 	go.uber.org/zap v1.10.0 // indirect
-	golang.org/x/build v0.0.0-20190821220512-0d3a43568488
+	golang.org/x/build v0.0.0-20190821220512-0d3a43568488 // indirect
 	golang.org/x/crypto v0.0.0-20190426145343-a29dc8fdc734
 	golang.org/x/tools v0.0.0-20190706070813-72ffa07ba3db
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect

@@ -709,7 +709,7 @@ var _ = Describe("Broker", func() {
 				Contexts:       map[string]*k8sAPI.Context{"context2": {}},
 				AuthInfos:      map[string]*k8sAPI.AuthInfo{"auth2": {}},
 			}
-			writeChartWithClusterConfig(spacebearsChart,*k8sConfig,logger)
+			writeChartWithClusterConfig(spacebearsChart, *k8sConfig, logger)
 
 			fakeClusterFactory.GetClusterFromK8sConfigReturns(&fakeCluster, nil)
 
@@ -745,7 +745,7 @@ var _ = Describe("Broker", func() {
 				"services": "myservice",
 			}, nil)
 
-			binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{ServiceID: mysqlServiceID, PlanID: mysqlServiceGUID+"-tiny"}, false)
+			binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{ServiceID: mysqlServiceID, PlanID: mysqlServiceGUID + "-tiny"}, false)
 
 			Expect(err).To(BeNil())
 			Expect(binding).NotTo(BeNil())
