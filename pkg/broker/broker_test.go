@@ -281,6 +281,7 @@ var _ = Describe("Broker", func() {
 		It("uses the default cluster", func() {
 			testChart := test.DefaultChart()
 			chartPath, err := testChart.WriteChartPackage(logger)
+			Expect(err).To(BeNil())
 			spacebearsChart.ChartPath = chartPath
 
 			_, err = broker.Provision(nil, "my-instance-guid", details, true)
@@ -709,7 +710,7 @@ var _ = Describe("Broker", func() {
 				Contexts:       map[string]*k8sAPI.Context{"context2": {}},
 				AuthInfos:      map[string]*k8sAPI.AuthInfo{"auth2": {}},
 			}
-			writeChartWithClusterConfig(spacebearsChart,*k8sConfig,logger)
+			writeChartWithClusterConfig(spacebearsChart, *k8sConfig, logger)
 
 			fakeClusterFactory.GetClusterFromK8sConfigReturns(&fakeCluster, nil)
 
@@ -745,7 +746,7 @@ var _ = Describe("Broker", func() {
 				"services": "myservice",
 			}, nil)
 
-			binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{ServiceID: mysqlServiceID, PlanID: mysqlServiceGUID+"-tiny"}, false)
+			binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{ServiceID: mysqlServiceID, PlanID: mysqlServiceGUID + "-tiny"}, false)
 
 			Expect(err).To(BeNil())
 			Expect(binding).NotTo(BeNil())
@@ -992,9 +993,13 @@ var _ = Describe("Broker", func() {
 
 		It("correctly calls deletion", func() {
 			details := brokerapi.DeprovisionDetails{
-				PlanID:    "my-plan-id",
-				ServiceID: "my-service-id",
+				ServiceID: spacebearsServiceGUID,
+				PlanID:    spacebearsServiceGUID + "-small",
 			}
+			chartPath, err := test.WriteMyChart(spacebearsChart, logger)
+			Expect(err).To(BeNil())
+			spacebearsChart.ChartPath = chartPath
+
 			response, err := broker.Deprovision(nil, "my-instance-guid", details, true)
 			Expect(err).To(BeNil())
 			Expect(response.IsAsync).To(BeTrue())
@@ -1038,9 +1043,7 @@ var _ = Describe("Broker", func() {
 				AuthInfos:      map[string]*k8sAPI.AuthInfo{"auth2": {}},
 			}
 
-			plan := spacebearsChart.Plans["small"]
-			plan.ClusterConfig = k8sConfig
-			spacebearsChart.Plans["small"] = plan
+			writeChartWithClusterConfig(spacebearsChart, *k8sConfig, logger)
 
 			fakeClusterFactory.GetClusterFromK8sConfigReturns(&fakeCluster, nil)
 
@@ -1089,10 +1092,13 @@ var _ = Describe("Broker", func() {
 			raw := json.RawMessage(`{"foo":"bar"}`)
 
 			details := brokerapi.UpdateDetails{
-				PlanID:        "my-plan-id",
 				ServiceID:     spacebearsServiceGUID,
+				PlanID:        spacebearsServiceGUID + "-small",
 				RawParameters: raw,
 			}
+			chartPath, err := test.WriteMyChart(spacebearsChart, logger)
+			Expect(err).To(BeNil())
+			spacebearsChart.ChartPath = chartPath
 
 			resp, err := broker.Update(nil, "my-instance-guid", details, true)
 
@@ -1105,7 +1111,7 @@ var _ = Describe("Broker", func() {
 
 			Expect(chart).To(Equal(spacebearsChart))
 			Expect(releaseName).To(Equal("k-5h5kntfw"))
-			Expect(plan).To(Equal("my-plan-id"))
+			Expect(plan).To(Equal("small"))
 			Expect(strings.TrimSpace(string(opts))).To(Equal("foo: bar"))
 			Expect(fakeClusterFactory.DefaultClusterCallCount()).ShouldNot(Equal(0))
 			Expect(fakeClusterFactory.GetClusterCallCount()).To(Equal(0))
@@ -1125,9 +1131,7 @@ var _ = Describe("Broker", func() {
 				AuthInfos:      map[string]*k8sAPI.AuthInfo{"auth2": {}},
 			}
 
-			plan := spacebearsChart.Plans["small"]
-			plan.ClusterConfig = k8sConfig
-			spacebearsChart.Plans["small"] = plan
+			writeChartWithClusterConfig(spacebearsChart, *k8sConfig, logger)
 
 			fakeClusterFactory.GetClusterFromK8sConfigReturns(&fakeCluster, nil)
 

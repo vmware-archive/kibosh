@@ -163,17 +163,17 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 	planID := details.PlanID
 	serviceID := details.ServiceID
 
-	chart, err := broker.loadChartWithPlans(planID,serviceID)
+	chart, err := broker.loadChartWithPlans(planID, serviceID)
 	if err != nil {
 		return brokerapi.ProvisionedServiceSpec{}, errors.Wrap(err, "Unable to get chart")
 	}
-	planName := getPlanName(planID,serviceID)
+	planName := getPlanName(planID, serviceID)
 
 	cluster, err := broker.getCluster(chart, planName)
 	if err != nil {
 		return brokerapi.ProvisionedServiceSpec{}, errors.Wrap(err, "Unable to get cluster")
 	}
-	myHelmClient :=  broker.helmClientFactory.HelmClient(cluster)
+	myHelmClient := broker.helmClientFactory.HelmClient(cluster)
 
 	if chart.Plans[planName].HasCluster() {
 		planClusterServiceAccountInstaller := broker.serviceAccountInstallerFactory.ServiceAccountInstaller(cluster)
@@ -230,13 +230,13 @@ func (broker *PksServiceBroker) Deprovision(ctx context.Context, instanceID stri
 	serviceID := details.ServiceID
 	var err error
 
-	chart, err := broker.loadChartWithPlans(planID,serviceID)
+	chart, err := broker.loadChartWithPlans(planID, serviceID)
 	if err != nil {
 		return brokerapi.DeprovisionServiceSpec{}, err
 	}
-	planName := getPlanName(planID,serviceID)
+	planName := getPlanName(planID, serviceID)
 
-	cluster, err := broker.getCluster(chart,planName)
+	cluster, err := broker.getCluster(chart, planName)
 	if err != nil {
 		return brokerapi.DeprovisionServiceSpec{}, err
 	}
@@ -270,17 +270,16 @@ func (broker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID 
 	serviceID := details.ServiceID
 	var err error
 
-	chart, err := broker.loadChartWithPlans(planID,serviceID)
+	chart, err := broker.loadChartWithPlans(planID, serviceID)
 	if err != nil {
 		return brokerapi.Binding{}, err
 	}
 
-	planName := getPlanName(planID,serviceID)
-	cluster, err := broker.getCluster(chart,planName)
+	planName := getPlanName(planID, serviceID)
+	cluster, err := broker.getCluster(chart, planName)
 	if err != nil {
 		return brokerapi.Binding{}, err
 	}
-
 
 	template := chart.BindTemplate
 	credentials, err := broker.getCredentials(cluster, instanceID, template)
@@ -309,7 +308,7 @@ func (broker *PksServiceBroker) Bind(ctx context.Context, instanceID, bindingID 
 		Credentials: credentials,
 	}, nil
 }
-func (broker *PksServiceBroker) loadChartWithPlans(planID, serviceID string) (*my_helm.MyChart, error){
+func (broker *PksServiceBroker) loadChartWithPlans(planID, serviceID string) (*my_helm.MyChart, error) {
 	charts, err := broker.GetChartsMap()
 	if err != nil {
 		return nil, err
@@ -353,7 +352,7 @@ func (broker *PksServiceBroker) loadChartWithPlans(planID, serviceID string) (*m
 	return chart, nil
 }
 
-func (broker *PksServiceBroker) getCluster(chart *my_helm.MyChart, planName string)(k8s.Cluster, error){
+func (broker *PksServiceBroker) getCluster(chart *my_helm.MyChart, planName string) (k8s.Cluster, error) {
 
 	planHasCluster := chart.Plans[planName].HasCluster()
 	if planHasCluster {
@@ -365,7 +364,7 @@ func (broker *PksServiceBroker) getCluster(chart *my_helm.MyChart, planName stri
 			clusterConfig := &k8sAPI.Config{}
 			err = yaml.Unmarshal([]byte(creds), clusterConfig)
 			if err != nil {
-				return  nil, errors.Wrap(err, "Unable to get unmarshal creds retreived from credstore")
+				return nil, errors.Wrap(err, "Unable to get unmarshal creds retrieved from credstore")
 			}
 			return broker.clusterFactory.GetClusterFromK8sConfig(clusterConfig)
 		} else {
@@ -444,7 +443,7 @@ func (broker *PksServiceBroker) getChartAndClient(planID, serviceID string) (*my
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		thePlan := my_helm.Plan{Values:[]byte(creds)}
+		thePlan := my_helm.Plan{Values: []byte(creds)}
 		chart.Plans[planName] = thePlan
 	}
 
@@ -531,12 +530,12 @@ func (broker *PksServiceBroker) Update(ctx context.Context, instanceID string, d
 	serviceID := details.ServiceID
 	planName := getPlanName(planID, serviceID)
 
-	chart, err := broker.loadChartWithPlans(planID,serviceID)
+	chart, err := broker.loadChartWithPlans(planID, serviceID)
 	if err != nil {
 		return brokerapi.UpdateServiceSpec{}, err
 	}
 
-	cluster, err := broker.getCluster(chart,planName)
+	cluster, err := broker.getCluster(chart, planName)
 	if err != nil {
 		return brokerapi.UpdateServiceSpec{}, err
 	}
@@ -557,13 +556,13 @@ func (broker *PksServiceBroker) Update(ctx context.Context, instanceID string, d
 func (broker *PksServiceBroker) LastOperation(ctx context.Context, instanceID string, details brokerapi.PollDetails) (brokerapi.LastOperation, error) {
 	var brokerStatus brokerapi.LastOperationState
 	var description string
-    var cluster k8s.Cluster
+	var cluster k8s.Cluster
 	var err error
 
 	planID := details.PlanID
 	serviceID := details.ServiceID
 
-	chart, err := broker.loadChartWithPlans(planID,serviceID)
+	chart, err := broker.loadChartWithPlans(planID, serviceID)
 	if err != nil {
 		broker.logger.Info("Could not load chart. Using default cluster.")
 		cluster, err = broker.clusterFactory.DefaultCluster()
