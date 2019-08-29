@@ -141,6 +141,18 @@ type FakeCluster struct {
 		result1 *v1.Namespace
 		result2 error
 	}
+	GetNamespacesStub        func() (*v1.NamespaceList, error)
+	getNamespacesMutex       sync.RWMutex
+	getNamespacesArgsForCall []struct {
+	}
+	getNamespacesReturns struct {
+		result1 *v1.NamespaceList
+		result2 error
+	}
+	getNamespacesReturnsOnCall map[int]struct {
+		result1 *v1.NamespaceList
+		result2 error
+	}
 	GetSecretStub        func(string, string, v1a.GetOptions) (*v1.Secret, error)
 	getSecretMutex       sync.RWMutex
 	getSecretArgsForCall []struct {
@@ -931,6 +943,61 @@ func (fake *FakeCluster) GetNamespaceReturnsOnCall(i int, result1 *v1.Namespace,
 	}
 	fake.getNamespaceReturnsOnCall[i] = struct {
 		result1 *v1.Namespace
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCluster) GetNamespaces() (*v1.NamespaceList, error) {
+	fake.getNamespacesMutex.Lock()
+	ret, specificReturn := fake.getNamespacesReturnsOnCall[len(fake.getNamespacesArgsForCall)]
+	fake.getNamespacesArgsForCall = append(fake.getNamespacesArgsForCall, struct {
+	}{})
+	fake.recordInvocation("GetNamespaces", []interface{}{})
+	fake.getNamespacesMutex.Unlock()
+	if fake.GetNamespacesStub != nil {
+		return fake.GetNamespacesStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.getNamespacesReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeCluster) GetNamespacesCallCount() int {
+	fake.getNamespacesMutex.RLock()
+	defer fake.getNamespacesMutex.RUnlock()
+	return len(fake.getNamespacesArgsForCall)
+}
+
+func (fake *FakeCluster) GetNamespacesCalls(stub func() (*v1.NamespaceList, error)) {
+	fake.getNamespacesMutex.Lock()
+	defer fake.getNamespacesMutex.Unlock()
+	fake.GetNamespacesStub = stub
+}
+
+func (fake *FakeCluster) GetNamespacesReturns(result1 *v1.NamespaceList, result2 error) {
+	fake.getNamespacesMutex.Lock()
+	defer fake.getNamespacesMutex.Unlock()
+	fake.GetNamespacesStub = nil
+	fake.getNamespacesReturns = struct {
+		result1 *v1.NamespaceList
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCluster) GetNamespacesReturnsOnCall(i int, result1 *v1.NamespaceList, result2 error) {
+	fake.getNamespacesMutex.Lock()
+	defer fake.getNamespacesMutex.Unlock()
+	fake.GetNamespacesStub = nil
+	if fake.getNamespacesReturnsOnCall == nil {
+		fake.getNamespacesReturnsOnCall = make(map[int]struct {
+			result1 *v1.NamespaceList
+			result2 error
+		})
+	}
+	fake.getNamespacesReturnsOnCall[i] = struct {
+		result1 *v1.NamespaceList
 		result2 error
 	}{result1, result2}
 }
@@ -1795,6 +1862,8 @@ func (fake *FakeCluster) Invocations() map[string][][]interface{} {
 	defer fake.getDeploymentMutex.RUnlock()
 	fake.getNamespaceMutex.RLock()
 	defer fake.getNamespaceMutex.RUnlock()
+	fake.getNamespacesMutex.RLock()
+	defer fake.getNamespacesMutex.RUnlock()
 	fake.getSecretMutex.RLock()
 	defer fake.getSecretMutex.RUnlock()
 	fake.getSecretsAndServicesMutex.RLock()
