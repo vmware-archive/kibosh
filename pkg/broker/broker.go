@@ -364,7 +364,7 @@ func (broker *PksServiceBroker) getCluster(chart *my_helm.MyChart, planName stri
 			clusterConfig := &k8sAPI.Config{}
 			err = yaml.Unmarshal([]byte(creds), clusterConfig)
 			if err != nil {
-				return nil, errors.Wrap(err, "Unable to get unmarshal creds retreived from credstore")
+				return nil, errors.Wrap(err, "Unable to get unmarshal creds retrieved from credstore")
 			}
 			return broker.clusterFactory.GetClusterFromK8sConfig(clusterConfig)
 		} else {
