@@ -21,15 +21,12 @@ import (
 	"encoding/base32"
 	"encoding/json"
 	"fmt"
-	"os"
-	"path"
 	"strings"
 
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	"github.com/cf-platform-eng/kibosh/pkg/credstore"
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
-	"github.com/cf-platform-eng/kibosh/pkg/moreio"
 	"github.com/cf-platform-eng/kibosh/pkg/repository"
 	"github.com/ghodss/yaml"
 	"github.com/google/go-jsonnet"
@@ -326,35 +323,35 @@ func (broker *PksServiceBroker) loadChartWithPlans(planID, serviceID string) (*m
 		thePlan := chart.Plans[planName]
 		thePlan.Values = []byte(planValues)
 		chart.Plans[planName] = thePlan
-	} else {
-		if chart.ChartPath == "" {
-			return nil, errors.New("chart chartPath should not be empty")
-		}
-		if strings.HasSuffix(chart.ChartPath, "tgz") {
-			chartReader, err := os.Open(chart.ChartPath)
-			if err != nil {
-				return nil, err
-			}
-			moreio.Untar(chartReader, path.Dir(chart.ChartPath))
-			err = chartReader.Close()
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		plansDir := path.Join(path.Dir(chart.ChartPath), chart.Chart.Metadata.Name, "plans")
-
-		chart.Plans, err = chart.LoadPlans(plansDir, chart.Plans)
-		if err != nil {
-			return nil, errors.Wrap(err, "Unable to load plans from chart")
-		}
-
-		chartDir := path.Join(path.Dir(chart.ChartPath), chart.Chart.Metadata.Name)
-		err = os.RemoveAll(chartDir)
-		if err != nil {
-			return nil, errors.Wrap(err, "Unable to clean up chart directory")
-		}
 	}
+	//if chart.ChartPath == "" {
+	//	return nil, errors.New("chart chartPath should not be empty")
+	//}
+	//if strings.HasSuffix(chart.ChartPath, "tgz") {
+	//	chartReader, err := os.Open(chart.ChartPath)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	moreio.Untar(chartReader, path.Dir(chart.ChartPath))
+	//	err = chartReader.Close()
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//}
+	//
+	//plansDir := path.Join(path.Dir(chart.ChartPath), chart.Chart.Metadata.Name, "plans")
+	//
+	//chart.Plans, err = chart.LoadPlans(plansDir, chart.Plans)
+	//if err != nil {
+	//	return nil, errors.Wrap(err, "Unable to load plans from chart")
+	//}
+	//
+	//chartDir := path.Join(path.Dir(chart.ChartPath), chart.Chart.Metadata.Name)
+	//err = os.RemoveAll(chartDir)
+	//if err != nil {
+	//	return nil, errors.Wrap(err, "Unable to clean up chart directory")
+	//}
+	//}
 	return chart, nil
 }
 

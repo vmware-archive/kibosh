@@ -1378,8 +1378,4 @@ func writeChartWithClusterConfig(chart *my_helm.MyChart, k8sConfig k8sAPI.Config
 	Expect(err).To(BeNil())
 	chart.ChartPath = chartPath
 
-	plan.ClusterConfig = nil
-	plan.Values = []byte("")
-	chart.Plans["small"] = plan
-
 }
