@@ -80,33 +80,6 @@ type Plan struct {
 	ClusterConfig *k8sAPI.Config `json:"clusterConfig"`
 }
 
-func LoadFromDir(dir string, loadPlans bool, log *logrus.Logger) ([]*MyChart, error) {
-	sourceDirStat, err := os.Stat(dir)
-	if err != nil {
-		return nil, err
-	}
-	if !sourceDirStat.IsDir() {
-		return nil, errors.New(fmt.Sprintf("The provided path [%s] is not a directory", dir))
-	}
-	sources, err := ioutil.ReadDir(dir)
-	if err != nil {
-		return nil, err
-	}
-
-	charts := []*MyChart{}
-	for _, source := range sources {
-		chartPath := path.Join(dir, source.Name())
-		c, err := NewChart(chartPath, loadPlans, "", log)
-		if err != nil {
-			log.Debug(fmt.Sprintf("The file [%s] not failed to load as a chart", chartPath), err)
-		} else {
-			charts = append(charts, c)
-		}
-	}
-
-	return charts, nil
-}
-
 func NewChart(chartPath string, loadPlans bool, privateRegistryServer string, log *logrus.Logger) (*MyChart, error) {
 	myChart := &MyChart{
 		PrivateRegistryServer: privateRegistryServer,

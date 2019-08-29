@@ -21,15 +21,12 @@ import (
 	"encoding/base32"
 	"encoding/json"
 	"fmt"
-	"os"
-	"path"
 	"strings"
 
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	"github.com/cf-platform-eng/kibosh/pkg/credstore"
 	my_helm "github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
-	"github.com/cf-platform-eng/kibosh/pkg/moreio"
 	"github.com/cf-platform-eng/kibosh/pkg/repository"
 	"github.com/ghodss/yaml"
 	"github.com/google/go-jsonnet"
@@ -326,29 +323,35 @@ func (broker *PksServiceBroker) loadChartWithPlans(planID, serviceID string) (*m
 		thePlan := chart.Plans[planName]
 		thePlan.Values = []byte(planValues)
 		chart.Plans[planName] = thePlan
-	} else {
-		if chart.ChartPath == "" {
-			return nil, errors.New("chart chartPath should not be empty")
-		}
-		if strings.HasSuffix(chart.ChartPath, "tgz") {
-			chartReader, err := os.Open(chart.ChartPath)
-			if err != nil {
-				return nil, err
-			}
-			moreio.Untar(chartReader, path.Dir(chart.ChartPath))
-			err = chartReader.Close()
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		plansDir := path.Join(path.Dir(chart.ChartPath), chart.Chart.Metadata.Name, "plans")
-
-		chart.Plans, err = chart.LoadPlans(plansDir, chart.Plans)
-		if err != nil {
-			return nil, errors.Wrap(err, "Unable to load plans from chart")
-		}
 	}
+	//if chart.ChartPath == "" {
+	//	return nil, errors.New("chart chartPath should not be empty")
+	//}
+	//if strings.HasSuffix(chart.ChartPath, "tgz") {
+	//	chartReader, err := os.Open(chart.ChartPath)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	moreio.Untar(chartReader, path.Dir(chart.ChartPath))
+	//	err = chartReader.Close()
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//}
+	//
+	//plansDir := path.Join(path.Dir(chart.ChartPath), chart.Chart.Metadata.Name, "plans")
+	//
+	//chart.Plans, err = chart.LoadPlans(plansDir, chart.Plans)
+	//if err != nil {
+	//	return nil, errors.Wrap(err, "Unable to load plans from chart")
+	//}
+	//
+	//chartDir := path.Join(path.Dir(chart.ChartPath), chart.Chart.Metadata.Name)
+	//err = os.RemoveAll(chartDir)
+	//if err != nil {
+	//	return nil, errors.Wrap(err, "Unable to clean up chart directory")
+	//}
+	//}
 	return chart, nil
 }
 
@@ -373,82 +376,6 @@ func (broker *PksServiceBroker) getCluster(chart *my_helm.MyChart, planName stri
 	} else {
 		return broker.clusterFactory.DefaultCluster()
 	}
-}
-
-func (broker *PksServiceBroker) getChartAndClient(planID, serviceID string) (*my_helm.MyChart, my_helm.MyHelmClient, k8s.Cluster, error) {
-	planName := getPlanName(planID, serviceID)
-	charts, err := broker.GetChartsMap()
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	chart := charts[serviceID]
-	if chart == nil {
-		return nil, nil, nil, errors.New(fmt.Sprintf("Chart not found for [%s]", serviceID))
-	}
-
-	if strings.HasSuffix(chart.ChartPath, "tgz") {
-		chartReader, err := os.Open(chart.ChartPath)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-		moreio.Untar(chartReader, path.Dir(chart.ChartPath))
-		err = chartReader.Close()
-		if err != nil {
-			return nil, nil, nil, err
-		}
-	}
-	if chart.ChartPath == "" {
-		return nil, nil, nil, errors.New("chart chartPath should not be empty")
-	}
-	plansDir := path.Join(path.Dir(chart.ChartPath), chart.Chart.Metadata.Name, "plans")
-
-	var cluster k8s.Cluster
-
-	planHasCluster := chart.Plans[planName].HasCluster()
-	if planHasCluster {
-		if broker.credstore != nil {
-			creds, err := broker.credstore.Get(fmt.Sprintf("/c/%s/%s/%s/cluster-creds", CredhubClientIdentifier, chart.Metadata.Name, planName))
-			if err != nil {
-				return nil, nil, nil, errors.Wrap(err, "Unable to get creds from credstore")
-			}
-			clusterConfig := &k8sAPI.Config{}
-			err = yaml.Unmarshal([]byte(creds), clusterConfig)
-			if err != nil {
-				return nil, nil, nil, errors.Wrap(err, "Unable to get unmarshal creds retreived from credstore")
-			}
-			cluster, err = broker.clusterFactory.GetClusterFromK8sConfig(clusterConfig)
-		} else {
-			chart.Plans, err = chart.LoadPlans(plansDir, chart.Plans)
-			if err != nil {
-				return nil, nil, nil, errors.Wrap(err, "Unable to load plans from chart")
-			}
-			cluster, err = broker.clusterFactory.GetClusterFromK8sConfig(chart.Plans[planName].ClusterConfig)
-		}
-	} else {
-		cluster, err = broker.clusterFactory.DefaultCluster()
-	}
-
-	myHelmClient := broker.helmClientFactory.HelmClient(cluster)
-
-	if planHasCluster {
-		planClusterServiceAccountInstaller := broker.serviceAccountInstallerFactory.ServiceAccountInstaller(cluster)
-		err = PrepareCluster(broker.config, cluster, myHelmClient, planClusterServiceAccountInstaller, broker.helmInstallerFactory, broker.operators, broker.logger)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-	}
-
-	if broker.credstore != nil {
-		creds, err := broker.credstore.Get(fmt.Sprintf("/c/%s/%s/%s/values", CredhubClientIdentifier, chart.Metadata.Name, planName))
-		if err != nil {
-			return nil, nil, nil, err
-		}
-		thePlan := my_helm.Plan{Values: []byte(creds)}
-		chart.Plans[planName] = thePlan
-	}
-
-	return chart, myHelmClient, nil, err
-
 }
 
 func (broker *PksServiceBroker) getCredentials(cluster k8s.Cluster, instanceID string, bindTemplate string) (map[string]interface{}, error) {

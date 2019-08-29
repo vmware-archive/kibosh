@@ -233,6 +233,53 @@ var _ = Describe("Broker", func() {
 			}
 		})
 
+		It("Catalog does not call credhub", func() {
+			serviceBroker := NewPksServiceBroker(config, nil, nil, nil, nil, fakeRepo, fakeCredStore, nil, logger)
+			serviceCatalog, err := serviceBroker.Services(nil)
+			Expect(err).To(BeNil())
+
+			expectedPlans := []brokerapi.ServicePlan{
+				{
+					ID:          "37b7acb6-6755-56fe-a17f-2307657023ef-small",
+					Name:        "small",
+					Description: "default (small) plan for spacebears",
+					Metadata: &brokerapi.ServicePlanMetadata{
+						DisplayName: "small",
+						Bullets: []string{
+							"default (small) plan for spacebears",
+						},
+					},
+					Free:     brokerapi.FreeValue(true),
+					Bindable: brokerapi.BindableValue(true),
+				},
+				{
+					ID:          "37b7acb6-6755-56fe-a17f-2307657023ef-medium",
+					Name:        "medium",
+					Description: "medium plan for spacebears",
+					Metadata: &brokerapi.ServicePlanMetadata{
+						DisplayName: "medium",
+						Bullets: []string{
+							"bullet1 for plan for spacebears",
+							"bullet2 for plan for spacebears",
+						},
+					},
+					Free:     brokerapi.FreeValue(false),
+					Bindable: brokerapi.BindableValue(true),
+				},
+			}
+
+			service1 := serviceCatalog[0]
+			service2 := serviceCatalog[1]
+			if service1.Name == "spacebears" {
+				Expect(service1.Plans).Should(ConsistOf(expectedPlans))
+			} else {
+				Expect(service2.Plans).Should(ConsistOf(expectedPlans))
+			}
+
+			Expect(fakeCredStore.GetCallCount()).To(Equal(0))
+			Expect(fakeCredStore.PutCallCount()).To(Equal(0))
+		})
+
 		It("Returns error when problem with catalog", func() {
 			fakeRepo.GetChartsReturns(nil, errors.New("issue with catalog"))
 
@@ -292,6 +339,10 @@ var _ = Describe("Broker", func() {
 		})
 
 		Context("credstore", func() {
+			BeforeEach(func() {
+				broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, fakeCredStore, nil, logger)
+			})
+
 			It("fetches from credstore and sends those values", func() {
 				fakeCredStore.GetStub = func(path string) (string, error) {
 					if path == "/c/kibosh/spacebears/small/values" {
@@ -300,7 +351,6 @@ var _ = Describe("Broker", func() {
 						panic(fmt.Sprintf("Aske for unexpected credential path [%s]", path))
 					}
 				}
-				broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, fakeCredStore, nil, logger)
 
 				_, err := broker.Provision(nil, "my-instance-guid", details, true)
 				Expect(err).To(BeNil())
@@ -315,8 +365,6 @@ var _ = Describe("Broker", func() {
 
 			It("surfaces error on credstore failure", func() {
 				fakeCredStore.GetReturns("", errors.New("no plan values for you"))
-
-				broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, fakeCredStore, nil, logger)
 
 				_, err := broker.Provision(nil, "my-instance-guid", details, true)
 				Expect(err).NotTo(BeNil())
@@ -731,6 +779,70 @@ var _ = Describe("Broker", func() {
 			c := fakeClusterFactory.GetClusterFromK8sConfigArgsForCall(0)
 			Expect(c.CurrentContext).To(Equal("context2"))
 		})
+
+		Context("credstore", func() {
+			BeforeEach(func() {
+				broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, fakeCredStore, nil, logger)
+			})
+
+			It("targets the plan cluster when present", func() {
+				fakeHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
+					Info: &hapi_release.Info{
+						Status: &hapi_release.Status{
+							Code: hapi_release.Status_DEPLOYED,
+						},
+					},
+				}, nil)
+
+				k8sConfig := &k8sAPI.Config{
+					Clusters:       map[string]*k8sAPI.Cluster{"cluster2": {}},
+					CurrentContext: "context2",
+					Contexts:       map[string]*k8sAPI.Context{"context2": {}},
+					AuthInfos:      map[string]*k8sAPI.AuthInfo{"auth2": {}},
+				}
+				fakeCredStore.GetStub = func(path string) (string, error) {
+					k8sConfig := &k8sAPI.Config{
+						Clusters:       map[string]*k8sAPI.Cluster{"cluster2": {}},
+						CurrentContext: "context2",
+						Contexts:       map[string]*k8sAPI.Context{"context2": {}},
+						AuthInfos:      map[string]*k8sAPI.AuthInfo{"auth2": {}},
+					}
+					if path == "/c/kibosh/spacebears/small/values" {
+						return "secret: abc123", nil
+					} else if path == "/c/kibosh/spacebears/small/cluster-creds" {
+						configYAML, err := yaml.Marshal(k8sConfig)
+						Expect(err).To(BeNil())
+						return string(configYAML), nil
+					} else {
+						panic(fmt.Sprintf("Asked for unexpected credential path [%s]", path))
+					}
+				}
+				myPlan := spacebearsChart.Plans["small"]
+				myPlan.ClusterConfig = k8sConfig
+				myPlan.CredentialsPath = "something"
+				spacebearsChart.Plans["small"] = myPlan
+				fakeClusterFactory.GetClusterFromK8sConfigReturns(&fakeCluster, nil)
+
+				details := brokerapi.PollDetails{
+					OperationData: "provision",
+					ServiceID:     spacebearsServiceGUID,
+					PlanID:        spacebearsServiceGUID + "-small",
+				}
+
+				_, err := broker.LastOperation(nil, "my-instance-guid", details)
+
+				Expect(err).To(BeNil())
+				Expect(fakeCredStore.GetCallCount()).To(Equal(2))
+				cs := fakeCredStore.GetArgsForCall(0)
+				Expect(cs).To(Equal("/c/kibosh/spacebears/small/values"))
+				cs = fakeCredStore.GetArgsForCall(1)
+				Expect(cs).To(Equal("/c/kibosh/spacebears/small/cluster-creds"))
+				Expect(fakeClusterFactory.DefaultClusterCallCount()).To(Equal(0))
+				Expect(fakeClusterFactory.GetClusterFromK8sConfigCallCount()).To(Equal(1))
+				c := fakeClusterFactory.GetClusterFromK8sConfigArgsForCall(0)
+				Expect(c.CurrentContext).To(Equal("context2"))
+			})
+		})
 	})
 
 	Context("bind", func() {
@@ -1030,6 +1142,48 @@ var _ = Describe("Broker", func() {
 			}).Should(Equal(1))
 		})
 
+		It("correctly calls deletion with credhub enabled", func() {
+			details := brokerapi.DeprovisionDetails{
+				ServiceID: spacebearsServiceGUID,
+				PlanID:    spacebearsServiceGUID + "-small",
+			}
+
+			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, fakeCredStore, nil, logger)
+
+			response, err := broker.Deprovision(nil, "my-instance-guid", details, true)
+			Expect(err).To(BeNil())
+			Expect(response.IsAsync).To(BeTrue())
+			Expect(response.OperationData).To(Equal("deprovision"))
+
+			Eventually(func() int {
+				return fakeCluster.DeleteNamespaceCallCount()
+			}).Should(Equal(1))
+			Eventually(func() string {
+				namespace, _ := fakeCluster.DeleteNamespaceArgsForCall(0)
+				return namespace
+			}).Should(Equal("kibosh-my-instance-guid"))
+
+			Eventually(func() int {
+				return fakeHelmClient.DeleteReleaseCallCount()
+			}).Should(Equal(1))
+			Eventually(func() string {
+				releaseName, _ := fakeHelmClient.DeleteReleaseArgsForCall(0)
+				return releaseName
+			}).Should(Equal("k-5h5kntfw"))
+
+			Consistently(func() int {
+				return fakeClusterFactory.GetClusterCallCount()
+			}).Should(Equal(0))
+
+			Eventually(func() int {
+				return fakeClusterFactory.DefaultClusterCallCount()
+			}).Should(Equal(1))
+
+			Expect(fakeCredStore.GetCallCount()).To(Equal(1))
+			credentialName := fakeCredStore.GetArgsForCall(0)
+			Expect(credentialName).To(Equal("/c/kibosh/spacebears/small/values"))
+		})
+
 		It("targets the plan specific cluster", func() {
 			details := brokerapi.DeprovisionDetails{
 				ServiceID: spacebearsServiceGUID,
@@ -1086,6 +1240,23 @@ var _ = Describe("Broker", func() {
 			Expect(err).To(BeNil())
 			Expect(resp.IsAsync).To(BeTrue())
 			Expect(resp.OperationData).To(Equal("update"))
+		})
+
+		It("Gets credentials when credhub  enabled", func() {
+			broker = NewPksServiceBroker(config, &fakeClusterFactory, &fakeHelmClientFactory, &fakeServiceAccountInstallerFactory, fakeInstallerFactory, fakeRepo, fakeCredStore, nil, logger)
+			raw := json.RawMessage(`{"foo":"bar"}`)
+
+			details := brokerapi.UpdateDetails{
+				ServiceID:     spacebearsServiceGUID,
+				PlanID:        spacebearsServiceGUID + "-small",
+				RawParameters: raw,
+			}
+			resp, err := broker.Update(nil, "my-instance-guid", details, true)
+			Expect(err).To(BeNil())
+			Expect(resp.OperationData).To(Equal("update"))
+			Expect(fakeCredStore.GetCallCount()).To(Equal(1))
+			credentialName := fakeCredStore.GetArgsForCall(0)
+			Expect(credentialName).To(Equal("/c/kibosh/spacebears/small/values"))
 		})
 
 		It("responds correctly", func() {
@@ -1206,9 +1377,5 @@ func writeChartWithClusterConfig(chart *my_helm.MyChart, k8sConfig k8sAPI.Config
 	chartPath, err := test.WriteMyChart(chart, logger)
 	Expect(err).To(BeNil())
 	chart.ChartPath = chartPath
-
-	plan.ClusterConfig = nil
-	plan.Values = []byte("")
-	chart.Plans["small"] = plan
 
 }

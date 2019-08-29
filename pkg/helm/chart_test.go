@@ -285,65 +285,6 @@ var _ = Describe("Broker", func() {
 		})
 	})
 
-	Context("load from dir", func() {
-		var chartArchiveDirPath string
-
-		BeforeEach(func() {
-			chartToSave, err := helm.NewChart(chartPath, false, "", logger)
-
-			chartArchiveDirPath, err = ioutil.TempDir("", "chartarcive-")
-			Expect(err).To(BeNil())
-
-			_, err = chartutil.Save(&chartToSave.Chart, chartArchiveDirPath)
-			Expect(err).To(BeNil())
-		})
-
-		It("single chart", func() {
-			charts, err := helm.LoadFromDir(chartArchiveDirPath, false, logrus.New())
-
-			Expect(err).To(BeNil())
-
-			Expect(charts).To(HaveLen(1))
-			Expect(charts[0].Metadata.Name).To(Equal("spacebears"))
-		})
-
-		It("loads plans", func() {
-			charts, err := helm.LoadFromDir(chartArchiveDirPath, true, logrus.New())
-
-			Expect(err).To(BeNil())
-
-			Expect(charts).To(HaveLen(1))
-			Expect(charts[0].Plans).To(HaveLen(2))
-			Expect(charts[0].Plans["small"]).NotTo(BeNil())
-		})
-
-		It("skips non-charts", func() {
-			err := ioutil.WriteFile(filepath.Join(chartPath, "not-a-chart.tgz"), []byte("nope"), 0666)
-
-			charts, err := helm.LoadFromDir(chartArchiveDirPath, false, logrus.New())
-
-			Expect(err).To(BeNil())
-
-			Expect(charts).To(HaveLen(1))
-			Expect(charts[0].Metadata.Name).To(Equal("spacebears"))
-		})
-
-		It("multiple charts", func() {
-			chartToSave2, err := helm.NewChart(chartPath, false, "", logger)
-			chartToSave2.Metadata.Name = "spacebears2"
-			_, err = chartutil.Save(&chartToSave2.Chart, chartArchiveDirPath)
-			Expect(err).To(BeNil())
-
-			charts, err := helm.LoadFromDir(chartArchiveDirPath, false, logrus.New())
-
-			Expect(err).To(BeNil())
-
-			Expect(charts).To(HaveLen(2))
-			Expect(charts[0].Metadata.Name).To(Equal("spacebears"))
-			Expect(charts[1].Metadata.Name).To(Equal("spacebears2"))
-		})
-	})
-
 	It("should return error when no vals file", func() {
 		err := os.Remove(filepath.Join(chartPath, "values.yaml"))
 		Expect(err).To(BeNil())
