@@ -224,18 +224,19 @@ func (c *MyChart) OverrideImageSources(rawVals map[string]interface{}) (map[stri
 				return nil, err
 			}
 
-			for key, val = range globalMap {
-				if key == "imageRegistry" {
-					stringVal, ok := val.(string)
-					if !ok {
-						return nil, errors.New("'imageRegistry' key value is not a string, vals structure is incorrect")
-					}
-					split := strings.Split(stringVal, "/")
-					globalMap[key] = fmt.Sprintf("%s/%s", c.PrivateRegistryServer, split[len(split)-1])
-					transformedVals["global"] = globalMap
+			if globalVal, ok := globalMap["imageRegistry"]; ok {
+				stringVal, ok := globalVal.(string)
+				if !ok {
+					return nil, errors.New("'imageRegistry' key value is not a string, vals structure is incorrect")
 				}
+				split := strings.Split(stringVal, "/")
+				globalMap["imageRegistry"] = fmt.Sprintf("%s/%s", c.PrivateRegistryServer, split[len(split)-1])
+				transformedVals["global"] = globalMap
+			} else {
+				transformedVals[key] = val
 			}
-
+		} else if key == "imageRegistry" {
+			//@todo - need this for the recursive part, but not quite there yet
 		} else {
 			transformedVals[key] = val
 		}
