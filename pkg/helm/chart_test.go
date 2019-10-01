@@ -479,7 +479,22 @@ images:
     tag: 1.2.3
 `)))
 		})
+		FIt("new", func() {
+			testChart.ValuesYaml = []byte(`
+global:
+  imageRegistry: image-registry
+`)
+			err := testChart.WriteChart(chartPath)
+			Expect(err).To(BeNil())
 
+			chart, err := helm.NewChart(chartPath, "docker.example.com", logger)
+
+			Expect(err).To(BeNil())
+			Expect(strings.TrimSpace(string(chart.TransformedValues))).To(Equal(strings.TrimSpace(`
+global:
+  imageRegistry: docker.example.com/image-registry
+`)))
+		})
 		It("returns error on bad IMAGE format", func() {
 			testChart.ValuesYaml = []byte(`
 image:
