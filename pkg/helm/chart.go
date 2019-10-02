@@ -219,7 +219,7 @@ func (c *MyChart) OverrideImageSources(rawVals map[string]interface{}) (map[stri
 			}
 
 			globalMap := map[string]interface{}{}
-			err = yaml.Unmarshal(remarshalled, globalMap)
+			err = yaml.Unmarshal(remarshalled, &globalMap)
 			if err != nil {
 				return nil, err
 			}
@@ -235,8 +235,6 @@ func (c *MyChart) OverrideImageSources(rawVals map[string]interface{}) (map[stri
 			} else {
 				transformedVals[key] = val
 			}
-		} else if key == "imageRegistry" {
-			//@todo - need this for the recursive part, but not quite there yet
 		} else {
 			transformedVals[key] = val
 		}

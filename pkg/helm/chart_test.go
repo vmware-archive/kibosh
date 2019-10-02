@@ -485,7 +485,7 @@ images:
 `)))
 		})
 
-		FIt("adds prefix for global.imageRegistry case", func() {
+		It("adds prefix for global.imageRegistry case", func() {
 			testChart.ValuesYaml = []byte(`
 global:
   imageRegistry: image-registry
@@ -502,7 +502,7 @@ global:
 `)))
 		})
 
-		FIt("does not add prefix for non imageRegistry key in global", func() {
+		It("does not add prefix for non imageRegistry key in global", func() {
 			testChart.ValuesYaml = []byte(`
 global:
   foo: bar
@@ -532,15 +532,21 @@ global:
 			chart, err := helm.NewChart(chartPath, "docker.example.com", logger)
 
 			Expect(err).To(BeNil())
-			Expect(strings.TrimSpace(string(chart.TransformedValues))).To(Equal(strings.TrimSpace(`
-global:
-  imageRegistry: docker.example.com/image-registry
-  foo: bar
-`)))
+
+			vals := map[string]interface{}{}
+			err = yaml.Unmarshal(chart.TransformedValues, &vals)
+			Expect(err).To(BeNil())
+
+			pvals := map[string]interface{}{}
+			remarshalled, err := yaml.Marshal(vals["global"])
+			yaml.Unmarshal(remarshalled, &pvals)
+
+			Expect(pvals["imageRegistry"]).To(Equal("docker.example.com/image-registry"))
+			Expect(pvals["foo"]).To(Equal("bar"))
 		})
 
 		// @todo: bitnami use case
-		It("new2", func() {
+		XIt("new2", func() {
 			testChart.ValuesYaml = []byte(`
 image:
   registry: docker.io
