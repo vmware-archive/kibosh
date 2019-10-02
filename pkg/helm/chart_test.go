@@ -25,10 +25,10 @@ import (
 
 	"github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/test"
+	"github.com/ghodss/yaml"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
 	"k8s.io/helm/pkg/chartutil"
 )
 
@@ -85,7 +85,7 @@ var _ = Describe("Broker", func() {
 		err = yaml.Unmarshal(chart.TransformedValues, &values)
 
 		Expect(err)
-		Expect(values["count"]).To(Equal(1))
+		Expect(values["count"]).To(Equal(float64(1)))
 		Expect(values["name"]).To(Equal("value"))
 	})
 
@@ -211,7 +211,7 @@ var _ = Describe("Broker", func() {
 			err = yaml.Unmarshal(loadedChart.TransformedValues, &values)
 
 			Expect(err)
-			Expect(values["count"]).To(Equal(1))
+			Expect(values["count"]).To(Equal(float64(1)))
 			Expect(values["name"]).To(Equal("value"))
 		})
 
@@ -232,7 +232,12 @@ var _ = Describe("Broker", func() {
 			vals := map[string]interface{}{}
 			err = yaml.Unmarshal(medium.Values, &vals)
 			Expect(err).To(BeNil())
-			Expect(vals["persistence"]).To(Equal(map[interface{}]interface{}{"size": "16Gi"}))
+
+			pvals := map[string]interface{}{}
+			remarshalled, err := yaml.Marshal(vals["persistence"])
+			yaml.Unmarshal(remarshalled, &pvals)
+
+			Expect(pvals["size"]).To(Equal("16Gi"))
 			Expect(medium.ClusterConfig.CurrentContext).To(Equal("my-context"))
 		})
 

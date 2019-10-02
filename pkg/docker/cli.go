@@ -7,18 +7,18 @@ import (
 	"path"
 	"strings"
 
-	"gopkg.in/yaml.v2"
+	"github.com/ghodss/yaml"
 )
 
 type ImageValues struct {
-	Image    string                 `yaml:"image"`
-	ImageTag string                 `yaml:"imageTag"`
-	Images   map[string]ImageValues `yaml:"images"`
+	Image    string                 `json:"image"`
+	ImageTag string                 `json:"imageTag"`
+	Images   map[string]ImageValues `json:"images"`
 }
 
 type DockerImageOutput struct {
-	Repo string `yaml:"repo"`
-	Tag  string `yaml:"tag"`
+	Repo string `json:"repo"`
+	Tag  string `json:"tag"`
 }
 
 func TagAndPush(privateRegistryServer string) error {

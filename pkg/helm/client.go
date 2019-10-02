@@ -483,7 +483,6 @@ func (c myHelmClient) UpdateReleaseFromChart(rlsName string, chart *chart.Chart,
 	return client.UpdateReleaseFromChart(rlsName, chart, opts...)
 }
 
-
 func (c myHelmClient) RollbackRelease(rlsName string, opts ...helm.RollbackOption) (*rls.RollbackReleaseResponse, error) {
 	panic("Not yet implemented")
 }

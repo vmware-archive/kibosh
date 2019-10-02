@@ -8,7 +8,7 @@ import (
 
 	"github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
-	"gopkg.in/yaml.v2"
+	"github.com/ghodss/yaml"
 )
 
 func main() {

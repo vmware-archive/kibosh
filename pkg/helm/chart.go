@@ -28,9 +28,9 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
 	"k8s.io/client-go/tools/clientcmd"
 	k8sAPI "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/helm/pkg/chartutil"
@@ -48,7 +48,7 @@ type MyChart struct {
 }
 
 type Bind struct {
-	Template string `yaml:"template"`
+	Template string `json:"template"`
 }
 
 func NewChartValidationError(err error) *ChartValidationError {
@@ -62,13 +62,13 @@ type ChartValidationError struct {
 }
 
 type Plan struct {
-	Name            string   `yaml:"name" json:"name"`
-	Description     string   `yaml:"description" json:"description"`
-	Bullets         []string `yaml:"bullets" json:"bullets"`
-	File            string   `yaml:"file" json:"file"`
-	Free            *bool    `yaml:"free,omitempty" json:"free"`
-	Bindable        *bool    `yaml:"bindable,omitempty" json:"bindable"`
-	CredentialsPath string   `yaml:"credentials" json:"credentialsPath"`
+	Name            string   `json:"name" json:"name"`
+	Description     string   `json:"description" json:"description"`
+	Bullets         []string `json:"bullets" json:"bullets"`
+	File            string   `json:"file" json:"file"`
+	Free            *bool    `json:"free,omitempty" json:"free"`
+	Bindable        *bool    `json:"bindable,omitempty" json:"bindable"`
+	CredentialsPath string   `json:"credentials" json:"credentialsPath"`
 
 	Values        []byte         `json:"values"`
 	ClusterConfig *k8sAPI.Config `json:"clusterConfig"`
@@ -199,7 +199,7 @@ func (c *MyChart) OverrideImageSources(rawVals map[string]interface{}) (map[stri
 			}
 
 			imageMap := map[string]map[string]interface{}{}
-			err = yaml.Unmarshal(remarshalled, imageMap)
+			err = yaml.Unmarshal(remarshalled, &imageMap)
 			if err != nil {
 				return nil, err
 			}
