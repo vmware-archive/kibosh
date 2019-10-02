@@ -519,8 +519,7 @@ global:
 `)))
 		})
 
-		// @todo - this should work
-		It("new", func() {
+		It("transform global image registry", func() {
 			testChart.ValuesYaml = []byte(`
 global:
   imageRegistry: image-registry
