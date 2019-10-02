@@ -187,11 +187,27 @@ func (c *MyChart) OverrideImageSources(rawVals map[string]interface{}) (map[stri
 	for key, val := range rawVals {
 		if key == "image" {
 			stringVal, ok := val.(string)
-			if !ok {
-				return nil, errors.New("'image' key value is not a string, vals structure is incorrect")
+			if ok {
+				split := strings.Split(stringVal, "/")
+				transformedVals[key] = fmt.Sprintf("%s/%s", c.PrivateRegistryServer, split[len(split)-1])
+			} else {
+				remarshalled, err := yaml.Marshal(val)
+				if err != nil {
+					return nil, err
+				}
+
+				imageMap := map[string]interface{}{}
+				err = yaml.Unmarshal(remarshalled, &imageMap)
+				if err != nil {
+					return nil, err
+				}
+				_, ok := imageMap["registry"]
+				if ok {
+					imageMap["registry"] = c.PrivateRegistryServer
+				}
+
+				transformedVals["image"] = imageMap
 			}
-			split := strings.Split(stringVal, "/")
-			transformedVals[key] = fmt.Sprintf("%s/%s", c.PrivateRegistryServer, split[len(split)-1])
 		} else if key == "images" {
 			remarshalled, err := yaml.Marshal(val)
 			if err != nil {

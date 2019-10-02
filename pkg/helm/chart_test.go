@@ -545,8 +545,7 @@ global:
 			Expect(pvals["foo"]).To(Equal("bar"))
 		})
 
-		// @todo: bitnami use case
-		XIt("new2", func() {
+		It("more complicated image key-map (bitnami's pattern)", func() {
 			testChart.ValuesYaml = []byte(`
 image:
   registry: docker.io
@@ -565,19 +564,6 @@ image:
   repository: bitnami/kafka
   tag: 2.3.0-debian-9-r88
 `)))
-		})
-
-		It("returns error on bad IMAGE format", func() {
-			testChart.ValuesYaml = []byte(`
-image:
-  foo: quay.io/my-image
-`)
-			err := testChart.WriteChart(chartPath)
-			Expect(err).To(BeNil())
-
-			_, err = helm.NewChart(chartPath, "docker.example.com", logger)
-
-			Expect(err).NotTo(BeNil())
 		})
 
 		It("returns error on bad IMAGES format", func() {
