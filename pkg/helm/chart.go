@@ -191,22 +191,16 @@ func (c *MyChart) OverrideImageSources(rawVals map[string]interface{}) (map[stri
 				split := strings.Split(stringVal, "/")
 				transformedVals[key] = fmt.Sprintf("%s/%s", c.PrivateRegistryServer, split[len(split)-1])
 			} else {
-				remarshalled, err := yaml.Marshal(val)
-				if err != nil {
-					return nil, err
+				imageMap, castOk := rawVals["image"].(map[string]interface{})
+				if !castOk {
+					return nil, errors.New("image key didn't match expected structure")
 				}
-
-				imageMap := map[string]interface{}{}
-				err = yaml.Unmarshal(remarshalled, &imageMap)
-				if err != nil {
-					return nil, err
-				}
-				_, ok := imageMap["registry"]
-				if ok {
+				_, foundInMap := imageMap["registry"]
+				if foundInMap {
 					imageMap["registry"] = c.PrivateRegistryServer
 				}
 
-				transformedVals["image"] = imageMap
+				transformedVals["image"] = rawVals["image"]
 			}
 		} else if key == "images" {
 			remarshalled, err := yaml.Marshal(val)
@@ -229,15 +223,10 @@ func (c *MyChart) OverrideImageSources(rawVals map[string]interface{}) (map[stri
 			}
 			transformedVals["images"] = imageMap
 		} else if key == "global" {
-			remarshalled, err := yaml.Marshal(val)
-			if err != nil {
-				return nil, err
-			}
 
-			globalMap := map[string]interface{}{}
-			err = yaml.Unmarshal(remarshalled, &globalMap)
-			if err != nil {
-				return nil, err
+			globalMap, castOk := rawVals["global"].(map[string]interface{})
+			if !castOk {
+				return nil, errors.New("image key didn't match expected structure")
 			}
 
 			if globalVal, ok := globalMap["imageRegistry"]; ok {
