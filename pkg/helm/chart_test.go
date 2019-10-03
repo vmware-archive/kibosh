@@ -437,6 +437,8 @@ foo: bar
 			Expect(err).To(BeNil())
 			Expect(strings.TrimSpace(string(chart.TransformedValues))).To(Equal(strings.TrimSpace(`
 foo: bar
+global:
+  imageRegistry: docker.example.com/some-scope
 image: docker.example.com/some-scope/my-image
 `)))
 		})
@@ -454,6 +456,8 @@ foo: bar
 			Expect(err).To(BeNil())
 			Expect(strings.TrimSpace(string(chart.TransformedValues))).To(Equal(strings.TrimSpace(`
 foo: bar
+global:
+  imageRegistry: docker.example.com/some-scope
 image: docker.example.com/some-scope/my-image
 `)))
 		})
@@ -475,6 +479,8 @@ images:
 
 			Expect(err).To(BeNil())
 			Expect(strings.TrimSpace(string(chart.TransformedValues))).To(Equal(strings.TrimSpace(`
+global:
+  imageRegistry: docker.example.com
 images:
   thing1:
     image: docker.example.com/my-first-image
@@ -558,10 +564,29 @@ image:
 
 			Expect(err).To(BeNil())
 			Expect(strings.TrimSpace(string(chart.TransformedValues))).To(Equal(strings.TrimSpace(`
+global:
+  imageRegistry: docker.example.com
 image:
   registry: docker.example.com
   repository: bitnami/kafka
   tag: 2.3.0-debian-9-r88
+`)))
+		})
+
+		It("adds global image registry key when not present", func() {
+			testChart.ValuesYaml = []byte(`
+bob: foo
+`)
+			err := testChart.WriteChart(chartPath)
+			Expect(err).To(BeNil())
+
+			chart, err := helm.NewChart(chartPath, "docker.example.com", logger)
+
+			Expect(err).To(BeNil())
+			Expect(strings.TrimSpace(string(chart.TransformedValues))).To(Equal(strings.TrimSpace(`
+bob: foo
+global:
+  imageRegistry: docker.example.com
 `)))
 		})
 

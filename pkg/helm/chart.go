@@ -163,9 +163,13 @@ func (c *MyChart) LoadChartValues() error {
 		return err
 	}
 
-	transformed, err := c.OverrideImageSources(baseVals)
-	if err != nil {
-		return err
+	var transformed = baseVals
+	if c.PrivateRegistryServer != "" {
+		transformed, err = c.OverrideImageSources(transformed)
+		if err != nil {
+			return err
+		}
+		transformed = c.EnsureGlobalImageRegistry(transformed)
 	}
 
 	finalVals, err := yaml.Marshal(transformed)
@@ -179,10 +183,6 @@ func (c *MyChart) LoadChartValues() error {
 }
 
 func (c *MyChart) OverrideImageSources(rawVals map[string]interface{}) (map[string]interface{}, error) {
-	if c.PrivateRegistryServer == "" {
-		return rawVals, nil
-	}
-
 	transformedVals := map[string]interface{}{}
 	for key, val := range rawVals {
 		if key == "image" {
@@ -223,7 +223,6 @@ func (c *MyChart) OverrideImageSources(rawVals map[string]interface{}) (map[stri
 			}
 			transformedVals["images"] = imageMap
 		} else if key == "global" {
-
 			globalMap, castOk := rawVals["global"].(map[string]interface{})
 			if !castOk {
 				return nil, errors.New("image key didn't match expected structure")
@@ -245,6 +244,17 @@ func (c *MyChart) OverrideImageSources(rawVals map[string]interface{}) (map[stri
 		}
 	}
 	return transformedVals, nil
+}
+
+func (c *MyChart) EnsureGlobalImageRegistry(rawVals map[string]interface{}) map[string]interface{} {
+	_, foundInMap := rawVals["global"]
+	if !foundInMap {
+		rawVals["global"] = map[string]interface{}{
+			"imageRegistry": c.PrivateRegistryServer,
+		}
+	}
+
+	return rawVals
 }
 
 func (c *MyChart) loadOSBAPIMetadataFromArchive(chartPath string, log *logrus.Logger) error {
