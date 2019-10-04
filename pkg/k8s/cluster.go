@@ -22,6 +22,7 @@ import (
 	api_v1 "k8s.io/api/core/v1"
 	v1_beta1 "k8s.io/api/extensions/v1beta1"
 	rbacv1beta1 "k8s.io/api/rbac/v1beta1"
+	errors2 "k8s.io/apimachinery/pkg/api/errors"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -40,6 +41,8 @@ type Cluster interface {
 	CreateNamespaceIfNotExists(*api_v1.Namespace) error
 	NamespaceExists(namespaceName string) (bool, error)
 	GetSecretsAndServices(namespace string) (map[string]interface{}, error)
+	SecretExists(namespaceName string, secretName string) (bool, error)
+	CreateOrUpdateSecret(namespaceName string, secret *api_v1.Secret) (*api_v1.Secret, error)
 }
 
 //go:generate counterfeiter ./ ClusterDelegate
@@ -240,6 +243,37 @@ func (cluster *cluster) GetSecretsAndServices(namespace string) (map[string]inte
 	return servicesAndSecrets, nil
 
 }
+
+func (cluster *cluster) SecretExists(namespaceName string, secretName string) (bool, error) {
+	_, err := cluster.GetSecret(namespaceName, secretName, meta_v1.GetOptions{})
+	if err != nil {
+		statusError, ok := err.(*errors2.StatusError)
+		if !ok {
+			return false, err
+		}
+		if statusError.ErrStatus.Reason != meta_v1.StatusReasonNotFound {
+			return false, err
+		}
+
+		return false, nil
+	} else {
+		return true, nil
+	}
+}
+
+func (cluster *cluster) CreateOrUpdateSecret(namespaceName string, secret *api_v1.Secret) (*api_v1.Secret, error) {
+	exists, err := cluster.SecretExists(namespaceName, secret.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	if exists {
+		return cluster.UpdateSecret(namespaceName, secret)
+	} else {
+		return cluster.CreateSecret(namespaceName, secret)
+	}
+}
+
 func (cluster *clusterDelegate) GetClientConfig() *rest.Config {
 	return cluster.k8sConfig
 }

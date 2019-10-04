@@ -52,6 +52,20 @@ type FakeCluster struct {
 	createNamespaceIfNotExistsReturnsOnCall map[int]struct {
 		result1 error
 	}
+	CreateOrUpdateSecretStub        func(string, *v1.Secret) (*v1.Secret, error)
+	createOrUpdateSecretMutex       sync.RWMutex
+	createOrUpdateSecretArgsForCall []struct {
+		arg1 string
+		arg2 *v1.Secret
+	}
+	createOrUpdateSecretReturns struct {
+		result1 *v1.Secret
+		result2 error
+	}
+	createOrUpdateSecretReturnsOnCall map[int]struct {
+		result1 *v1.Secret
+		result2 error
+	}
 	CreateSecretStub        func(string, *v1.Secret) (*v1.Secret, error)
 	createSecretMutex       sync.RWMutex
 	createSecretArgsForCall []struct {
@@ -321,6 +335,20 @@ type FakeCluster struct {
 		result1 *v1.ServiceAccount
 		result2 error
 	}
+	SecretExistsStub        func(string, string) (bool, error)
+	secretExistsMutex       sync.RWMutex
+	secretExistsArgsForCall []struct {
+		arg1 string
+		arg2 string
+	}
+	secretExistsReturns struct {
+		result1 bool
+		result2 error
+	}
+	secretExistsReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
 	UpdateSecretStub        func(string, *v1.Secret) (*v1.Secret, error)
 	updateSecretMutex       sync.RWMutex
 	updateSecretArgsForCall []struct {
@@ -523,6 +551,70 @@ func (fake *FakeCluster) CreateNamespaceIfNotExistsReturnsOnCall(i int, result1 
 	fake.createNamespaceIfNotExistsReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
+}
+
+func (fake *FakeCluster) CreateOrUpdateSecret(arg1 string, arg2 *v1.Secret) (*v1.Secret, error) {
+	fake.createOrUpdateSecretMutex.Lock()
+	ret, specificReturn := fake.createOrUpdateSecretReturnsOnCall[len(fake.createOrUpdateSecretArgsForCall)]
+	fake.createOrUpdateSecretArgsForCall = append(fake.createOrUpdateSecretArgsForCall, struct {
+		arg1 string
+		arg2 *v1.Secret
+	}{arg1, arg2})
+	fake.recordInvocation("CreateOrUpdateSecret", []interface{}{arg1, arg2})
+	fake.createOrUpdateSecretMutex.Unlock()
+	if fake.CreateOrUpdateSecretStub != nil {
+		return fake.CreateOrUpdateSecretStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.createOrUpdateSecretReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeCluster) CreateOrUpdateSecretCallCount() int {
+	fake.createOrUpdateSecretMutex.RLock()
+	defer fake.createOrUpdateSecretMutex.RUnlock()
+	return len(fake.createOrUpdateSecretArgsForCall)
+}
+
+func (fake *FakeCluster) CreateOrUpdateSecretCalls(stub func(string, *v1.Secret) (*v1.Secret, error)) {
+	fake.createOrUpdateSecretMutex.Lock()
+	defer fake.createOrUpdateSecretMutex.Unlock()
+	fake.CreateOrUpdateSecretStub = stub
+}
+
+func (fake *FakeCluster) CreateOrUpdateSecretArgsForCall(i int) (string, *v1.Secret) {
+	fake.createOrUpdateSecretMutex.RLock()
+	defer fake.createOrUpdateSecretMutex.RUnlock()
+	argsForCall := fake.createOrUpdateSecretArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeCluster) CreateOrUpdateSecretReturns(result1 *v1.Secret, result2 error) {
+	fake.createOrUpdateSecretMutex.Lock()
+	defer fake.createOrUpdateSecretMutex.Unlock()
+	fake.CreateOrUpdateSecretStub = nil
+	fake.createOrUpdateSecretReturns = struct {
+		result1 *v1.Secret
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCluster) CreateOrUpdateSecretReturnsOnCall(i int, result1 *v1.Secret, result2 error) {
+	fake.createOrUpdateSecretMutex.Lock()
+	defer fake.createOrUpdateSecretMutex.Unlock()
+	fake.CreateOrUpdateSecretStub = nil
+	if fake.createOrUpdateSecretReturnsOnCall == nil {
+		fake.createOrUpdateSecretReturnsOnCall = make(map[int]struct {
+			result1 *v1.Secret
+			result2 error
+		})
+	}
+	fake.createOrUpdateSecretReturnsOnCall[i] = struct {
+		result1 *v1.Secret
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeCluster) CreateSecret(arg1 string, arg2 *v1.Secret) (*v1.Secret, error) {
@@ -1775,6 +1867,70 @@ func (fake *FakeCluster) PatchReturnsOnCall(i int, result1 *v1.ServiceAccount, r
 	}{result1, result2}
 }
 
+func (fake *FakeCluster) SecretExists(arg1 string, arg2 string) (bool, error) {
+	fake.secretExistsMutex.Lock()
+	ret, specificReturn := fake.secretExistsReturnsOnCall[len(fake.secretExistsArgsForCall)]
+	fake.secretExistsArgsForCall = append(fake.secretExistsArgsForCall, struct {
+		arg1 string
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("SecretExists", []interface{}{arg1, arg2})
+	fake.secretExistsMutex.Unlock()
+	if fake.SecretExistsStub != nil {
+		return fake.SecretExistsStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.secretExistsReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeCluster) SecretExistsCallCount() int {
+	fake.secretExistsMutex.RLock()
+	defer fake.secretExistsMutex.RUnlock()
+	return len(fake.secretExistsArgsForCall)
+}
+
+func (fake *FakeCluster) SecretExistsCalls(stub func(string, string) (bool, error)) {
+	fake.secretExistsMutex.Lock()
+	defer fake.secretExistsMutex.Unlock()
+	fake.SecretExistsStub = stub
+}
+
+func (fake *FakeCluster) SecretExistsArgsForCall(i int) (string, string) {
+	fake.secretExistsMutex.RLock()
+	defer fake.secretExistsMutex.RUnlock()
+	argsForCall := fake.secretExistsArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeCluster) SecretExistsReturns(result1 bool, result2 error) {
+	fake.secretExistsMutex.Lock()
+	defer fake.secretExistsMutex.Unlock()
+	fake.SecretExistsStub = nil
+	fake.secretExistsReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCluster) SecretExistsReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.secretExistsMutex.Lock()
+	defer fake.secretExistsMutex.Unlock()
+	fake.SecretExistsStub = nil
+	if fake.secretExistsReturnsOnCall == nil {
+		fake.secretExistsReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.secretExistsReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeCluster) UpdateSecret(arg1 string, arg2 *v1.Secret) (*v1.Secret, error) {
 	fake.updateSecretMutex.Lock()
 	ret, specificReturn := fake.updateSecretReturnsOnCall[len(fake.updateSecretArgsForCall)]
@@ -1848,6 +2004,8 @@ func (fake *FakeCluster) Invocations() map[string][][]interface{} {
 	defer fake.createNamespaceMutex.RUnlock()
 	fake.createNamespaceIfNotExistsMutex.RLock()
 	defer fake.createNamespaceIfNotExistsMutex.RUnlock()
+	fake.createOrUpdateSecretMutex.RLock()
+	defer fake.createOrUpdateSecretMutex.RUnlock()
 	fake.createSecretMutex.RLock()
 	defer fake.createSecretMutex.RUnlock()
 	fake.createServiceAccountMutex.RLock()
@@ -1888,6 +2046,8 @@ func (fake *FakeCluster) Invocations() map[string][][]interface{} {
 	defer fake.namespaceExistsMutex.RUnlock()
 	fake.patchMutex.RLock()
 	defer fake.patchMutex.RUnlock()
+	fake.secretExistsMutex.RLock()
+	defer fake.secretExistsMutex.RUnlock()
 	fake.updateSecretMutex.RLock()
 	defer fake.updateSecretMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
