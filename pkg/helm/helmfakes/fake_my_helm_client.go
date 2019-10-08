@@ -142,20 +142,6 @@ type FakeMyHelmClient struct {
 		result1 *services.ListReleasesResponse
 		result2 error
 	}
-	MergeValueBytesStub        func([]byte, []byte) ([]byte, error)
-	mergeValueBytesMutex       sync.RWMutex
-	mergeValueBytesArgsForCall []struct {
-		arg1 []byte
-		arg2 []byte
-	}
-	mergeValueBytesReturns struct {
-		result1 []byte
-		result2 error
-	}
-	mergeValueBytesReturnsOnCall map[int]struct {
-		result1 []byte
-		result2 error
-	}
 	PingTillerStub        func() error
 	pingTillerMutex       sync.RWMutex
 	pingTillerArgsForCall []struct {
@@ -917,80 +903,6 @@ func (fake *FakeMyHelmClient) ListReleasesReturnsOnCall(i int, result1 *services
 	}
 	fake.listReleasesReturnsOnCall[i] = struct {
 		result1 *services.ListReleasesResponse
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeMyHelmClient) MergeValueBytes(arg1 []byte, arg2 []byte) ([]byte, error) {
-	var arg1Copy []byte
-	if arg1 != nil {
-		arg1Copy = make([]byte, len(arg1))
-		copy(arg1Copy, arg1)
-	}
-	var arg2Copy []byte
-	if arg2 != nil {
-		arg2Copy = make([]byte, len(arg2))
-		copy(arg2Copy, arg2)
-	}
-	fake.mergeValueBytesMutex.Lock()
-	ret, specificReturn := fake.mergeValueBytesReturnsOnCall[len(fake.mergeValueBytesArgsForCall)]
-	fake.mergeValueBytesArgsForCall = append(fake.mergeValueBytesArgsForCall, struct {
-		arg1 []byte
-		arg2 []byte
-	}{arg1Copy, arg2Copy})
-	fake.recordInvocation("MergeValueBytes", []interface{}{arg1Copy, arg2Copy})
-	fake.mergeValueBytesMutex.Unlock()
-	if fake.MergeValueBytesStub != nil {
-		return fake.MergeValueBytesStub(arg1, arg2)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	fakeReturns := fake.mergeValueBytesReturns
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakeMyHelmClient) MergeValueBytesCallCount() int {
-	fake.mergeValueBytesMutex.RLock()
-	defer fake.mergeValueBytesMutex.RUnlock()
-	return len(fake.mergeValueBytesArgsForCall)
-}
-
-func (fake *FakeMyHelmClient) MergeValueBytesCalls(stub func([]byte, []byte) ([]byte, error)) {
-	fake.mergeValueBytesMutex.Lock()
-	defer fake.mergeValueBytesMutex.Unlock()
-	fake.MergeValueBytesStub = stub
-}
-
-func (fake *FakeMyHelmClient) MergeValueBytesArgsForCall(i int) ([]byte, []byte) {
-	fake.mergeValueBytesMutex.RLock()
-	defer fake.mergeValueBytesMutex.RUnlock()
-	argsForCall := fake.mergeValueBytesArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
-}
-
-func (fake *FakeMyHelmClient) MergeValueBytesReturns(result1 []byte, result2 error) {
-	fake.mergeValueBytesMutex.Lock()
-	defer fake.mergeValueBytesMutex.Unlock()
-	fake.MergeValueBytesStub = nil
-	fake.mergeValueBytesReturns = struct {
-		result1 []byte
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeMyHelmClient) MergeValueBytesReturnsOnCall(i int, result1 []byte, result2 error) {
-	fake.mergeValueBytesMutex.Lock()
-	defer fake.mergeValueBytesMutex.Unlock()
-	fake.MergeValueBytesStub = nil
-	if fake.mergeValueBytesReturnsOnCall == nil {
-		fake.mergeValueBytesReturnsOnCall = make(map[int]struct {
-			result1 []byte
-			result2 error
-		})
-	}
-	fake.mergeValueBytesReturnsOnCall[i] = struct {
-		result1 []byte
 		result2 error
 	}{result1, result2}
 }
@@ -1907,8 +1819,6 @@ func (fake *FakeMyHelmClient) Invocations() map[string][][]interface{} {
 	defer fake.installReleaseFromChartMutex.RUnlock()
 	fake.listReleasesMutex.RLock()
 	defer fake.listReleasesMutex.RUnlock()
-	fake.mergeValueBytesMutex.RLock()
-	defer fake.mergeValueBytesMutex.RUnlock()
 	fake.pingTillerMutex.RLock()
 	defer fake.pingTillerMutex.RUnlock()
 	fake.printStatusMutex.RLock()

@@ -63,7 +63,7 @@ foo: bar
 foo: not bar
 `)
 
-		mergedBytes, err := myHelmClient.MergeValueBytes(base, override)
+		mergedBytes, err := MergeValueBytes(base, override)
 		Expect(err).To(BeNil())
 
 		merged := map[string]interface{}{}
@@ -83,7 +83,7 @@ baz: qux
 foo: not bar
 `)
 
-		mergedBytes, err := myHelmClient.MergeValueBytes(base, override)
+		mergedBytes, err := MergeValueBytes(base, override)
 		Expect(err).To(BeNil())
 
 		merged := map[string]interface{}{}
@@ -104,7 +104,7 @@ foo: not bar
 baz: qux
 `)
 
-		mergedBytes, err := myHelmClient.MergeValueBytes(base, override)
+		mergedBytes, err := MergeValueBytes(base, override)
 		Expect(err).To(BeNil())
 
 		merged := map[string]interface{}{}
@@ -132,7 +132,7 @@ images:
     image: "example.com/my-first-image"
 `)
 
-		mergedBytes, err := myHelmClient.MergeValueBytes(base, override)
+		mergedBytes, err := MergeValueBytes(base, override)
 		Expect(err).To(BeNil())
 
 		merged := map[string]interface{}{}
@@ -160,7 +160,7 @@ foo: bar
 		override := []byte(`
 - foo: "bar2"
 `)
-		_, err := myHelmClient.MergeValueBytes(base, override)
+		_, err := MergeValueBytes(base, override)
 		Expect(err).ToNot(BeNil())
 	})
 
