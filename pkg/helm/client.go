@@ -67,7 +67,6 @@ type MyHelmClient interface {
 	InstallChart(registryConfig *config.RegistryConfig, namespace api_v1.Namespace, releaseName string, chart *MyChart, planName string, installValues []byte, opts ...helm.InstallOption) (*rls.InstallReleaseResponse, error)
 	InstallOperator(chart *MyChart, namespace string) (*rls.InstallReleaseResponse, error)
 	UpdateChart(chart *MyChart, rlsName string, planName string, updateValues []byte) (*rls.UpdateReleaseResponse, error)
-	MergeValueBytes(base []byte, override []byte) ([]byte, error)
 	HasDifferentTLSConfig() bool
 	PrintStatus(out io.Writer, deploymentName string) error
 	RenderTemplatedValues(releaseOptions chartutil.ReleaseOptions, inputValues []byte, chart chart.Chart) ([]byte, error)
@@ -232,7 +231,7 @@ func (c myHelmClient) InstallChart(registryConfig *config.RegistryConfig, namesp
 	}
 	var finalValues []byte
 	if planName != "" {
-		planOverrideValues, err := c.MergeValueBytes(chart.TransformedValues, chart.Plans[planName].Values)
+		planOverrideValues, err := MergeValueBytes(chart.TransformedValues, chart.Plans[planName].Values)
 		if err != nil {
 			return nil, err
 		}
@@ -240,7 +239,7 @@ func (c myHelmClient) InstallChart(registryConfig *config.RegistryConfig, namesp
 		if err != nil {
 			return nil, err
 		}
-		finalValues, err = c.MergeValueBytes(renderedValues, installValues)
+		finalValues, err = MergeValueBytes(renderedValues, installValues)
 		if err != nil {
 			return nil, err
 		}
@@ -249,7 +248,7 @@ func (c myHelmClient) InstallChart(registryConfig *config.RegistryConfig, namesp
 		if err != nil {
 			return nil, err
 		}
-		finalValues, err = c.MergeValueBytes(renderedValues, installValues)
+		finalValues, err = MergeValueBytes(renderedValues, installValues)
 	}
 
 	mergedOpts := append(opts, helm.ReleaseName(releaseName), helm.ValueOverrides(finalValues))
@@ -277,7 +276,7 @@ func (c myHelmClient) InstallOperator(chart *MyChart, namespace string) (*rls.In
 }
 
 func (c myHelmClient) UpdateChart(chart *MyChart, rlsName string, planName string, updateValues []byte) (*rls.UpdateReleaseResponse, error) {
-	planOverrideValues, err := c.MergeValueBytes(chart.TransformedValues, chart.Plans[planName].Values)
+	planOverrideValues, err := MergeValueBytes(chart.TransformedValues, chart.Plans[planName].Values)
 	if err != nil {
 		return nil, err
 	}
@@ -290,7 +289,7 @@ func (c myHelmClient) UpdateChart(chart *MyChart, rlsName string, planName strin
 	if err != nil {
 		return nil, err
 	}
-	updateOverrideValues, err := c.MergeValueBytes(renderedValues, updateValues)
+	updateOverrideValues, err := MergeValueBytes(renderedValues, updateValues)
 
 	updateOverrideYaml := map[string]interface{}{}
 	err = yaml.Unmarshal(updateOverrideValues, &updateOverrideYaml)
@@ -483,7 +482,6 @@ func (c myHelmClient) UpdateReleaseFromChart(rlsName string, chart *chart.Chart,
 	return client.UpdateReleaseFromChart(rlsName, chart, opts...)
 }
 
-
 func (c myHelmClient) RollbackRelease(rlsName string, opts ...helm.RollbackOption) (*rls.RollbackReleaseResponse, error) {
 	panic("Not yet implemented")
 }
@@ -520,7 +518,7 @@ func (c myHelmClient) PingTiller() error {
 	panic("Not yet implemented")
 }
 
-func (c myHelmClient) MergeValueBytes(base []byte, override []byte) ([]byte, error) {
+func MergeValueBytes(base []byte, override []byte) ([]byte, error) {
 	baseVals := map[string]interface{}{}
 	err := yaml.Unmarshal(base, &baseVals)
 	if err != nil {

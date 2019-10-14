@@ -28,9 +28,9 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
 	"k8s.io/client-go/tools/clientcmd"
 	k8sAPI "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/helm/pkg/chartutil"
@@ -48,7 +48,7 @@ type MyChart struct {
 }
 
 type Bind struct {
-	Template string `yaml:"template"`
+	Template string `json:"template"`
 }
 
 func NewChartValidationError(err error) *ChartValidationError {
@@ -62,13 +62,13 @@ type ChartValidationError struct {
 }
 
 type Plan struct {
-	Name            string   `yaml:"name" json:"name"`
-	Description     string   `yaml:"description" json:"description"`
-	Bullets         []string `yaml:"bullets" json:"bullets"`
-	File            string   `yaml:"file" json:"file"`
-	Free            *bool    `yaml:"free,omitempty" json:"free"`
-	Bindable        *bool    `yaml:"bindable,omitempty" json:"bindable"`
-	CredentialsPath string   `yaml:"credentials" json:"credentialsPath"`
+	Name            string   `json:"name" json:"name"`
+	Description     string   `json:"description" json:"description"`
+	Bullets         []string `json:"bullets" json:"bullets"`
+	File            string   `json:"file" json:"file"`
+	Free            *bool    `json:"free,omitempty" json:"free"`
+	Bindable        *bool    `json:"bindable,omitempty" json:"bindable"`
+	CredentialsPath string   `json:"credentials" json:"credentialsPath"`
 
 	Values        []byte         `yaml:"values" json:"values"`
 	ClusterConfig *k8sAPI.Config `yaml:"clusterConfig" json:"clusterConfig"`
@@ -176,9 +176,13 @@ func (c *MyChart) LoadChartValues() error {
 		return err
 	}
 
-	transformed, err := c.OverrideImageSources(baseVals)
-	if err != nil {
-		return err
+	var transformed = baseVals
+	if c.PrivateRegistryServer != "" {
+		transformed, err = c.OverrideImageSources(transformed)
+		if err != nil {
+			return err
+		}
+		transformed = c.EnsureGlobalImageRegistry(transformed)
 	}
 
 	finalVals, err := yaml.Marshal(transformed)
@@ -192,19 +196,25 @@ func (c *MyChart) LoadChartValues() error {
 }
 
 func (c *MyChart) OverrideImageSources(rawVals map[string]interface{}) (map[string]interface{}, error) {
-	if c.PrivateRegistryServer == "" {
-		return rawVals, nil
-	}
-
 	transformedVals := map[string]interface{}{}
 	for key, val := range rawVals {
 		if key == "image" {
 			stringVal, ok := val.(string)
-			if !ok {
-				return nil, errors.New("'image' key value is not a string, vals structure is incorrect")
+			if ok {
+				split := strings.Split(stringVal, "/")
+				transformedVals[key] = fmt.Sprintf("%s/%s", c.PrivateRegistryServer, split[len(split)-1])
+			} else {
+				imageMap, castOk := rawVals["image"].(map[string]interface{})
+				if !castOk {
+					return nil, errors.New("image key didn't match expected structure")
+				}
+				_, foundInMap := imageMap["registry"]
+				if foundInMap {
+					imageMap["registry"] = c.PrivateRegistryServer
+				}
+
+				transformedVals["image"] = rawVals["image"]
 			}
-			split := strings.Split(stringVal, "/")
-			transformedVals[key] = fmt.Sprintf("%s/%s", c.PrivateRegistryServer, split[len(split)-1])
 		} else if key == "images" {
 			remarshalled, err := yaml.Marshal(val)
 			if err != nil {
@@ -212,7 +222,7 @@ func (c *MyChart) OverrideImageSources(rawVals map[string]interface{}) (map[stri
 			}
 
 			imageMap := map[string]map[string]interface{}{}
-			err = yaml.Unmarshal(remarshalled, imageMap)
+			err = yaml.Unmarshal(remarshalled, &imageMap)
 			if err != nil {
 				return nil, err
 			}
@@ -225,11 +235,39 @@ func (c *MyChart) OverrideImageSources(rawVals map[string]interface{}) (map[stri
 				imageMap[imageName] = transformedImage
 			}
 			transformedVals["images"] = imageMap
+		} else if key == "global" {
+			globalMap, castOk := rawVals["global"].(map[string]interface{})
+			if !castOk {
+				return nil, errors.New("image key didn't match expected structure")
+			}
+
+			if globalVal, ok := globalMap["imageRegistry"]; ok {
+				stringVal, ok := globalVal.(string)
+				if !ok {
+					return nil, errors.New("'imageRegistry' key value is not a string, vals structure is incorrect")
+				}
+				split := strings.Split(stringVal, "/")
+				globalMap["imageRegistry"] = fmt.Sprintf("%s/%s", c.PrivateRegistryServer, split[len(split)-1])
+				transformedVals["global"] = globalMap
+			} else {
+				transformedVals[key] = val
+			}
 		} else {
 			transformedVals[key] = val
 		}
 	}
 	return transformedVals, nil
+}
+
+func (c *MyChart) EnsureGlobalImageRegistry(rawVals map[string]interface{}) map[string]interface{} {
+	_, foundInMap := rawVals["global"]
+	if !foundInMap {
+		rawVals["global"] = map[string]interface{}{
+			"imageRegistry": c.PrivateRegistryServer,
+		}
+	}
+
+	return rawVals
 }
 
 func (c *MyChart) loadOSBAPIMetadataFromArchive(chartPath string, log *logrus.Logger) error {

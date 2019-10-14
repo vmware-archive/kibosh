@@ -442,7 +442,72 @@ users:
 
 			_, err = cluster.GetSecretsAndServices("mynamespaceid")
 			Expect(err).NotTo(BeNil())
+		})
 
+		Context("secrets", func() {
+			It("secret exists returns true when present", func() {
+				fakeClusterDelegate.GetSecretReturns(&api_v1.Secret{}, nil)
+
+				cluster, err := NewUnitTestCluster(&fakeClusterDelegate)
+				Expect(err).To(BeNil())
+
+				exists, err := cluster.SecretExists("my-namespace", "my-secret")
+				Expect(err).To(BeNil())
+				Expect(exists).To(BeTrue())
+			})
+
+			It("secret exists returns false when present", func() {
+				notFoundError := &k8s_errors.StatusError{ErrStatus: meta_v1.Status{
+					Reason: meta_v1.StatusReasonNotFound},
+				}
+				fakeClusterDelegate.GetSecretReturns(nil, notFoundError)
+
+				cluster, err := NewUnitTestCluster(&fakeClusterDelegate)
+				Expect(err).To(BeNil())
+
+				exists, err := cluster.SecretExists("my-namespace", "my-secret")
+				Expect(err).To(BeNil())
+				Expect(exists).To(BeFalse())
+			})
+
+			It("creates secret when NOT exists", func() {
+				notFoundError := &k8s_errors.StatusError{ErrStatus: meta_v1.Status{
+					Reason: meta_v1.StatusReasonNotFound},
+				}
+				fakeClusterDelegate.GetSecretReturns(nil, notFoundError)
+
+				cluster, err := NewUnitTestCluster(&fakeClusterDelegate)
+				Expect(err).To(BeNil())
+
+				_, err = cluster.CreateOrUpdateSecret("my-namespace", &api_v1.Secret{
+					Data: map[string][]byte{
+						"my-secret": []byte("super-secret"),
+					},
+				})
+
+				Expect(err).To(BeNil())
+
+				Expect(fakeClusterDelegate.CreateSecretCallCount()).To(Equal(1))
+				Expect(fakeClusterDelegate.UpdateSecretCallCount()).To(Equal(0))
+			})
+
+			It("updates secret when DOES exist", func() {
+				fakeClusterDelegate.GetSecretReturns(&api_v1.Secret{}, nil)
+
+				cluster, err := NewUnitTestCluster(&fakeClusterDelegate)
+				Expect(err).To(BeNil())
+
+				_, err = cluster.CreateOrUpdateSecret("my-namespace", &api_v1.Secret{
+					Data: map[string][]byte{
+						"my-secret": []byte("super-secret"),
+					},
+				})
+
+				Expect(err).To(BeNil())
+
+				Expect(fakeClusterDelegate.CreateSecretCallCount()).To(Equal(0))
+				Expect(fakeClusterDelegate.UpdateSecretCallCount()).To(Equal(1))
+			})
 		})
 	})
 })

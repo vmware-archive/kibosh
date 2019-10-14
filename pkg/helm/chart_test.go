@@ -25,10 +25,10 @@ import (
 
 	"github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/test"
+	"github.com/ghodss/yaml"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
 	"k8s.io/helm/pkg/chartutil"
 )
 
@@ -85,7 +85,7 @@ var _ = Describe("Broker", func() {
 		err = yaml.Unmarshal(chart.TransformedValues, &values)
 
 		Expect(err)
-		Expect(values["count"]).To(Equal(1))
+		Expect(values["count"]).To(Equal(float64(1)))
 		Expect(values["name"]).To(Equal("value"))
 	})
 
@@ -211,7 +211,7 @@ var _ = Describe("Broker", func() {
 			err = yaml.Unmarshal(loadedChart.TransformedValues, &values)
 
 			Expect(err)
-			Expect(values["count"]).To(Equal(1))
+			Expect(values["count"]).To(Equal(float64(1)))
 			Expect(values["name"]).To(Equal("value"))
 		})
 
@@ -232,7 +232,12 @@ var _ = Describe("Broker", func() {
 			vals := map[string]interface{}{}
 			err = yaml.Unmarshal(medium.Values, &vals)
 			Expect(err).To(BeNil())
-			Expect(vals["persistence"]).To(Equal(map[interface{}]interface{}{"size": "16Gi"}))
+
+			pvals := map[string]interface{}{}
+			remarshalled, err := yaml.Marshal(vals["persistence"])
+			yaml.Unmarshal(remarshalled, &pvals)
+
+			Expect(pvals["size"]).To(Equal("16Gi"))
 			Expect(medium.ClusterConfig.CurrentContext).To(Equal("my-context"))
 		})
 
@@ -432,6 +437,8 @@ foo: bar
 			Expect(err).To(BeNil())
 			Expect(strings.TrimSpace(string(chart.TransformedValues))).To(Equal(strings.TrimSpace(`
 foo: bar
+global:
+  imageRegistry: docker.example.com/some-scope
 image: docker.example.com/some-scope/my-image
 `)))
 		})
@@ -449,6 +456,8 @@ foo: bar
 			Expect(err).To(BeNil())
 			Expect(strings.TrimSpace(string(chart.TransformedValues))).To(Equal(strings.TrimSpace(`
 foo: bar
+global:
+  imageRegistry: docker.example.com/some-scope
 image: docker.example.com/some-scope/my-image
 `)))
 		})
@@ -470,6 +479,8 @@ images:
 
 			Expect(err).To(BeNil())
 			Expect(strings.TrimSpace(string(chart.TransformedValues))).To(Equal(strings.TrimSpace(`
+global:
+  imageRegistry: docker.example.com
 images:
   thing1:
     image: docker.example.com/my-first-image
@@ -480,17 +491,103 @@ images:
 `)))
 		})
 
-		It("returns error on bad IMAGE format", func() {
+		It("adds prefix for global.imageRegistry case", func() {
 			testChart.ValuesYaml = []byte(`
-image:
-  foo: quay.io/my-image
+global:
+  imageRegistry: image-registry
 `)
 			err := testChart.WriteChart(chartPath)
 			Expect(err).To(BeNil())
 
-			_, err = helm.NewChart(chartPath, "docker.example.com", logger)
+			chart, err := helm.NewChart(chartPath, "docker.example.com", logger)
 
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(BeNil())
+			Expect(strings.TrimSpace(string(chart.TransformedValues))).To(Equal(strings.TrimSpace(`
+global:
+  imageRegistry: docker.example.com/image-registry
+`)))
+		})
+
+		It("does not add prefix for non imageRegistry key in global", func() {
+			testChart.ValuesYaml = []byte(`
+global:
+  foo: bar
+`)
+			err := testChart.WriteChart(chartPath)
+			Expect(err).To(BeNil())
+
+			chart, err := helm.NewChart(chartPath, "docker.example.com", logger)
+
+			Expect(err).To(BeNil())
+			Expect(strings.TrimSpace(string(chart.TransformedValues))).To(Equal(strings.TrimSpace(`
+global:
+  foo: bar
+`)))
+		})
+
+		It("transform global image registry", func() {
+			testChart.ValuesYaml = []byte(`
+global:
+  imageRegistry: image-registry
+  foo: bar
+`)
+			err := testChart.WriteChart(chartPath)
+			Expect(err).To(BeNil())
+
+			chart, err := helm.NewChart(chartPath, "docker.example.com", logger)
+
+			Expect(err).To(BeNil())
+
+			vals := map[string]interface{}{}
+			err = yaml.Unmarshal(chart.TransformedValues, &vals)
+			Expect(err).To(BeNil())
+
+			pvals := map[string]interface{}{}
+			remarshalled, err := yaml.Marshal(vals["global"])
+			yaml.Unmarshal(remarshalled, &pvals)
+
+			Expect(pvals["imageRegistry"]).To(Equal("docker.example.com/image-registry"))
+			Expect(pvals["foo"]).To(Equal("bar"))
+		})
+
+		It("more complicated image key-map (bitnami's pattern)", func() {
+			testChart.ValuesYaml = []byte(`
+image:
+  registry: docker.io
+  repository: bitnami/kafka
+  tag: 2.3.0-debian-9-r88
+`)
+			err := testChart.WriteChart(chartPath)
+			Expect(err).To(BeNil())
+
+			chart, err := helm.NewChart(chartPath, "docker.example.com", logger)
+
+			Expect(err).To(BeNil())
+			Expect(strings.TrimSpace(string(chart.TransformedValues))).To(Equal(strings.TrimSpace(`
+global:
+  imageRegistry: docker.example.com
+image:
+  registry: docker.example.com
+  repository: bitnami/kafka
+  tag: 2.3.0-debian-9-r88
+`)))
+		})
+
+		It("adds global image registry key when not present", func() {
+			testChart.ValuesYaml = []byte(`
+bob: foo
+`)
+			err := testChart.WriteChart(chartPath)
+			Expect(err).To(BeNil())
+
+			chart, err := helm.NewChart(chartPath, "docker.example.com", logger)
+
+			Expect(err).To(BeNil())
+			Expect(strings.TrimSpace(string(chart.TransformedValues))).To(Equal(strings.TrimSpace(`
+bob: foo
+global:
+  imageRegistry: docker.example.com
+`)))
 		})
 
 		It("returns error on bad IMAGES format", func() {
