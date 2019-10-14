@@ -202,11 +202,12 @@ func (broker *PksServiceBroker) Provision(ctx context.Context, instanceID string
 		ObjectMeta: meta_v1.ObjectMeta{
 			Name: namespaceName,
 			Labels: map[string]string{
-				"serviceID":        details.ServiceID,
-				"planID":           details.PlanID,
-				"organizationGUID": details.OrganizationGUID,
-				"spaceGUID":        details.SpaceGUID,
-				"instanceID":       instanceID,
+				"serviceID":                    details.ServiceID,
+				"planID":                       details.PlanID,
+				"organizationGUID":             details.OrganizationGUID,
+				"spaceGUID":                    details.SpaceGUID,
+				"instanceID":                   instanceID,
+				"app.kubernetes.io/managed-by": "kibosh",
 			},
 		},
 	}
