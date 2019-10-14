@@ -70,8 +70,21 @@ type Plan struct {
 	Bindable        *bool    `yaml:"bindable,omitempty" json:"bindable"`
 	CredentialsPath string   `yaml:"credentials" json:"credentialsPath"`
 
-	Values        []byte         `json:"values"`
-	ClusterConfig *k8sAPI.Config `json:"clusterConfig"`
+	Values        []byte         `yaml:"values" json:"values"`
+	ClusterConfig *k8sAPI.Config `yaml:"clusterConfig" json:"clusterConfig"`
+}
+
+type Request struct {
+	Memory string `yaml:"memory" json:"memory"`
+	CPU    string `yaml:"cpu" json:"cpu"`
+}
+
+type Resource struct {
+	Requests []*Request `yaml:"requests" json:"requests"`
+}
+
+type PlanConf struct {
+	Resources []*Resource `yaml:"resources" json:"resources"`
 }
 
 func LoadFromDir(dir string, log *logrus.Logger) ([]*MyChart, error) {
