@@ -62,16 +62,16 @@ type ChartValidationError struct {
 }
 
 type Plan struct {
-	Name            string   `json:"name" json:"name"`
-	Description     string   `json:"description" json:"description"`
-	Bullets         []string `json:"bullets" json:"bullets"`
-	File            string   `json:"file" json:"file"`
-	Free            *bool    `json:"free,omitempty" json:"free"`
-	Bindable        *bool    `json:"bindable,omitempty" json:"bindable"`
-	CredentialsPath string   `json:"credentials" json:"credentialsPath"`
+	Name            string   `yaml:"name" json:"name"`
+	Description     string   `yaml:"description" json:"description"`
+	Bullets         []string `yaml:"bullets,omitempty" json:"bullets"`
+	File            string   `yaml:"file" json:"file"`
+	Free            *bool    `yaml:"free,omitempty" json:"free"`
+	Bindable        *bool    `yaml:"bindable,omitempty" json:"bindable"`
+	CredentialsPath string   `yaml:"credentialsPath,omitempty" json:"credentialsPath"`
 
-	Values        []byte         `yaml:"values" json:"values"`
-	ClusterConfig *k8sAPI.Config `yaml:"clusterConfig" json:"clusterConfig"`
+	Values        []byte         `yaml:"values,omitempty" json:"values"`
+	ClusterConfig *k8sAPI.Config `yaml:"clusterConfig,omitempty" json:"clusterConfig"`
 }
 
 type Request struct {
