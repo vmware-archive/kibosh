@@ -7,7 +7,7 @@ import (
 	"github.com/google/go-jsonnet"
 )
 
-func RenderJsonnetTemplate(template string, data map[string]interface{}) (string, error) {
+func RenderJsonnetTemplate(template string, data map[string][]map[string]interface{}) (string, error) {
 	ssTemplateBytes, err := json.Marshal(data)
 	if err != nil {
 		return "", err

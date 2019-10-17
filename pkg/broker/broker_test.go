@@ -640,35 +640,6 @@ var _ = Describe("Broker", func() {
 			c := fakeClusterFactory.GetClusterFromK8sConfigArgsForCall(0)
 			Expect(c.CurrentContext).To(Equal("context2"))
 		})
-
-		//FIt("returns the status if Service.Spec.Type is not load balancer", func() {
-		//	serviceList := api_v1.ServiceList{
-		//		Items: []api_v1.Service{
-		//			{
-		//				ObjectMeta: meta_v1.ObjectMeta{Name: "kibosh-my-mysql-db-instance"},
-		//				Spec: api_v1.ServiceSpec{
-		//					Ports: []api_v1.ServicePort{},
-		//					Type:  "",
-		//				},
-		//			},
-		//		},
-		//	}
-		//	fakeCluster.ListServicesReturns(&serviceList, nil)
-		//
-		//	fakeHelmClient.ReleaseStatusReturns(&hapi_services.GetReleaseStatusResponse{
-		//		Info: &hapi_release.Info{
-		//			Status: &hapi_release.Status{
-		//				Code: hapi_release.Status_DEPLOYED,
-		//			},
-		//		},
-		//	}, nil)
-		//
-		//	result, err := broker.LastOperation(nil, "my-instance-guid", brokerapi.PollDetails{OperationData: "provision"})
-		//
-		//	Expect(err).To(BeNil())
-		//	Expect(result).NotTo(BeNil())
-		//
-		//})
 	})
 
 	Context("bind", func() {
@@ -679,9 +650,9 @@ var _ = Describe("Broker", func() {
 		})
 
 		It("bind returns cluster secrets", func() {
-			fakeCluster.GetSecretsAndServicesReturns(map[string]interface{}{
-				"secrets":  "password",
-				"services": "myservice",
+			fakeCluster.GetSecretsAndServicesReturns(map[string][]map[string]interface{}{
+				"secrets":  {{"password": "foo"}},
+				"services": {{"myservice": "service-stuff"}},
 			}, nil)
 
 			binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{ServiceID: mysqlServiceID}, false)
@@ -692,7 +663,7 @@ var _ = Describe("Broker", func() {
 			creds := binding.Credentials
 			secrets := creds.(map[string]interface{})["secrets"]
 			secretsJson, err := json.Marshal(secrets)
-			Expect(string(secretsJson)).To(Equal(`"password"`))
+			Expect(string(secretsJson)).To(Equal(`[{"password":"foo"}]`))
 		})
 
 		It("when plan has a specific cluster, fetch binding from that", func() {
@@ -728,8 +699,8 @@ var _ = Describe("Broker", func() {
 			It("transforms successfully when template is present", func() {
 				mysqlChart.BindTemplate = `{hostname: $.services[0].status.loadBalancer.ingress[0].ip}`
 
-				secretsAndServices := map[string]interface{}{
-					"services": []map[string]interface{}{
+				secretsAndServices := map[string][]map[string]interface{}{
+					"services": {
 						{
 							"status": map[string]interface{}{
 								"loadBalancer": map[string]interface{}{
@@ -761,7 +732,7 @@ var _ = Describe("Broker", func() {
 
 			It("fails when no keys found in bind", func() {
 				mysqlChart.BindTemplate = `{hostname: $.services[0].status.loadBalancer.ingress[0].ip}`
-				secretsAndServices := map[string]interface{}{
+				secretsAndServices := map[string][]map[string]interface{}{
 					"services": []map[string]interface{}{
 						{
 							"status": map[string]interface{}{
@@ -789,7 +760,7 @@ var _ = Describe("Broker", func() {
 			It("fails with invalid bind template", func() {
 				mysqlChart.BindTemplate = `{{{$$$$`
 
-				fakeCluster.GetSecretsAndServicesReturns(map[string]interface{}{}, nil)
+				fakeCluster.GetSecretsAndServicesReturns(map[string][]map[string]interface{}{}, nil)
 				binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{
 					ServiceID: mysqlServiceID,
 				}, false)
@@ -809,9 +780,9 @@ var _ = Describe("Broker", func() {
 			})
 
 			It("bind returns reference to k8s secrets and services", func() {
-				fakeCluster.GetSecretsAndServicesReturns(map[string]interface{}{
-					"secrets":  "password",
-					"services": "myservice",
+				fakeCluster.GetSecretsAndServicesReturns(map[string][]map[string]interface{}{
+					"secrets":  {{"password": "foo"}},
+					"services": {{"myservice": "service-stuff"}},
 				}, nil)
 
 				binding, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{ServiceID: mysqlServiceID}, false)
@@ -826,16 +797,19 @@ var _ = Describe("Broker", func() {
 				Expect(fakeCredStore.PutCallCount()).To(Equal(1))
 				credentialName, credentials := fakeCredStore.PutArgsForCall(0)
 				Expect(credentialName).To(Equal("/c/kibosh/mysql/my-binding-id/secrets-and-services"))
-				Expect(credentials).To(Equal(map[string]interface{}{
-					"secrets":  "password",
-					"services": "myservice",
-				}))
+
+				credentialBytes, err := json.Marshal(credentials)
+				Expect(err).To(BeNil())
+
+				Expect(string(credentialBytes)).To(Equal(
+					`{"secrets":[{"password":"foo"}],"services":[{"myservice":"service-stuff"}]}`,
+				))
 			})
 
 			It("grants read permission to the app to the cred it created", func() {
-				fakeCluster.GetSecretsAndServicesReturns(map[string]interface{}{
-					"secrets":  "password",
-					"services": "myservice",
+				fakeCluster.GetSecretsAndServicesReturns(map[string][]map[string]interface{}{
+					"secrets":  {{"password": "foo"}},
+					"services": {{"myservice": "service-stuff"}},
 				}, nil)
 
 				_, err := broker.Bind(nil, "my-instance-id", "my-binding-id", brokerapi.BindDetails{
@@ -853,9 +827,9 @@ var _ = Describe("Broker", func() {
 			})
 
 			It("bind fails to store credential", func() {
-				fakeCluster.GetSecretsAndServicesReturns(map[string]interface{}{
-					"secrets":  "password",
-					"services": "myservice",
+				fakeCluster.GetSecretsAndServicesReturns(map[string][]map[string]interface{}{
+					"secrets":  {{"password": "foo"}},
+					"services": {{"myservice": "service-stuff"}},
 				}, nil)
 				fakeCredStore.PutReturns(nil, errors.New("fail"))
 

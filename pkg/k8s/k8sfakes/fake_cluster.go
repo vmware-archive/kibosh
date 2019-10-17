@@ -182,17 +182,17 @@ type FakeCluster struct {
 		result1 *v1.Secret
 		result2 error
 	}
-	GetSecretsAndServicesStub        func(string) (map[string]interface{}, error)
+	GetSecretsAndServicesStub        func(string) (map[string][]map[string]interface{}, error)
 	getSecretsAndServicesMutex       sync.RWMutex
 	getSecretsAndServicesArgsForCall []struct {
 		arg1 string
 	}
 	getSecretsAndServicesReturns struct {
-		result1 map[string]interface{}
+		result1 map[string][]map[string]interface{}
 		result2 error
 	}
 	getSecretsAndServicesReturnsOnCall map[int]struct {
-		result1 map[string]interface{}
+		result1 map[string][]map[string]interface{}
 		result2 error
 	}
 	ListClusterRoleBindingsStub        func(v1a.ListOptions) (*v1beta1.ClusterRoleBindingList, error)
@@ -1159,7 +1159,7 @@ func (fake *FakeCluster) GetSecretReturnsOnCall(i int, result1 *v1.Secret, resul
 	}{result1, result2}
 }
 
-func (fake *FakeCluster) GetSecretsAndServices(arg1 string) (map[string]interface{}, error) {
+func (fake *FakeCluster) GetSecretsAndServices(arg1 string) (map[string][]map[string]interface{}, error) {
 	fake.getSecretsAndServicesMutex.Lock()
 	ret, specificReturn := fake.getSecretsAndServicesReturnsOnCall[len(fake.getSecretsAndServicesArgsForCall)]
 	fake.getSecretsAndServicesArgsForCall = append(fake.getSecretsAndServicesArgsForCall, struct {
@@ -1183,7 +1183,7 @@ func (fake *FakeCluster) GetSecretsAndServicesCallCount() int {
 	return len(fake.getSecretsAndServicesArgsForCall)
 }
 
-func (fake *FakeCluster) GetSecretsAndServicesCalls(stub func(string) (map[string]interface{}, error)) {
+func (fake *FakeCluster) GetSecretsAndServicesCalls(stub func(string) (map[string][]map[string]interface{}, error)) {
 	fake.getSecretsAndServicesMutex.Lock()
 	defer fake.getSecretsAndServicesMutex.Unlock()
 	fake.GetSecretsAndServicesStub = stub
@@ -1196,28 +1196,28 @@ func (fake *FakeCluster) GetSecretsAndServicesArgsForCall(i int) string {
 	return argsForCall.arg1
 }
 
-func (fake *FakeCluster) GetSecretsAndServicesReturns(result1 map[string]interface{}, result2 error) {
+func (fake *FakeCluster) GetSecretsAndServicesReturns(result1 map[string][]map[string]interface{}, result2 error) {
 	fake.getSecretsAndServicesMutex.Lock()
 	defer fake.getSecretsAndServicesMutex.Unlock()
 	fake.GetSecretsAndServicesStub = nil
 	fake.getSecretsAndServicesReturns = struct {
-		result1 map[string]interface{}
+		result1 map[string][]map[string]interface{}
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCluster) GetSecretsAndServicesReturnsOnCall(i int, result1 map[string]interface{}, result2 error) {
+func (fake *FakeCluster) GetSecretsAndServicesReturnsOnCall(i int, result1 map[string][]map[string]interface{}, result2 error) {
 	fake.getSecretsAndServicesMutex.Lock()
 	defer fake.getSecretsAndServicesMutex.Unlock()
 	fake.GetSecretsAndServicesStub = nil
 	if fake.getSecretsAndServicesReturnsOnCall == nil {
 		fake.getSecretsAndServicesReturnsOnCall = make(map[int]struct {
-			result1 map[string]interface{}
+			result1 map[string][]map[string]interface{}
 			result2 error
 		})
 	}
 	fake.getSecretsAndServicesReturnsOnCall[i] = struct {
-		result1 map[string]interface{}
+		result1 map[string][]map[string]interface{}
 		result2 error
 	}{result1, result2}
 }

@@ -40,7 +40,7 @@ type Cluster interface {
 
 	CreateNamespaceIfNotExists(*api_v1.Namespace) error
 	NamespaceExists(namespaceName string) (bool, error)
-	GetSecretsAndServices(namespace string) (map[string]interface{}, error)
+	GetSecretsAndServices(namespace string) (map[string][]map[string]interface{}, error)
 	SecretExists(namespaceName string, secretName string) (bool, error)
 	CreateOrUpdateSecret(namespaceName string, secret *api_v1.Secret) (*api_v1.Secret, error)
 }
@@ -192,7 +192,7 @@ func (cluster *cluster) NamespaceExists(namespaceName string) (bool, error) {
 
 }
 
-func (cluster *cluster) GetSecretsAndServices(namespace string) (map[string]interface{}, error) {
+func (cluster *cluster) GetSecretsAndServices(namespace string) (map[string][]map[string]interface{}, error) {
 	secrets, err := cluster.ListSecrets(namespace, meta_v1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -235,7 +235,7 @@ func (cluster *cluster) GetSecretsAndServices(namespace string) (map[string]inte
 		servicesMap = append(servicesMap, credentialService)
 	}
 
-	servicesAndSecrets := map[string]interface{}{
+	servicesAndSecrets := map[string][]map[string]interface{}{
 		"secrets":  secretsMap,
 		"services": servicesMap,
 	}

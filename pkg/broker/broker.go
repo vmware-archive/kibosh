@@ -334,20 +334,26 @@ func (broker *PksServiceBroker) getCredentials(cluster k8s.Cluster, instanceID s
 		return nil, err
 	}
 
+	var credentialBytes []byte
 	if bindTemplate != "" {
 		renderedTemplate, err := my_helm.RenderJsonnetTemplate(bindTemplate, servicesAndSecrets)
 		if err != nil {
 			return nil, err
 		}
-		var bindCredentials map[string]interface{}
-		err = json.Unmarshal([]byte(renderedTemplate), &bindCredentials)
+		credentialBytes = []byte(renderedTemplate)
+	} else {
+		credentialBytes, err = json.Marshal(servicesAndSecrets)
 		if err != nil {
 			return nil, err
 		}
-		return bindCredentials, nil
-	} else {
-		return servicesAndSecrets, nil
 	}
+
+	var bindCredentials map[string]interface{}
+	err = json.Unmarshal([]byte(credentialBytes), &bindCredentials)
+	if err != nil {
+		return nil, err
+	}
+	return bindCredentials, nil
 }
 
 func (broker *PksServiceBroker) LastBindingOperation(ctx context.Context, instanceID, bindingID string, details brokerapi.PollDetails) (brokerapi.LastOperation, error) {

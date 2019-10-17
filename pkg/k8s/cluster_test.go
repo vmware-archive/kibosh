@@ -284,7 +284,7 @@ users:
 			Expect(err).To(BeNil())
 
 			services := creds["services"]
-			metadata := services.([]map[string]interface{})[0]["metadata"]
+			metadata := services[0]["metadata"]
 			annotations := metadata.(meta_v1.ObjectMeta).Annotations
 			Expect(annotations).To(HaveKeyWithValue("external-dns.alpha.kubernetes.io/hostname", "testing.example.com"))
 		})
@@ -330,7 +330,7 @@ users:
 			creds, err := cluster.GetSecretsAndServices("mynamespaceid")
 
 			services := creds["services"]
-			spec := services.([]map[string]interface{})[0]["spec"]
+			spec := services[0]["spec"]
 			externalIPs := spec.(api_v1.ServiceSpec).ExternalIPs
 			Expect(externalIPs[0]).To(Equal("1.1.1.1"))
 			namespace, _ := fakeClusterDelegate.ListSecretsArgsForCall(0)
@@ -419,14 +419,14 @@ users:
 			Expect(fakeClusterDelegate.ListServicesCallCount()).To(Equal(1))
 
 			services := creds["services"]
-			name := services.([]map[string]interface{})[0]["name"]
+			name := services[0]["name"]
 			Expect(name).To(Equal("kibosh-my-mysql-db-instance"))
 
-			spec := services.([]map[string]interface{})[0]["spec"]
+			spec := services[0]["spec"]
 			specJson, _ := json.Marshal(spec)
 			Expect(string(specJson)).To(Equal(`{"ports":[{"name":"mysql","protocol":"TCP","port":3306,"targetPort":0,"nodePort":30092}]}`))
 
-			status := services.([]map[string]interface{})[0]["status"]
+			status := services[0]["status"]
 			statusJson, _ := json.Marshal(status)
 			Expect(string(statusJson)).To(Equal(`{"loadBalancer":{"ingress":[{"ip":"127.0.0.1"}]}}`))
 		})
