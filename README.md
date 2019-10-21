@@ -410,34 +410,6 @@ kubectl get secrets --namespace=kube-system | grep "kibosh-concourse-ci"
 kubectl get secret --namespace=kube-system kibosh-concourse-ci-token-pfnqs -o yaml
 ```
 
-## Bazaar
-Kibosh can also manage multiple charts more dynamically (without redeployment).
-This allows customers to add any available helm chart to their cf marketplace with 
-minimal effort and cycle time.
-
-There is also a corresponding cli (`bazaarcli`) to manage these charts.
-
-```bash
-./bazaarcli.mac -t http://bazaar.v3.pcfdev.io -u admin -p 'monkey123' list
-./bazaarcli.mac -t http://bazaar.v3.pcfdev.io -u admin -p 'monkey123' save ~/workspace/kibosh-sample/sample-charts/mysql-0.8.2.tgz
-./bazaarcli.mac -t http://bazaar.v3.pcfdev.io -u admin -p 'monkey123' save ~/workspace/kibosh-sample/sample-charts/rabbitmq-1.1.9.tgz
-./bazaarcli.mac -t http://bazaar.v3.pcfdev.io -u admin -p 'monkey123' list
-
-cf enable-service-access mysql
-cf enable-service-access rabbitmq
-cf marketplace
-
-./bazaarcli.mac -t http://bazaar.v3.pcfdev.io -u admin -p 'monkey123' delete rabbitmq
-cf marketplace
-```
-
-To deploy in this way, start from the example bosh-lite manifest 
-[lite-bazaar-manifest.yml](bosh/bosh-release/manifests/lite-bazaar-manifest.yml)
-and customize the cloud specific settings (`az`, `vm_type`, etc). See the deploying section
-for more details.
-
-Alternatively, you can also deploy Bazaar as a [tile](https://github.com/cf-platform-eng/kibosh-sample/tree/master/bazaar-tile).  Follow the README on that page.
-
 ## Notes
 
 Inline-style: 
@@ -461,10 +433,4 @@ Inline-style:
         kibosh->cf: secrets and services as credentials json
         cf->app: secrets and services as env vars
 </details>
-
-###  MVP architecture
-MVP architecture, including Kibosh packaged by
-[tile-generator](https://github.com/cf-platform-eng/tile-generator/)
-
-![](docs/mvp_architecture.jpg)
 
