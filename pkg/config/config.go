@@ -63,6 +63,7 @@ type CredStoreConfig struct {
 	UaaClientName     string `envconfig:"CH_UAA_CLIENT_NAME"`
 	UaaClientSecret   string `envconfig:"CH_UAA_CLIENT_SECRET"`
 	SkipSSLValidation bool   `envconfig:"CH_SKIP_SSL_VALIDATION"`
+	CaCertFile        string `envconfig:"CH_CA_CERT_FILE"`
 }
 
 type Config struct {

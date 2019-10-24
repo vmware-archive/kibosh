@@ -1,6 +1,8 @@
 package credstore
 
 import (
+	"io/ioutil"
+
 	"code.cloudfoundry.org/credhub-cli/credhub"
 	"code.cloudfoundry.org/credhub-cli/credhub/auth"
 	"code.cloudfoundry.org/credhub-cli/credhub/permissions"
@@ -21,12 +23,20 @@ type credhubStore struct {
 	logger        *logrus.Logger
 }
 
-func NewCredhubStore(credHubURL, uaaURL, uaaClientName, uaaClientSecret string, skipSSLValidation bool, logger *logrus.Logger) (CredStore, error) {
-	ch, err := credhub.New(credHubURL,
+func NewCredhubStore(credHubURL, uaaURL, uaaClientName, uaaClientSecret string, skipSSLValidation bool, caCertFile string, logger *logrus.Logger) (CredStore, error) {
+	options := []credhub.Option{
 		credhub.SkipTLSValidation(skipSSLValidation),
 		credhub.Auth(auth.UaaClientCredentials(uaaClientName, uaaClientSecret)),
 		credhub.AuthURL(uaaURL),
-	)
+	}
+
+	dat, _ := ioutil.ReadFile(caCertFile)
+	if dat != nil {
+		options = append(options, credhub.CaCerts(string(dat)))
+	}
+
+	ch, err := credhub.New(credHubURL, options...)
+
 	if err != nil {
 		return nil, err
 	}
