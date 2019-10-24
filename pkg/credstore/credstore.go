@@ -3,6 +3,8 @@ package credstore
 import (
 	"io/ioutil"
 
+	"github.com/pkg/errors"
+
 	"code.cloudfoundry.org/credhub-cli/credhub"
 	"code.cloudfoundry.org/credhub-cli/credhub/auth"
 	"code.cloudfoundry.org/credhub-cli/credhub/permissions"
@@ -30,8 +32,15 @@ func NewCredhubStore(credHubURL, uaaURL, uaaClientName, uaaClientSecret string, 
 		credhub.AuthURL(uaaURL),
 	}
 
-	dat, _ := ioutil.ReadFile(caCertFile)
-	if dat != nil {
+	if caCertFile != "" {
+		dat, err := ioutil.ReadFile(caCertFile)
+		if err != nil {
+			return nil, err
+		}
+
+		if dat == nil {
+			return nil, errors.Errorf("CredHub certificate is not valid: %s", caCertFile)
+		}
 		options = append(options, credhub.CaCerts(string(dat)))
 	}
 
