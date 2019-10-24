@@ -56,7 +56,7 @@ func main() {
 		credStore, err = credstore.NewCredhubStore(
 			conf.CredStoreConfig.CredHubURL, conf.CredStoreConfig.UaaURL,
 			conf.CredStoreConfig.UaaClientName, conf.CredStoreConfig.UaaClientSecret,
-			conf.CredStoreConfig.SkipSSLValidation, kiboshLogger,
+			conf.CredStoreConfig.SkipSSLValidation, "", kiboshLogger,
 		)
 		if err != nil {
 			kiboshLogger.Fatal("Unable to create credhub client", err)
