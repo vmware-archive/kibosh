@@ -26,6 +26,8 @@ import (
 	"reflect"
 	"strings"
 
+	"golang.org/x/net/context"
+
 	"github.com/cf-platform-eng/kibosh/pkg/config"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
 	"github.com/ghodss/yaml"
@@ -55,6 +57,22 @@ type myHelmClient struct {
 	tlsConf   *config.HelmTLSConfig
 	namespace string
 	logger    *logrus.Logger
+}
+
+func (c myHelmClient) InstallReleaseWithContext(ctx context.Context, chStr, namespace string, opts ...helm.InstallOption) (*rls.InstallReleaseResponse, error) {
+	panic("implement me")
+}
+
+func (c myHelmClient) InstallReleaseFromChartWithContext(ctx context.Context, chart *chart.Chart, namespace string, opts ...helm.InstallOption) (*rls.InstallReleaseResponse, error) {
+	panic("implement me")
+}
+
+func (c myHelmClient) UpdateReleaseWithContext(ctx context.Context, rlsName, chStr string, opts ...helm.UpdateOption) (*rls.UpdateReleaseResponse, error) {
+	panic("implement me")
+}
+
+func (c myHelmClient) UpdateReleaseFromChartWithContext(ctx context.Context, rlsName string, chart *chart.Chart, opts ...helm.UpdateOption) (*rls.UpdateReleaseResponse, error) {
+	panic("implement me")
 }
 
 //go:generate counterfeiter ./ MyHelmClient

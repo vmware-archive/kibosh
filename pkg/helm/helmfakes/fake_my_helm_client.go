@@ -2,6 +2,7 @@
 package helmfakes
 
 import (
+	"context"
 	"io"
 	"sync"
 
@@ -126,6 +127,38 @@ type FakeMyHelmClient struct {
 		result2 error
 	}
 	installReleaseFromChartReturnsOnCall map[int]struct {
+		result1 *services.InstallReleaseResponse
+		result2 error
+	}
+	InstallReleaseFromChartWithContextStub        func(context.Context, *chart.Chart, string, ...helma.InstallOption) (*services.InstallReleaseResponse, error)
+	installReleaseFromChartWithContextMutex       sync.RWMutex
+	installReleaseFromChartWithContextArgsForCall []struct {
+		arg1 context.Context
+		arg2 *chart.Chart
+		arg3 string
+		arg4 []helma.InstallOption
+	}
+	installReleaseFromChartWithContextReturns struct {
+		result1 *services.InstallReleaseResponse
+		result2 error
+	}
+	installReleaseFromChartWithContextReturnsOnCall map[int]struct {
+		result1 *services.InstallReleaseResponse
+		result2 error
+	}
+	InstallReleaseWithContextStub        func(context.Context, string, string, ...helma.InstallOption) (*services.InstallReleaseResponse, error)
+	installReleaseWithContextMutex       sync.RWMutex
+	installReleaseWithContextArgsForCall []struct {
+		arg1 context.Context
+		arg2 string
+		arg3 string
+		arg4 []helma.InstallOption
+	}
+	installReleaseWithContextReturns struct {
+		result1 *services.InstallReleaseResponse
+		result2 error
+	}
+	installReleaseWithContextReturnsOnCall map[int]struct {
 		result1 *services.InstallReleaseResponse
 		result2 error
 	}
@@ -319,6 +352,38 @@ type FakeMyHelmClient struct {
 		result2 error
 	}
 	updateReleaseFromChartReturnsOnCall map[int]struct {
+		result1 *services.UpdateReleaseResponse
+		result2 error
+	}
+	UpdateReleaseFromChartWithContextStub        func(context.Context, string, *chart.Chart, ...helma.UpdateOption) (*services.UpdateReleaseResponse, error)
+	updateReleaseFromChartWithContextMutex       sync.RWMutex
+	updateReleaseFromChartWithContextArgsForCall []struct {
+		arg1 context.Context
+		arg2 string
+		arg3 *chart.Chart
+		arg4 []helma.UpdateOption
+	}
+	updateReleaseFromChartWithContextReturns struct {
+		result1 *services.UpdateReleaseResponse
+		result2 error
+	}
+	updateReleaseFromChartWithContextReturnsOnCall map[int]struct {
+		result1 *services.UpdateReleaseResponse
+		result2 error
+	}
+	UpdateReleaseWithContextStub        func(context.Context, string, string, ...helma.UpdateOption) (*services.UpdateReleaseResponse, error)
+	updateReleaseWithContextMutex       sync.RWMutex
+	updateReleaseWithContextArgsForCall []struct {
+		arg1 context.Context
+		arg2 string
+		arg3 string
+		arg4 []helma.UpdateOption
+	}
+	updateReleaseWithContextReturns struct {
+		result1 *services.UpdateReleaseResponse
+		result2 error
+	}
+	updateReleaseWithContextReturnsOnCall map[int]struct {
 		result1 *services.UpdateReleaseResponse
 		result2 error
 	}
@@ -839,6 +904,138 @@ func (fake *FakeMyHelmClient) InstallReleaseFromChartReturnsOnCall(i int, result
 		})
 	}
 	fake.installReleaseFromChartReturnsOnCall[i] = struct {
+		result1 *services.InstallReleaseResponse
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) InstallReleaseFromChartWithContext(arg1 context.Context, arg2 *chart.Chart, arg3 string, arg4 ...helma.InstallOption) (*services.InstallReleaseResponse, error) {
+	fake.installReleaseFromChartWithContextMutex.Lock()
+	ret, specificReturn := fake.installReleaseFromChartWithContextReturnsOnCall[len(fake.installReleaseFromChartWithContextArgsForCall)]
+	fake.installReleaseFromChartWithContextArgsForCall = append(fake.installReleaseFromChartWithContextArgsForCall, struct {
+		arg1 context.Context
+		arg2 *chart.Chart
+		arg3 string
+		arg4 []helma.InstallOption
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("InstallReleaseFromChartWithContext", []interface{}{arg1, arg2, arg3, arg4})
+	fake.installReleaseFromChartWithContextMutex.Unlock()
+	if fake.InstallReleaseFromChartWithContextStub != nil {
+		return fake.InstallReleaseFromChartWithContextStub(arg1, arg2, arg3, arg4...)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.installReleaseFromChartWithContextReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeMyHelmClient) InstallReleaseFromChartWithContextCallCount() int {
+	fake.installReleaseFromChartWithContextMutex.RLock()
+	defer fake.installReleaseFromChartWithContextMutex.RUnlock()
+	return len(fake.installReleaseFromChartWithContextArgsForCall)
+}
+
+func (fake *FakeMyHelmClient) InstallReleaseFromChartWithContextCalls(stub func(context.Context, *chart.Chart, string, ...helma.InstallOption) (*services.InstallReleaseResponse, error)) {
+	fake.installReleaseFromChartWithContextMutex.Lock()
+	defer fake.installReleaseFromChartWithContextMutex.Unlock()
+	fake.InstallReleaseFromChartWithContextStub = stub
+}
+
+func (fake *FakeMyHelmClient) InstallReleaseFromChartWithContextArgsForCall(i int) (context.Context, *chart.Chart, string, []helma.InstallOption) {
+	fake.installReleaseFromChartWithContextMutex.RLock()
+	defer fake.installReleaseFromChartWithContextMutex.RUnlock()
+	argsForCall := fake.installReleaseFromChartWithContextArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+}
+
+func (fake *FakeMyHelmClient) InstallReleaseFromChartWithContextReturns(result1 *services.InstallReleaseResponse, result2 error) {
+	fake.installReleaseFromChartWithContextMutex.Lock()
+	defer fake.installReleaseFromChartWithContextMutex.Unlock()
+	fake.InstallReleaseFromChartWithContextStub = nil
+	fake.installReleaseFromChartWithContextReturns = struct {
+		result1 *services.InstallReleaseResponse
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) InstallReleaseFromChartWithContextReturnsOnCall(i int, result1 *services.InstallReleaseResponse, result2 error) {
+	fake.installReleaseFromChartWithContextMutex.Lock()
+	defer fake.installReleaseFromChartWithContextMutex.Unlock()
+	fake.InstallReleaseFromChartWithContextStub = nil
+	if fake.installReleaseFromChartWithContextReturnsOnCall == nil {
+		fake.installReleaseFromChartWithContextReturnsOnCall = make(map[int]struct {
+			result1 *services.InstallReleaseResponse
+			result2 error
+		})
+	}
+	fake.installReleaseFromChartWithContextReturnsOnCall[i] = struct {
+		result1 *services.InstallReleaseResponse
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) InstallReleaseWithContext(arg1 context.Context, arg2 string, arg3 string, arg4 ...helma.InstallOption) (*services.InstallReleaseResponse, error) {
+	fake.installReleaseWithContextMutex.Lock()
+	ret, specificReturn := fake.installReleaseWithContextReturnsOnCall[len(fake.installReleaseWithContextArgsForCall)]
+	fake.installReleaseWithContextArgsForCall = append(fake.installReleaseWithContextArgsForCall, struct {
+		arg1 context.Context
+		arg2 string
+		arg3 string
+		arg4 []helma.InstallOption
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("InstallReleaseWithContext", []interface{}{arg1, arg2, arg3, arg4})
+	fake.installReleaseWithContextMutex.Unlock()
+	if fake.InstallReleaseWithContextStub != nil {
+		return fake.InstallReleaseWithContextStub(arg1, arg2, arg3, arg4...)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.installReleaseWithContextReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeMyHelmClient) InstallReleaseWithContextCallCount() int {
+	fake.installReleaseWithContextMutex.RLock()
+	defer fake.installReleaseWithContextMutex.RUnlock()
+	return len(fake.installReleaseWithContextArgsForCall)
+}
+
+func (fake *FakeMyHelmClient) InstallReleaseWithContextCalls(stub func(context.Context, string, string, ...helma.InstallOption) (*services.InstallReleaseResponse, error)) {
+	fake.installReleaseWithContextMutex.Lock()
+	defer fake.installReleaseWithContextMutex.Unlock()
+	fake.InstallReleaseWithContextStub = stub
+}
+
+func (fake *FakeMyHelmClient) InstallReleaseWithContextArgsForCall(i int) (context.Context, string, string, []helma.InstallOption) {
+	fake.installReleaseWithContextMutex.RLock()
+	defer fake.installReleaseWithContextMutex.RUnlock()
+	argsForCall := fake.installReleaseWithContextArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+}
+
+func (fake *FakeMyHelmClient) InstallReleaseWithContextReturns(result1 *services.InstallReleaseResponse, result2 error) {
+	fake.installReleaseWithContextMutex.Lock()
+	defer fake.installReleaseWithContextMutex.Unlock()
+	fake.InstallReleaseWithContextStub = nil
+	fake.installReleaseWithContextReturns = struct {
+		result1 *services.InstallReleaseResponse
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) InstallReleaseWithContextReturnsOnCall(i int, result1 *services.InstallReleaseResponse, result2 error) {
+	fake.installReleaseWithContextMutex.Lock()
+	defer fake.installReleaseWithContextMutex.Unlock()
+	fake.InstallReleaseWithContextStub = nil
+	if fake.installReleaseWithContextReturnsOnCall == nil {
+		fake.installReleaseWithContextReturnsOnCall = make(map[int]struct {
+			result1 *services.InstallReleaseResponse
+			result2 error
+		})
+	}
+	fake.installReleaseWithContextReturnsOnCall[i] = struct {
 		result1 *services.InstallReleaseResponse
 		result2 error
 	}{result1, result2}
@@ -1738,6 +1935,138 @@ func (fake *FakeMyHelmClient) UpdateReleaseFromChartReturnsOnCall(i int, result1
 	}{result1, result2}
 }
 
+func (fake *FakeMyHelmClient) UpdateReleaseFromChartWithContext(arg1 context.Context, arg2 string, arg3 *chart.Chart, arg4 ...helma.UpdateOption) (*services.UpdateReleaseResponse, error) {
+	fake.updateReleaseFromChartWithContextMutex.Lock()
+	ret, specificReturn := fake.updateReleaseFromChartWithContextReturnsOnCall[len(fake.updateReleaseFromChartWithContextArgsForCall)]
+	fake.updateReleaseFromChartWithContextArgsForCall = append(fake.updateReleaseFromChartWithContextArgsForCall, struct {
+		arg1 context.Context
+		arg2 string
+		arg3 *chart.Chart
+		arg4 []helma.UpdateOption
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("UpdateReleaseFromChartWithContext", []interface{}{arg1, arg2, arg3, arg4})
+	fake.updateReleaseFromChartWithContextMutex.Unlock()
+	if fake.UpdateReleaseFromChartWithContextStub != nil {
+		return fake.UpdateReleaseFromChartWithContextStub(arg1, arg2, arg3, arg4...)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.updateReleaseFromChartWithContextReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeMyHelmClient) UpdateReleaseFromChartWithContextCallCount() int {
+	fake.updateReleaseFromChartWithContextMutex.RLock()
+	defer fake.updateReleaseFromChartWithContextMutex.RUnlock()
+	return len(fake.updateReleaseFromChartWithContextArgsForCall)
+}
+
+func (fake *FakeMyHelmClient) UpdateReleaseFromChartWithContextCalls(stub func(context.Context, string, *chart.Chart, ...helma.UpdateOption) (*services.UpdateReleaseResponse, error)) {
+	fake.updateReleaseFromChartWithContextMutex.Lock()
+	defer fake.updateReleaseFromChartWithContextMutex.Unlock()
+	fake.UpdateReleaseFromChartWithContextStub = stub
+}
+
+func (fake *FakeMyHelmClient) UpdateReleaseFromChartWithContextArgsForCall(i int) (context.Context, string, *chart.Chart, []helma.UpdateOption) {
+	fake.updateReleaseFromChartWithContextMutex.RLock()
+	defer fake.updateReleaseFromChartWithContextMutex.RUnlock()
+	argsForCall := fake.updateReleaseFromChartWithContextArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+}
+
+func (fake *FakeMyHelmClient) UpdateReleaseFromChartWithContextReturns(result1 *services.UpdateReleaseResponse, result2 error) {
+	fake.updateReleaseFromChartWithContextMutex.Lock()
+	defer fake.updateReleaseFromChartWithContextMutex.Unlock()
+	fake.UpdateReleaseFromChartWithContextStub = nil
+	fake.updateReleaseFromChartWithContextReturns = struct {
+		result1 *services.UpdateReleaseResponse
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) UpdateReleaseFromChartWithContextReturnsOnCall(i int, result1 *services.UpdateReleaseResponse, result2 error) {
+	fake.updateReleaseFromChartWithContextMutex.Lock()
+	defer fake.updateReleaseFromChartWithContextMutex.Unlock()
+	fake.UpdateReleaseFromChartWithContextStub = nil
+	if fake.updateReleaseFromChartWithContextReturnsOnCall == nil {
+		fake.updateReleaseFromChartWithContextReturnsOnCall = make(map[int]struct {
+			result1 *services.UpdateReleaseResponse
+			result2 error
+		})
+	}
+	fake.updateReleaseFromChartWithContextReturnsOnCall[i] = struct {
+		result1 *services.UpdateReleaseResponse
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) UpdateReleaseWithContext(arg1 context.Context, arg2 string, arg3 string, arg4 ...helma.UpdateOption) (*services.UpdateReleaseResponse, error) {
+	fake.updateReleaseWithContextMutex.Lock()
+	ret, specificReturn := fake.updateReleaseWithContextReturnsOnCall[len(fake.updateReleaseWithContextArgsForCall)]
+	fake.updateReleaseWithContextArgsForCall = append(fake.updateReleaseWithContextArgsForCall, struct {
+		arg1 context.Context
+		arg2 string
+		arg3 string
+		arg4 []helma.UpdateOption
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("UpdateReleaseWithContext", []interface{}{arg1, arg2, arg3, arg4})
+	fake.updateReleaseWithContextMutex.Unlock()
+	if fake.UpdateReleaseWithContextStub != nil {
+		return fake.UpdateReleaseWithContextStub(arg1, arg2, arg3, arg4...)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.updateReleaseWithContextReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeMyHelmClient) UpdateReleaseWithContextCallCount() int {
+	fake.updateReleaseWithContextMutex.RLock()
+	defer fake.updateReleaseWithContextMutex.RUnlock()
+	return len(fake.updateReleaseWithContextArgsForCall)
+}
+
+func (fake *FakeMyHelmClient) UpdateReleaseWithContextCalls(stub func(context.Context, string, string, ...helma.UpdateOption) (*services.UpdateReleaseResponse, error)) {
+	fake.updateReleaseWithContextMutex.Lock()
+	defer fake.updateReleaseWithContextMutex.Unlock()
+	fake.UpdateReleaseWithContextStub = stub
+}
+
+func (fake *FakeMyHelmClient) UpdateReleaseWithContextArgsForCall(i int) (context.Context, string, string, []helma.UpdateOption) {
+	fake.updateReleaseWithContextMutex.RLock()
+	defer fake.updateReleaseWithContextMutex.RUnlock()
+	argsForCall := fake.updateReleaseWithContextArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+}
+
+func (fake *FakeMyHelmClient) UpdateReleaseWithContextReturns(result1 *services.UpdateReleaseResponse, result2 error) {
+	fake.updateReleaseWithContextMutex.Lock()
+	defer fake.updateReleaseWithContextMutex.Unlock()
+	fake.UpdateReleaseWithContextStub = nil
+	fake.updateReleaseWithContextReturns = struct {
+		result1 *services.UpdateReleaseResponse
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeMyHelmClient) UpdateReleaseWithContextReturnsOnCall(i int, result1 *services.UpdateReleaseResponse, result2 error) {
+	fake.updateReleaseWithContextMutex.Lock()
+	defer fake.updateReleaseWithContextMutex.Unlock()
+	fake.UpdateReleaseWithContextStub = nil
+	if fake.updateReleaseWithContextReturnsOnCall == nil {
+		fake.updateReleaseWithContextReturnsOnCall = make(map[int]struct {
+			result1 *services.UpdateReleaseResponse
+			result2 error
+		})
+	}
+	fake.updateReleaseWithContextReturnsOnCall[i] = struct {
+		result1 *services.UpdateReleaseResponse
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeMyHelmClient) Upgrade(arg1 *installer.Options) error {
 	fake.upgradeMutex.Lock()
 	ret, specificReturn := fake.upgradeReturnsOnCall[len(fake.upgradeArgsForCall)]
@@ -1817,6 +2146,10 @@ func (fake *FakeMyHelmClient) Invocations() map[string][][]interface{} {
 	defer fake.installReleaseMutex.RUnlock()
 	fake.installReleaseFromChartMutex.RLock()
 	defer fake.installReleaseFromChartMutex.RUnlock()
+	fake.installReleaseFromChartWithContextMutex.RLock()
+	defer fake.installReleaseFromChartWithContextMutex.RUnlock()
+	fake.installReleaseWithContextMutex.RLock()
+	defer fake.installReleaseWithContextMutex.RUnlock()
 	fake.listReleasesMutex.RLock()
 	defer fake.listReleasesMutex.RUnlock()
 	fake.pingTillerMutex.RLock()
@@ -1845,6 +2178,10 @@ func (fake *FakeMyHelmClient) Invocations() map[string][][]interface{} {
 	defer fake.updateReleaseMutex.RUnlock()
 	fake.updateReleaseFromChartMutex.RLock()
 	defer fake.updateReleaseFromChartMutex.RUnlock()
+	fake.updateReleaseFromChartWithContextMutex.RLock()
+	defer fake.updateReleaseFromChartWithContextMutex.RUnlock()
+	fake.updateReleaseWithContextMutex.RLock()
+	defer fake.updateReleaseWithContextMutex.RUnlock()
 	fake.upgradeMutex.RLock()
 	defer fake.upgradeMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
