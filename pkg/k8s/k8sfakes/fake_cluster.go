@@ -141,6 +141,19 @@ type FakeCluster struct {
 		result1 *v1beta1a.Deployment
 		result2 error
 	}
+	GetIngressStub        func(string) ([]map[string]interface{}, error)
+	getIngressMutex       sync.RWMutex
+	getIngressArgsForCall []struct {
+		arg1 string
+	}
+	getIngressReturns struct {
+		result1 []map[string]interface{}
+		result2 error
+	}
+	getIngressReturnsOnCall map[int]struct {
+		result1 []map[string]interface{}
+		result2 error
+	}
 	GetNamespaceStub        func(string, *v1a.GetOptions) (*v1.Namespace, error)
 	getNamespaceMutex       sync.RWMutex
 	getNamespaceArgsForCall []struct {
@@ -220,6 +233,20 @@ type FakeCluster struct {
 	}
 	listDeploymentsReturnsOnCall map[int]struct {
 		result1 *k8s.DeploymentList
+		result2 error
+	}
+	ListIngressStub        func(string, v1a.ListOptions) (*v1beta1a.IngressList, error)
+	listIngressMutex       sync.RWMutex
+	listIngressArgsForCall []struct {
+		arg1 string
+		arg2 v1a.ListOptions
+	}
+	listIngressReturns struct {
+		result1 *v1beta1a.IngressList
+		result2 error
+	}
+	listIngressReturnsOnCall map[int]struct {
+		result1 *v1beta1a.IngressList
 		result2 error
 	}
 	ListNodesStub        func(v1a.ListOptions) (*v1.NodeList, error)
@@ -975,6 +1002,69 @@ func (fake *FakeCluster) GetDeploymentReturnsOnCall(i int, result1 *v1beta1a.Dep
 	}{result1, result2}
 }
 
+func (fake *FakeCluster) GetIngress(arg1 string) ([]map[string]interface{}, error) {
+	fake.getIngressMutex.Lock()
+	ret, specificReturn := fake.getIngressReturnsOnCall[len(fake.getIngressArgsForCall)]
+	fake.getIngressArgsForCall = append(fake.getIngressArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("GetIngress", []interface{}{arg1})
+	fake.getIngressMutex.Unlock()
+	if fake.GetIngressStub != nil {
+		return fake.GetIngressStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.getIngressReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeCluster) GetIngressCallCount() int {
+	fake.getIngressMutex.RLock()
+	defer fake.getIngressMutex.RUnlock()
+	return len(fake.getIngressArgsForCall)
+}
+
+func (fake *FakeCluster) GetIngressCalls(stub func(string) ([]map[string]interface{}, error)) {
+	fake.getIngressMutex.Lock()
+	defer fake.getIngressMutex.Unlock()
+	fake.GetIngressStub = stub
+}
+
+func (fake *FakeCluster) GetIngressArgsForCall(i int) string {
+	fake.getIngressMutex.RLock()
+	defer fake.getIngressMutex.RUnlock()
+	argsForCall := fake.getIngressArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeCluster) GetIngressReturns(result1 []map[string]interface{}, result2 error) {
+	fake.getIngressMutex.Lock()
+	defer fake.getIngressMutex.Unlock()
+	fake.GetIngressStub = nil
+	fake.getIngressReturns = struct {
+		result1 []map[string]interface{}
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCluster) GetIngressReturnsOnCall(i int, result1 []map[string]interface{}, result2 error) {
+	fake.getIngressMutex.Lock()
+	defer fake.getIngressMutex.Unlock()
+	fake.GetIngressStub = nil
+	if fake.getIngressReturnsOnCall == nil {
+		fake.getIngressReturnsOnCall = make(map[int]struct {
+			result1 []map[string]interface{}
+			result2 error
+		})
+	}
+	fake.getIngressReturnsOnCall[i] = struct {
+		result1 []map[string]interface{}
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeCluster) GetNamespace(arg1 string, arg2 *v1a.GetOptions) (*v1.Namespace, error) {
 	fake.getNamespaceMutex.Lock()
 	ret, specificReturn := fake.getNamespaceReturnsOnCall[len(fake.getNamespaceArgsForCall)]
@@ -1345,6 +1435,70 @@ func (fake *FakeCluster) ListDeploymentsReturnsOnCall(i int, result1 *k8s.Deploy
 	}
 	fake.listDeploymentsReturnsOnCall[i] = struct {
 		result1 *k8s.DeploymentList
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCluster) ListIngress(arg1 string, arg2 v1a.ListOptions) (*v1beta1a.IngressList, error) {
+	fake.listIngressMutex.Lock()
+	ret, specificReturn := fake.listIngressReturnsOnCall[len(fake.listIngressArgsForCall)]
+	fake.listIngressArgsForCall = append(fake.listIngressArgsForCall, struct {
+		arg1 string
+		arg2 v1a.ListOptions
+	}{arg1, arg2})
+	fake.recordInvocation("ListIngress", []interface{}{arg1, arg2})
+	fake.listIngressMutex.Unlock()
+	if fake.ListIngressStub != nil {
+		return fake.ListIngressStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.listIngressReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeCluster) ListIngressCallCount() int {
+	fake.listIngressMutex.RLock()
+	defer fake.listIngressMutex.RUnlock()
+	return len(fake.listIngressArgsForCall)
+}
+
+func (fake *FakeCluster) ListIngressCalls(stub func(string, v1a.ListOptions) (*v1beta1a.IngressList, error)) {
+	fake.listIngressMutex.Lock()
+	defer fake.listIngressMutex.Unlock()
+	fake.ListIngressStub = stub
+}
+
+func (fake *FakeCluster) ListIngressArgsForCall(i int) (string, v1a.ListOptions) {
+	fake.listIngressMutex.RLock()
+	defer fake.listIngressMutex.RUnlock()
+	argsForCall := fake.listIngressArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeCluster) ListIngressReturns(result1 *v1beta1a.IngressList, result2 error) {
+	fake.listIngressMutex.Lock()
+	defer fake.listIngressMutex.Unlock()
+	fake.ListIngressStub = nil
+	fake.listIngressReturns = struct {
+		result1 *v1beta1a.IngressList
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCluster) ListIngressReturnsOnCall(i int, result1 *v1beta1a.IngressList, result2 error) {
+	fake.listIngressMutex.Lock()
+	defer fake.listIngressMutex.Unlock()
+	fake.ListIngressStub = nil
+	if fake.listIngressReturnsOnCall == nil {
+		fake.listIngressReturnsOnCall = make(map[int]struct {
+			result1 *v1beta1a.IngressList
+			result2 error
+		})
+	}
+	fake.listIngressReturnsOnCall[i] = struct {
+		result1 *v1beta1a.IngressList
 		result2 error
 	}{result1, result2}
 }
@@ -2018,6 +2172,8 @@ func (fake *FakeCluster) Invocations() map[string][][]interface{} {
 	defer fake.getClientConfigMutex.RUnlock()
 	fake.getDeploymentMutex.RLock()
 	defer fake.getDeploymentMutex.RUnlock()
+	fake.getIngressMutex.RLock()
+	defer fake.getIngressMutex.RUnlock()
 	fake.getNamespaceMutex.RLock()
 	defer fake.getNamespaceMutex.RUnlock()
 	fake.getNamespacesMutex.RLock()
@@ -2030,6 +2186,8 @@ func (fake *FakeCluster) Invocations() map[string][][]interface{} {
 	defer fake.listClusterRoleBindingsMutex.RUnlock()
 	fake.listDeploymentsMutex.RLock()
 	defer fake.listDeploymentsMutex.RUnlock()
+	fake.listIngressMutex.RLock()
+	defer fake.listIngressMutex.RUnlock()
 	fake.listNodesMutex.RLock()
 	defer fake.listNodesMutex.RUnlock()
 	fake.listPersistentVolumesMutex.RLock()
