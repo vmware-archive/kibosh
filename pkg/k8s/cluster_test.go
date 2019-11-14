@@ -223,12 +223,12 @@ users:
 				},
 			}
 
-			fakeClusterDelegate.ListIngressReturns(&ingressList, nil)
+			fakeClusterDelegate.ListIngressesReturns(&ingressList, nil)
 
 			cluster, err := NewUnitTestCluster(&fakeClusterDelegate)
 			Expect(err).To(BeNil())
 
-			ingress, err := cluster.GetIngress("mynamespaceid")
+			ingress, err := cluster.GetIngresses("mynamespaceid")
 			Expect(err).To(BeNil())
 
 			spec := ingress[0]["spec"]
