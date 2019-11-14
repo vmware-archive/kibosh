@@ -43,6 +43,7 @@ type Cluster interface {
 	GetSecretsAndServices(namespace string) (map[string][]map[string]interface{}, error)
 	SecretExists(namespaceName string, secretName string) (bool, error)
 	CreateOrUpdateSecret(namespaceName string, secret *api_v1.Secret) (*api_v1.Secret, error)
+	GetIngresses(namespace string) ([]map[string]interface{}, error)
 }
 
 //go:generate counterfeiter ./ ClusterDelegate
@@ -69,6 +70,7 @@ type ClusterDelegate interface {
 	Patch(nameSpace string, name string, pt types.PatchType, data []byte, subresources ...string) (result *api_v1.ServiceAccount, err error)
 	ListPersistentVolumes(nameSpace string, listOptions meta_v1.ListOptions) (*api_v1.PersistentVolumeClaimList, error)
 	ListDeployments(nameSpace string, listOptions meta_v1.ListOptions) (*DeploymentList, error)
+	ListIngresses(nameSpace string, listOptions meta_v1.ListOptions) (*v1_beta1.IngressList, error)
 }
 
 type cluster struct {
@@ -244,6 +246,25 @@ func (cluster *cluster) GetSecretsAndServices(namespace string) (map[string][]ma
 
 }
 
+func (cluster *cluster) GetIngresses(namespace string) ([]map[string]interface{}, error) {
+	ingresses, err := cluster.ListIngresses(namespace, meta_v1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var ingressMap []map[string]interface{}
+	for _, ingress := range ingresses.Items {
+		ingressInfo := map[string]interface{}{
+			"name":     ingress.ObjectMeta.Name,
+			"metadata": ingress.ObjectMeta,
+			"spec":     ingress.Spec,
+			"status":   ingress.Status,
+		}
+		ingressMap = append(ingressMap, ingressInfo)
+	}
+	return ingressMap, nil
+}
+
 func (cluster *cluster) SecretExists(namespaceName string, secretName string) (bool, error) {
 	_, err := cluster.GetSecret(namespaceName, secretName, meta_v1.GetOptions{})
 	if err != nil {
@@ -403,4 +424,12 @@ func (cluster *clusterDelegate) ListDeployments(nameSpace string, listOptions me
 		deployments.Items = append(deployments.Items, newDeployment)
 	}
 	return &deployments, nil
+}
+
+func (cluster *clusterDelegate) ListIngresses(nameSpace string, listOptions meta_v1.ListOptions) (*v1_beta1.IngressList, error) {
+	list, err := cluster.GetClient().ExtensionsV1beta1().Ingresses(nameSpace).List(listOptions)
+	if err != nil {
+		return nil, err
+	}
+	return list, nil
 }

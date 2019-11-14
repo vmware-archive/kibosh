@@ -23,6 +23,8 @@ import (
 	"net/http/httptest"
 	"os"
 
+	"k8s.io/apimachinery/pkg/util/intstr"
+
 	"github.com/cf-platform-eng/kibosh/pkg/k8s/k8sfakes"
 
 	"github.com/cf-platform-eng/kibosh/pkg/config"
@@ -30,6 +32,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	api_v1 "k8s.io/api/core/v1"
+	v1_beta1 "k8s.io/api/extensions/v1beta1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sAPI "k8s.io/client-go/tools/clientcmd/api"
@@ -185,6 +188,52 @@ users:
 
 		BeforeEach(func() {
 			fakeClusterDelegate = k8sfakes.FakeClusterDelegate{}
+		})
+
+		It("get ingress", func() {
+			ingressList := v1_beta1.IngressList{
+				TypeMeta: meta_v1.TypeMeta{},
+				ListMeta: meta_v1.ListMeta{},
+				Items: []v1_beta1.Ingress{
+					{
+						ObjectMeta: meta_v1.ObjectMeta{
+							Name: "test-ingress",
+						},
+						Spec: v1_beta1.IngressSpec{
+							Rules: []v1_beta1.IngressRule{
+								{
+									Host: "test.apps.example.info",
+									IngressRuleValue: v1_beta1.IngressRuleValue{
+										HTTP: &v1_beta1.HTTPIngressRuleValue{
+											Paths: []v1_beta1.HTTPIngressPath{
+												{
+													Path: "path",
+													Backend: v1_beta1.IngressBackend{
+														ServiceName: "hello-service",
+														ServicePort: intstr.FromInt(80),
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			}
+
+			fakeClusterDelegate.ListIngressesReturns(&ingressList, nil)
+
+			cluster, err := NewUnitTestCluster(&fakeClusterDelegate)
+			Expect(err).To(BeNil())
+
+			ingress, err := cluster.GetIngresses("mynamespaceid")
+			Expect(err).To(BeNil())
+
+			spec := ingress[0]["spec"]
+			serviceName := spec.(v1_beta1.IngressSpec).Rules[0].IngressRuleValue.HTTP.Paths[0].Backend.ServiceName
+			Expect(serviceName).To(Equal("hello-service"))
 		})
 
 		It("create namespace is called when namespace doesn't exist", func() {
