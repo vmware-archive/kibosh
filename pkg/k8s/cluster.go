@@ -247,20 +247,20 @@ func (cluster *cluster) GetSecretsAndServices(namespace string) (map[string][]ma
 }
 
 func (cluster *cluster) GetIngress(namespace string) ([]map[string]interface{}, error) {
-	ingress, err := cluster.ListIngress(namespace, meta_v1.ListOptions{})
+	ingressList, err := cluster.ListIngress(namespace, meta_v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
 	var ingressMap []map[string]interface{}
-	for _, service := range ingress.Items {
-		credentialService := map[string]interface{}{
-			"name":     service.ObjectMeta.Name,
-			"metadata": service.ObjectMeta,
-			"spec":     service.Spec,
-			"status":   service.Status,
+	for _, ingress := range ingressList.Items {
+		ingressInfo := map[string]interface{}{
+			"name":     ingress.ObjectMeta.Name,
+			"metadata": ingress.ObjectMeta,
+			"spec":     ingress.Spec,
+			"status":   ingress.Status,
 		}
-		ingressMap = append(ingressMap, credentialService)
+		ingressMap = append(ingressMap, ingressInfo)
 	}
 	return ingressMap, nil
 }
