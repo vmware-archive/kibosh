@@ -123,3 +123,4 @@ instance_groups:
 variables:
 - name: kibosh-password
   type: password
+
