@@ -45,7 +45,7 @@ type Installer interface {
 }
 
 const (
-	TillerTag string = "v2.13.1"
+	TillerTag string = "v2.16.1"
 )
 
 const (

@@ -22,6 +22,7 @@ import (
 	api_v1 "k8s.io/api/core/v1"
 	v1_beta1 "k8s.io/api/extensions/v1beta1"
 	rbacv1beta1 "k8s.io/api/rbac/v1beta1"
+	"k8s.io/apiextensions-apiserver/pkg/client/clientset/internalclientset"
 	errors2 "k8s.io/apimachinery/pkg/api/errors"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,7 +31,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	k8sAPI "k8s.io/client-go/tools/clientcmd/api"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	deploymentutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 )
 
@@ -162,7 +162,6 @@ func GetClusterFromK8sConfig(k8sConfig *k8sAPI.Config) (Cluster, error) {
 }
 
 func (cluster *cluster) CreateNamespaceIfNotExists(namespace *api_v1.Namespace) error {
-
 	exists, err := cluster.NamespaceExists(namespace.Name)
 	if err != nil {
 		return err
@@ -175,7 +174,6 @@ func (cluster *cluster) CreateNamespaceIfNotExists(namespace *api_v1.Namespace) 
 }
 
 func (cluster *cluster) NamespaceExists(namespaceName string) (bool, error) {
-
 	_, err := cluster.GetNamespace(namespaceName, nil)
 	if err != nil {
 		statusError, ok := err.(*k8s_errors.StatusError)

@@ -16,6 +16,7 @@
 package helm
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
@@ -198,6 +199,10 @@ func (c myHelmClient) InstallRelease(chStr, namespace string, opts ...helm.Insta
 	panic("Not yet implemented")
 }
 
+func (c myHelmClient) InstallReleaseWithContext(ctx context.Context, chStr, namespace string, opts ...helm.InstallOption) (*rls.InstallReleaseResponse, error) {
+	panic("Not yet implemented")
+}
+
 func (c myHelmClient) InstallReleaseFromChart(myChart *chart.Chart, namespace string, opts ...helm.InstallOption) (*rls.InstallReleaseResponse, error) {
 	tunnel, client, err := c.open()
 	if err != nil {
@@ -206,6 +211,16 @@ func (c myHelmClient) InstallReleaseFromChart(myChart *chart.Chart, namespace st
 	defer tunnel.Close()
 
 	return client.InstallReleaseFromChart(myChart, namespace, opts...)
+}
+
+func (c myHelmClient) InstallReleaseFromChartWithContext(ctx context.Context, chart *chart.Chart, namespace string, opts ...helm.InstallOption) (*rls.InstallReleaseResponse, error) {
+	tunnel, client, err := c.open()
+	if err != nil {
+		return nil, err
+	}
+	defer tunnel.Close()
+
+	return client.InstallReleaseFromChartWithContext(ctx, chart, namespace, opts...)
 }
 
 func (c myHelmClient) InstallChart(registryConfig *config.RegistryConfig, namespace api_v1.Namespace, releaseName string, chart *MyChart, planName string, installValues []byte, opts ...helm.InstallOption) (*rls.InstallReleaseResponse, error) {
@@ -472,6 +487,10 @@ func (c myHelmClient) UpdateRelease(rlsName, chStr string, opts ...helm.UpdateOp
 	panic("Not yet implemented")
 }
 
+func (c myHelmClient) UpdateReleaseWithContext(ctx context.Context, rlsName, chStr string, opts ...helm.UpdateOption) (*rls.UpdateReleaseResponse, error) {
+	panic("Not yet implemented")
+}
+
 func (c myHelmClient) UpdateReleaseFromChart(rlsName string, chart *chart.Chart, opts ...helm.UpdateOption) (*rls.UpdateReleaseResponse, error) {
 	tunnel, client, err := c.open()
 	if err != nil {
@@ -480,6 +499,16 @@ func (c myHelmClient) UpdateReleaseFromChart(rlsName string, chart *chart.Chart,
 	defer tunnel.Close()
 
 	return client.UpdateReleaseFromChart(rlsName, chart, opts...)
+}
+
+func (c myHelmClient) UpdateReleaseFromChartWithContext(ctx context.Context, rlsName string, chart *chart.Chart, opts ...helm.UpdateOption) (*rls.UpdateReleaseResponse, error) {
+	tunnel, client, err := c.open()
+	if err != nil {
+		return nil, err
+	}
+	defer tunnel.Close()
+
+	return client.UpdateReleaseFromChartWithContext(ctx, rlsName, chart, opts...)
 }
 
 func (c myHelmClient) RollbackRelease(rlsName string, opts ...helm.RollbackOption) (*rls.RollbackReleaseResponse, error) {

@@ -34,7 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-const helmVersion = "v2.13.1"
+const helmVersion = "v2.16.1"
 
 var _ = Describe("KubeConfig", func() {
 	var logger *logrus.Logger

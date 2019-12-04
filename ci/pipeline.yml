@@ -205,13 +205,13 @@ resources:
   type: docker-image
   source:
     repository: gcr.io/kubernetes-helm/tiller
-    tag: v2.13.1
+    tag: v2.16.1
 
 - name: private-tiller-image
   type: docker-image
   source:
     repository: bazaarfeedback1/tiller
-    tag: v2.13.1
+    tag: v2.16.1
     username: {{deployment_registry_user}}
     password: {{deployment_registry_pass}}
 
