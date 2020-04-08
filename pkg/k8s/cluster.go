@@ -16,7 +16,6 @@
 package k8s
 
 import (
-	"github.com/cf-platform-eng/kibosh/pkg/config"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	api_v1 "k8s.io/api/core/v1"
@@ -32,6 +31,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	k8sAPI "k8s.io/client-go/tools/clientcmd/api"
 	deploymentutil "k8s.io/kubernetes/pkg/controller/deployment/util"
+
+	"github.com/cf-platform-eng/kibosh/pkg/config"
 )
 
 //go:generate counterfeiter ./ Cluster
@@ -148,14 +149,18 @@ func GetClusterFromK8sConfig(k8sConfig *k8sAPI.Config) (Cluster, error) {
 	context := k8sConfig.Contexts[k8sConfig.CurrentContext]
 	authInfo := k8sConfig.AuthInfos[context.AuthInfo]
 	token := authInfo.Token
+	username := authInfo.Username
+	password := authInfo.Password
 	server := k8sConfig.Clusters[context.Cluster].Server
 	cert := k8sConfig.Clusters[context.Cluster].CertificateAuthorityData
 
 	var creds *config.ClusterCredentials
 	creds = &config.ClusterCredentials{
-		CAData: cert,
-		Server: server,
-		Token:  token,
+		CAData:   cert,
+		Server:   server,
+		Token:    token,
+		Username: username,
+		Password: password,
 	}
 
 	return NewCluster(creds)
@@ -306,6 +311,8 @@ func buildClientConfig(credentials *config.ClusterCredentials) (*rest.Config, er
 		Host:            credentials.Server,
 		BearerToken:     credentials.Token,
 		TLSClientConfig: tlsClientConfig,
+		Username:        credentials.Username,
+		Password:        credentials.Password,
 	}, nil
 }
 

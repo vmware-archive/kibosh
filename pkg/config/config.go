@@ -16,8 +16,9 @@
 package config
 
 import (
-	"github.com/cf-platform-eng/kibosh/pkg/moreio"
 	"github.com/kelseyhightower/envconfig"
+
+	"github.com/cf-platform-eng/kibosh/pkg/moreio"
 
 	"encoding/base64"
 	"encoding/json"
@@ -31,6 +32,8 @@ type ClusterCredentials struct {
 	CAData    []byte
 	Server    string `envconfig:"SERVER" json:"server"`
 	Token     string `envconfig:"TOKEN" json:"token"`
+	Username  string `envconfig:"USERNAME" json:"username"`
+	Password  string `envconfig:"PASSWORD" json:"password"`
 }
 
 type RegistryConfig struct {
