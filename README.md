@@ -51,11 +51,11 @@ Kibosh requires that helm chart has additional file that describes plan in `plan
 
 ```yaml
 - name: "small"
-description: "default (small) plan for mysql"
-file: "small.yaml"
+  description: "default (small) plan for mysql"
+  file: "small.yaml"
 - name: "medium"
-description: "medium sized plan for mysql"
-file: "medium.yaml"
+  description: "medium sized plan for mysql"
+  file: "medium.yaml"
 ```
 
 * `file` is a filename that exists in the `plans` subdirectory of the chart.
@@ -64,7 +64,7 @@ file: "medium.yaml"
 * Each plan's yaml file is a set of values overriding the defaults present in `values.yaml`.  
 
 Copy any key/value pairs to override from `values.yaml` into a new plan file and change their value.  
-See kibosh-sample's [sample-charts](https://github.com/cf-platform-eng/kibosh-sample/tree/master/sample-charts) for a few examples.
+See kibosh-sample's [sample-charts](https://github.com/cf-platform-eng/ksm-sample) for a few examples.
 
 In order to successfully pull private images, we're imposing some requirements
 on the `values.yaml` file structure
@@ -347,7 +347,7 @@ charts
 ...
 ```
 
-We have modified [some example charts](https://github.com/cf-platform-eng/kibosh-sample/tree/master/sample-charts) from stable helm repository.
+We have modified [some example charts](https://github.com/cf-platform-eng/ksm-sample) from stable helm repository.
  
 ### Test
 ```bash
