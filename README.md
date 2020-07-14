@@ -1,3 +1,6 @@
+# Notice
+7/13/2020 - Kibosh is an experiment. We will no longer be adding new features. We will not be adding support for Helm 3.
+
 # Kibosh
 
 An [open service broker](https://github.com/openservicebrokerapi/servicebroker)
