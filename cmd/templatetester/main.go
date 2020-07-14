@@ -6,9 +6,10 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/ghodss/yaml"
+
 	"github.com/cf-platform-eng/kibosh/pkg/helm"
 	"github.com/cf-platform-eng/kibosh/pkg/k8s"
-	"github.com/ghodss/yaml"
 )
 
 func main() {
